@@ -26,6 +26,9 @@ jobs:
       - name: Lint
         run: deno lint
 
+      - name: Formatting
+        run: demo fmt --check
+
       - name: Unit tests
         run: deno test
 
