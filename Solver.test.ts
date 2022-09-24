@@ -13,14 +13,14 @@ const solve = (expression: string): Type => {
   const subst = solver(constraints.constraints);
 
   return type.apply(subst);
-}
+};
 
 const assertType = (expression: string, expected: Type) => {
   assertEquals(
     solve(expression),
     expected,
   );
-}
+};
 
 Deno.test("solve \\x -> \\y -> \\z -> x + y + z", () => {
   assertType(
