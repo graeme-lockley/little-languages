@@ -27,4 +27,4 @@ jobs:
         run: deno lint
 
       - name: Check formatting
-        run: deno fmt --check
+        run: "deno fmt --check"
