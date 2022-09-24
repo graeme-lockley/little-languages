@@ -60,10 +60,10 @@ Deno.test("solve let identity = \\n -> n in identity", () => {
 
   const subst = solver(constraints.constraints);
 
-    assertEquals(
-      type.apply(subst),
-      new TArr(new TVar("V2"), new TVar("V2")),
-    );
+  assertEquals(
+    type.apply(subst),
+    new TArr(new TVar("V2"), new TVar("V2")),
+  );
 });
 
 Deno.test("solve let compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
