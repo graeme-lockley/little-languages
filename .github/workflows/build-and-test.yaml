@@ -1,0 +1,36 @@
+name: build-and-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+
+      - name: Lint
+        run: |
+          deno lint
+
+      - name: Check formatting
+        run: |
+          deno fmt --check
+
+      - name: Unit tests
+        run: |
+          deno test
