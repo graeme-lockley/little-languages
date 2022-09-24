@@ -18,19 +18,16 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      - uses: denoland/setup-deno@v1
+      - name: Install deno
+        uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
 
-
       - name: Lint
-        run: |
-          deno lint
+        run: deno lint
 
       - name: Check formatting
-        run: |
-          deno fmt --check
+        run: deno fmt --check
 
       - name: Unit tests
-        run: |
-          deno test
+        run: deno test
