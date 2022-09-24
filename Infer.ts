@@ -1,4 +1,5 @@
 import { Expression, Op } from "./Parser.ts";
+import { solver } from "./Solver.ts";
 import {
   createFresh,
   Scheme,
@@ -60,9 +61,13 @@ export const inferExpression = (
     }
     if (expr.type === "Let") {
       const tb = infer(env, expr.body);
-      const sc = env.generalise(tb);
-      const te = infer(env.extend(expr.name, sc), expr.expr);
-      return te;
+
+      const subst = solver(constraints.constraints);
+
+      const newEnv = env.apply(subst);
+      const sc = newEnv.generalise(tb.apply(subst));
+
+      return infer(newEnv.extend(expr.name, sc), expr.expr);
     }
     if (expr.type === "LBool") {
       return typeBool;

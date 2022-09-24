@@ -38,6 +38,26 @@ Deno.test("solve \\f -> \\g -> \\x -> f (g x)", () => {
   );
 });
 
+Deno.test("solve let compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
+  const [constraints, type] = inferExpression(
+    emptyTypeEnv,
+    parse("let compose = \\f -> \\g -> \\x -> f (g x) in compose").expr,
+  );
+
+  const subst = solver(constraints.constraints);
+
+  assertEquals(
+    type.apply(subst),
+    new TArr(
+      new TArr(new TVar("V6"), new TVar("V7")),
+      new TArr(
+        new TArr(new TVar("V8"), new TVar("V6")),
+        new TArr(new TVar("V8"), new TVar("V7")),
+      ),
+    ),
+  );
+});
+
 Deno.test("solve let f = (\\x -> x) in let g = (f True) in f 3", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
@@ -64,24 +84,4 @@ Deno.test("solve let identity = \\n -> n in identity", () => {
     type.apply(subst),
     new TArr(new TVar("V2"), new TVar("V2")),
   );
-});
-
-Deno.test("solve let compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
-  const [constraints, _type] = inferExpression(
-    emptyTypeEnv,
-    parse("let compose = \\f -> \\g -> \\x -> f (g x) in compose").expr,
-  );
-
-  // console.log(JSON.stringify(constraints.constraints, null, 2));
-  // console.log(type);
-
-  const _subst = solver(constraints.constraints);
-
-  //   console.log(subst);
-  // console.log(type.apply(subst));
-
-  //   assertEquals(
-  //     type.apply(subst),
-  //     new TArr(typeInt, new TArr(typeInt, new TArr(typeInt, typeInt))),
-  //   );
 });
