@@ -27,7 +27,7 @@ jobs:
         run: deno lint
 
       - name: Formatting
-        run: demo fmt --check
+        run: 'deno fmt --check'
 
       - name: Unit tests
         run: deno test
