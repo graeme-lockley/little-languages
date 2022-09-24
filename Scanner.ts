@@ -1,4 +1,5 @@
-const tokenRegExp = /->|==|(--.*)|[\\()=+\\-\\*\\/;\n]|([A-Za-z]\w*)|(\d+)|([!-~]+)/g;
+const tokenRegExp =
+  /->|==|(--.*)|[\\()=+\\-\\*\\/;\n]|([A-Za-z]\w*)|(\d+)|([!-~]+)/g;
 
 export enum TokenType {
   OpenParen,
