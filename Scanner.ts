@@ -1,4 +1,4 @@
-const tokenRegExp = /->|==|[\\()=+\\-\\*\\/;\n]|([A-Za-z]\w*)|(\d+)|([!-~]+)/g;
+const tokenRegExp = /->|==|(--.*)|[\\()=+\\-\\*\\/;\n]|([A-Za-z]\w*)|(\d+)|([!-~]+)/g;
 
 export enum TokenType {
   OpenParen,
@@ -65,10 +65,12 @@ export const scanner = (input: string) => {
     if (tokenMap[match[0]] !== undefined) {
       type = tokenMap[match[0]];
     } else if (match[1]) {
-      type = TokenType.Identifier;
+      type = undefined;
     } else if (match[2]) {
-      type = TokenType.LiteralInt;
+      type = TokenType.Identifier;
     } else if (match[3]) {
+      type = TokenType.LiteralInt;
+    } else if (match[4]) {
       type = TokenType.Error;
     }
 
@@ -93,4 +95,4 @@ export const scanner = (input: string) => {
   return tokens;
 };
 
-// console.log(scanner("abc ( 123 )"));
+// console.log(scanner("abc ( 123 else ) -- hello world $$\nx"));
