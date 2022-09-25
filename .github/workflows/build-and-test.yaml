@@ -23,6 +23,11 @@ jobs:
         with:
           deno-version: v1.x
 
+      - name: Generate parser and scanner
+        run: |
+          cd ./deno-stlc
+          ./tasks/dev parser
+
       - name: Lint
         run: |
           cd ./deno-stlc
