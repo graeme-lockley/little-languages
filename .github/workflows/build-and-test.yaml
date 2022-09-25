@@ -11,7 +11,7 @@ defaults:
     shell: bash
 
 jobs:
-  build-and-test:
+  'deno-stlc':
     runs-on: ubuntu-latest
 
     steps:
@@ -24,11 +24,17 @@ jobs:
           deno-version: v1.x
 
       - name: Lint
-        run: deno lint
+        run: |
+          cd ./deno-stlc
+          deno lint
 
       - name: Formatting
-        run: 'deno fmt --check'
+        run: |
+          cd ./deno-stlc
+          deno fmt --check
 
       - name: Unit tests
-        run: deno test
+        run: |
+          cd ./deno-stlc
+          deno test
 
