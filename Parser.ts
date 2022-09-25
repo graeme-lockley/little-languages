@@ -2,11 +2,7 @@ import { scanner, TokenType } from "./Scanner.ts";
 
 /*
 program
-  : {declaration} expression
-  ;
-
-declaration
-  : 'let' identifier '=' expression ';'
+  : expression
   ;
 
 expression
@@ -27,23 +23,17 @@ factor
   | 'True'
   | 'False'
   | '\' identifier {identifier} '->' expression
-  | 'let' identifier '=' expression 'in' expression
+  | 'let' ['rec'] declaration {';' declaration}'in' expression
   | 'if' '(' expression ')' expression 'else' expression
   | identifier
   ;
+
+declaration
+  : identifier {identifier} '=' expression
+  ;
 */
 
-export type Program = {
-  type: "Program";
-  decls: Array<Declaration>;
-  expr: Expression;
-};
-
-export type Declaration = {
-  type: "Declaration";
-  name: string;
-  expr: Expression;
-};
+export type Program = Expression;
 
 export type Expression =
   | AppExpression
@@ -70,8 +60,20 @@ export type IfExpression = {
 
 export type LetExpression = {
   type: "Let";
+  declarations: Array<Declaration>;
+  expr: Expression;
+};
+
+export type LetRecExpression = {
+  type: "LetRec";
+  declarations: Array<Declaration>;
+  expr: Expression;
+};
+
+export type Declaration = {
+  type: "Declaration";
   name: string;
-  body: Expression;
+  names: Array<string>;
   expr: Expression;
 };
 
@@ -137,30 +139,7 @@ export const parse = (input: string): Program => {
     }
   };
 
-  const program = (): Program => {
-    const decls: Array<Declaration> = [];
-
-    while (current() === TokenType.Def) {
-      skipToken();
-      const name = matchToken(TokenType.Identifier);
-      matchToken(TokenType.Equal);
-      const expr = expression();
-      matchToken(TokenType.Semicolon);
-      decls.push({
-        type: "Declaration",
-        name,
-        expr,
-      });
-    }
-
-    const expr = expression();
-
-    return {
-      type: "Program",
-      decls,
-      expr,
-    };
-  };
+  const program = (): Program => expression();
 
   const expression = (): Expression => {
     let f = relational();
@@ -307,16 +286,17 @@ export const parse = (input: string): Program => {
       }), expr);
     } else if (current() === TokenType.Let) {
       skipToken();
-      const name = matchToken(TokenType.Identifier);
-      matchToken(TokenType.Equal);
-      const body = expression();
+      const declarations = [declaration()];
+      while (current() === TokenType.Semicolon) {
+        skipToken();
+        declarations.push(declaration());
+      }
       matchToken(TokenType.In);
       const expr = expression();
 
       return {
         type: "Let",
-        name,
-        body,
+        declarations,
         expr,
       };
     } else if (current() === TokenType.If) {
@@ -341,6 +321,23 @@ export const parse = (input: string): Program => {
         expected: ["identifier", "let", "backslash", "(", "literal-integer"],
       };
     }
+  };
+
+  const declaration = (): Declaration => {
+    const name = matchToken(TokenType.Identifier);
+    const names = [];
+    while (current() === TokenType.Identifier) {
+      names.push(matchToken(TokenType.Identifier));
+    }
+    matchToken(TokenType.Equal);
+    const expr = expression();
+
+    return {
+      type: "Declaration",
+      name,
+      names,
+      expr,
+    };
   };
 
   return program();

@@ -17,7 +17,7 @@ Deno.test("infer Apply", () => {
     emptyTypeEnv
       .extend("a", new Scheme(["T"], new TArr(new TVar("T"), new TVar("T"))))
       .extend("b", new Scheme([], typeInt)),
-    parse("a b").expr,
+    parse("a b"),
   );
 
   assertEquals(constraints.constraints.length, 1);
@@ -34,7 +34,7 @@ Deno.test("infer If", () => {
       .extend("a", new Scheme(["S"], new TVar("S")))
       .extend("b", new Scheme([], typeInt))
       .extend("c", new Scheme(["T"], new TVar("T"))),
-    parse("if (a) b else c").expr,
+    parse("if (a) b else c"),
   );
 
   assertEquals(constraints.constraints.length, 2);
@@ -46,7 +46,7 @@ Deno.test("infer If", () => {
 Deno.test("infer LBool", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
-    parse("True").expr,
+    parse("True"),
   );
 
   assertEquals(constraints.constraints.length, 0);
@@ -56,7 +56,7 @@ Deno.test("infer LBool", () => {
 Deno.test("infer Lam", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
-    parse("\\x -> x 10").expr,
+    parse("\\x -> x 10"),
   );
 
   assertEquals(constraints.constraints.length, 1);
@@ -70,17 +70,21 @@ Deno.test("infer Lam", () => {
 Deno.test("infer Let", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
-    parse("let x = 10 in x").expr,
+    parse("let x = 10; y = x + 1 in y"),
   );
 
-  assertEquals(constraints.constraints.length, 0);
+  assertEquals(constraints.constraints.length, 1);
+  assertEquals(constraints.constraints[0], [
+    new TArr(typeInt, new TArr(typeInt, new TVar("V1"))),
+    new TArr(typeInt, new TArr(typeInt, typeInt)),
+  ]);
   assertEquals(type, typeInt);
 });
 
 Deno.test("infer LInt", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
-    parse("123").expr,
+    parse("123"),
   );
 
   assertEquals(constraints.constraints.length, 0);
@@ -93,7 +97,7 @@ Deno.test("infer Op", () => {
       emptyTypeEnv
         .extend("a", new Scheme(["T"], new TVar("T")))
         .extend("b", new Scheme(["T"], new TVar("T"))),
-      parse(input).expr,
+      parse(input),
     );
     assertEquals(constraints.constraints.length, 1);
 
@@ -120,7 +124,7 @@ Deno.test("infer Var", () => {
       "a",
       new Scheme(["T"], new TArr(new TVar("T"), new TVar("T"))),
     ),
-    parse("a").expr,
+    parse("a"),
   );
 
   assertEquals(constraints.constraints.length, 0);

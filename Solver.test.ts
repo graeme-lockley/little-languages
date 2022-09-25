@@ -7,7 +7,7 @@ import { emptyTypeEnv, TArr, TVar, Type, typeInt } from "./Typing.ts";
 const solve = (expression: string): Type => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
-    parse(expression).expr,
+    parse(expression),
   );
 
   const subst = solver(constraints.constraints);

@@ -60,14 +60,19 @@ export const inferExpression = (
       return new TArr(tv, t);
     }
     if (expr.type === "Let") {
-      const tb = infer(env, expr.body);
+      let newEnv = env;
 
-      const subst = solver(constraints.constraints);
+      for (const declaration of expr.declarations) {
+        const tb = infer(newEnv, declaration.expr);
 
-      const newEnv = env.apply(subst);
-      const sc = newEnv.generalise(tb.apply(subst));
+        const subst = solver(constraints.constraints);
 
-      return infer(newEnv.extend(expr.name, sc), expr.expr);
+        newEnv = newEnv.apply(subst);
+        const sc = newEnv.generalise(tb.apply(subst));
+        newEnv = newEnv.extend(declaration.name, sc);
+      }
+
+      return infer(newEnv, expr.expr);
     }
     if (expr.type === "LBool") {
       return typeBool;
