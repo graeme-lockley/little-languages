@@ -40,6 +40,7 @@ export type Expression =
   | IfExpression
   | LamExpression
   | LetExpression
+  | LetRecExpression
   | LBoolExpression
   | LIntExpression
   | OpExpression
@@ -280,7 +281,17 @@ export const parse = (input: string): Program => {
 
       return composeLambda(names, expr);
     } else if (current() === TokenType.Let) {
+      const matchRec = (): boolean => {
+        if (current() === TokenType.Rec) {
+          skipToken();
+          return true;
+        } else {
+          return false;
+        }
+      };
+
       skipToken();
+      const letRec = matchRec();
       const declarations = [declaration()];
       while (current() === TokenType.Semicolon) {
         skipToken();
@@ -290,7 +301,7 @@ export const parse = (input: string): Program => {
       const expr = expression();
 
       return {
-        type: "Let",
+        type: letRec ? "LetRec" : "Let",
         declarations,
         expr,
       };
