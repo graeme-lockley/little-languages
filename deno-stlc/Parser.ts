@@ -1,37 +1,5 @@
-import { scanner, TokenType } from "./Scanner.ts";
-
-/*
-program
-  : expression
-  ;
-
-expression
-  : multiplicative {multiplicative}
-  ;
-
-multiplicative
-  : additive {['*' | '/'] additive}
-  ;
-
-additive
-  : factor {['*' | '/'] factor}
-  ;
-
-factor
-  : '(' expression ')'
-  | literal_integer
-  | 'True'
-  | 'False'
-  | '\' identifier {identifier} '->' expression
-  | 'let' ['rec'] declaration {';' declaration} 'in' expression
-  | 'if' '(' expression ')' expression 'else' expression
-  | identifier
-  ;
-
-declaration
-  : identifier {identifier} '=' expression
-  ;
-*/
+import { parseProgram, SyntaxError, Visitor } from "./parser/Parser.ts";
+import { Token } from "./parser/Scanner.ts";
 
 export type Program = Expression;
 
@@ -113,239 +81,134 @@ export type VarExpression = {
   name: string;
 };
 
-export const parse = (input: string): Program => {
-  const tokens = scanner(input);
+export const parse = (input: string): Program =>
+  parseProgram(input, visitor).either((l: SyntaxError): Program => {
+    throw l;
+  }, (r: Expression): Program => r);
 
-  const current = () => tokens[0]?.type;
+const visitor: Visitor<
+  Expression,
+  Expression,
+  Expression,
+  Expression,
+  Expression,
+  Expression,
+  Declaration
+> = {
+  visitProgram: (a: Expression): Expression => a,
 
-  const lexeme = () => tokens[0]?.lexeme;
+  visitExpression: (a1: Expression, a2: Array<Expression>): Expression =>
+    a2.reduce((acc: Expression, e: Expression): Expression => ({
+      type: "App",
+      e1: acc,
+      e2: e,
+    }), a1),
 
-  const skipToken = () => tokens.shift();
+  visitRelational: (
+    a1: Expression,
+    a2: [Token, Expression] | undefined,
+  ): Expression =>
+    a2 === undefined
+      ? a1
+      : { type: "Op", left: a1, op: Op.Equals, right: a2[1] },
 
-  const token = () => tokens[0];
-
-  const matchToken = (type: TokenType) => {
-    const token = tokens[0];
-
-    if (token.type === type) {
-      skipToken();
-      return token.lexeme;
-    } else {
-      throw {
-        type: "ParserError",
-        token,
-        expected: [type],
-      };
-    }
-  };
-
-  const program = (): Program => expression();
-
-  const expression = (): Expression => {
-    let f = relational();
-
-    const firstFactor = [
-      TokenType.OpenParen,
-      TokenType.LiteralInt,
-      TokenType.Backslash,
-      TokenType.Let,
-      TokenType.Identifier,
-      TokenType.If,
-      TokenType.True,
-      TokenType.False,
-    ];
-
-    if (firstFactor.includes(current())) {
-      while (firstFactor.includes(current())) {
-        f = {
-          type: "App",
-          e1: f,
-          e2: relational(),
-        };
-      }
-    }
-
-    return f;
-  };
-
-  const relational = (): Expression => {
-    let f = additive();
-
-    if (current() === TokenType.EqualEqual) {
-      skipToken();
-      f = {
+  visitMultiplicative: (
+    a1: Expression,
+    a2: Array<[(Token | Token), Expression]>,
+  ): Expression =>
+    a2 === undefined ? a1 : a2.reduce(
+      (acc: Expression, e: [(Token | Token), Expression]): Expression => ({
         type: "Op",
-        left: f,
-        op: Op.Equals,
-        right: additive(),
-      };
-    }
+        left: acc,
+        right: e[1],
+        op: e[0][2] === "+" ? Op.Plus : Op.Minus,
+      }),
+      a1,
+    ),
 
-    return f;
-  };
-
-  const additive = (): Expression => {
-    let f = multiplicative();
-
-    while (current() === TokenType.Plus || current() === TokenType.Minus) {
-      const op = current();
-      skipToken();
-      f = {
+  visitAdditive: (
+    a1: Expression,
+    a2: Array<[(Token | Token), Expression]>,
+  ): Expression =>
+    a2 === undefined ? a1 : a2.reduce(
+      (acc: Expression, e: [(Token | Token), Expression]): Expression => ({
         type: "Op",
-        left: f,
-        op: op === TokenType.Plus ? Op.Plus : Op.Minus,
-        right: multiplicative(),
-      };
-    }
+        left: acc,
+        right: e[1],
+        op: e[0][2] === "*" ? Op.Times : Op.Divide,
+      }),
+      a1,
+    ),
 
-    return f;
-  };
+  visitFactor1: (_a1: Token, a2: Expression, _a3: Token): Expression => a2,
 
-  const multiplicative = (): Expression => {
-    let f = factor();
+  visitFactor2: (a: Token): Expression => ({
+    type: "LInt",
+    value: parseInt(a[2]),
+  }),
 
-    while (current() === TokenType.Star || current() === TokenType.Slash) {
-      const op = current();
-      skipToken();
-      f = {
-        type: "Op",
-        left: f,
-        op: op === TokenType.Star ? Op.Times : Op.Divide,
-        right: factor(),
-      };
-    }
+  visitFactor3: (_a: Token): Expression => ({
+    type: "LBool",
+    value: true,
+  }),
 
-    return f;
-  };
+  visitFactor4: (_a: Token): Expression => ({
+    type: "LBool",
+    value: false,
+  }),
 
-  const factor = (): Expression => {
-    if (current() === TokenType.Identifier) {
-      const name = lexeme();
-      skipToken();
+  visitFactor5: (
+    _a1: Token,
+    a2: Token,
+    a3: Array<Token>,
+    _a4: Token,
+    a5: Expression,
+  ): Expression =>
+    composeLambda([a2].concat(a3).map((n: Token): string => n[2]), a5),
 
-      return {
-        type: "Var",
-        name,
-      };
-    } else if (current() === TokenType.OpenParen) {
-      skipToken();
-      const result = expression();
-      matchToken(TokenType.CloseParen);
+  visitFactor6: (
+    _a1: Token,
+    a2: Token | undefined,
+    a3: Declaration,
+    a4: Array<[Token, Declaration]>,
+    _a5: Token,
+    a6: Expression,
+  ): Expression => ({
+    type: a2 === undefined ? "Let" : "LetRec",
+    declarations: [a3].concat(a4.map((a) => a[1])),
+    expr: a6,
+  }),
 
-      return result;
-    } else if (current() === TokenType.LiteralInt) {
-      const value = parseInt(lexeme());
-      skipToken();
+  visitFactor7: (
+    _a1: Token,
+    _a2: Token,
+    a3: Expression,
+    _a4: Token,
+    a5: Expression,
+    _a6: Token,
+    a7: Expression,
+  ): Expression => ({
+    type: "If",
+    guard: a3,
+    then: a5,
+    else: a7,
+  }),
 
-      return {
-        type: "LInt",
-        value,
-      };
-    } else if (current() === TokenType.True) {
-      skipToken();
+  visitFactor8: (a: Token): Expression => ({
+    type: "Var",
+    name: a[2],
+  }),
 
-      return {
-        type: "LBool",
-        value: true,
-      };
-    } else if (current() === TokenType.False) {
-      skipToken();
-
-      return {
-        type: "LBool",
-        value: false,
-      };
-    } else if (current() === TokenType.Backslash) {
-      skipToken();
-      const names: Array<string> = [];
-
-      if (current() === TokenType.Identifier) {
-        names.push(lexeme());
-        skipToken();
-      } else {
-        throw {
-          type: "ParserError",
-          token: token(),
-          expected: ["identifier"],
-        };
-      }
-
-      while (current() === TokenType.Identifier) {
-        names.push(lexeme());
-        skipToken();
-      }
-
-      matchToken(TokenType.Arrow);
-
-      const expr = expression();
-
-      return composeLambda(names, expr);
-    } else if (current() === TokenType.Let) {
-      const matchRec = (): boolean => {
-        if (current() === TokenType.Rec) {
-          skipToken();
-          return true;
-        } else {
-          return false;
-        }
-      };
-
-      skipToken();
-      const letRec = matchRec();
-      const declarations = [declaration()];
-      while (current() === TokenType.Semicolon) {
-        skipToken();
-        declarations.push(declaration());
-      }
-      matchToken(TokenType.In);
-      const expr = expression();
-
-      return {
-        type: letRec ? "LetRec" : "Let",
-        declarations,
-        expr,
-      };
-    } else if (current() === TokenType.If) {
-      skipToken();
-      matchToken(TokenType.OpenParen);
-      const guard = expression();
-      matchToken(TokenType.CloseParen);
-      const thenExpr = expression();
-      matchToken(TokenType.Else);
-      const elseExpr = expression();
-
-      return {
-        type: "If",
-        guard,
-        then: thenExpr,
-        else: elseExpr,
-      };
-    } else {
-      throw {
-        type: "ParserError",
-        token: token(),
-        expected: ["identifier", "let", "backslash", "(", "literal-integer"],
-      };
-    }
-  };
-
-  const declaration = (): Declaration => {
-    const name = matchToken(TokenType.Identifier);
-    const names = [];
-    while (current() === TokenType.Identifier) {
-      names.push(matchToken(TokenType.Identifier));
-    }
-    matchToken(TokenType.Equal);
-    const expr = expression();
-
-    return {
-      type: "Declaration",
-      name,
-      expr: composeLambda(names, expr),
-    };
-  };
-
-  return program();
+  visitDeclaration: (
+    a1: Token,
+    a2: Array<Token>,
+    _a3: Token,
+    a4: Expression,
+  ): Declaration => ({
+    type: "Declaration",
+    name: a1[2],
+    expr: composeLambda(a2.map((n) => n[2]), a4),
+  }),
 };
 
 const composeLambda = (names: Array<string>, expr: Expression): Expression =>
