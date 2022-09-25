@@ -68,3 +68,10 @@ Deno.test("solve let identity = \\n -> n in identity", () => {
     new TArr(new TVar("V2"), new TVar("V2")),
   );
 });
+
+Deno.test("solve let add a b = a + b; succ = add 1 in succ 10", () => {
+  assertType(
+    "let add a b = a + b; succ = add 1 in succ 10",
+    typeInt,
+  );
+});

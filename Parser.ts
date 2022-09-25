@@ -73,7 +73,6 @@ export type LetRecExpression = {
 export type Declaration = {
   type: "Declaration";
   name: string;
-  names: Array<string>;
   expr: Expression;
 };
 
@@ -279,11 +278,7 @@ export const parse = (input: string): Program => {
 
       const expr = expression();
 
-      return names.reduceRight((acc, name) => ({
-        type: "Lam",
-        name,
-        expr: acc,
-      }), expr);
+      return composeLambda(names, expr);
     } else if (current() === TokenType.Let) {
       skipToken();
       const declarations = [declaration()];
@@ -335,12 +330,18 @@ export const parse = (input: string): Program => {
     return {
       type: "Declaration",
       name,
-      names,
-      expr,
+      expr: composeLambda(names, expr),
     };
   };
 
   return program();
 };
 
-// console.log(parse("if (10) True else False"));
+const composeLambda = (names: Array<string>, expr: Expression): Expression =>
+  names.reduceRight((acc, name) => ({
+    type: "Lam",
+    name,
+    expr: acc,
+  }), expr);
+
+// console.log(JSON.stringify(parse("let compose f g x = f(g x) in compose"), null, 2));
