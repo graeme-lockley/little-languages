@@ -2,7 +2,7 @@ import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 import { inferExpression } from "./Infer.ts";
 import { parse } from "./Parser.ts";
 import { solver } from "./Solver.ts";
-import { emptyTypeEnv, TArr, TVar, Type, typeInt } from "./Typing.ts";
+import { emptyTypeEnv, TArr, TVar, Type, typeBool, typeInt } from "./Typing.ts";
 
 const solve = (expression: string): Type => {
   const [constraints, type] = inferExpression(
@@ -72,6 +72,27 @@ Deno.test("solve let identity = \\n -> n in identity", () => {
 Deno.test("solve let add a b = a + b; succ = add 1 in succ 10", () => {
   assertType(
     "let add a b = a + b; succ = add 1 in succ 10",
+    typeInt,
+  );
+});
+
+Deno.test("solve let rec fact n = if (n == 0) 1 else fact (n - 1) * n in fact", () => {
+  assertType(
+    "let rec fact n = if (n == 0) 1 else fact(n - 1) * n in fact",
+    new TArr(typeInt, typeInt),
+  );
+});
+
+Deno.test("solve let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd", () => {
+  assertType(
+    "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd",
+    new TArr(typeInt, typeBool),
+  );
+});
+
+Deno.test("solve let rec a = b + 1; b = a + 1 in a", () => {
+  assertType(
+    "let rec a = b + 1; b = a + 1 in a",
     typeInt,
   );
 });

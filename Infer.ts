@@ -74,6 +74,34 @@ export const inferExpression = (
 
       return infer(newEnv, expr.expr);
     }
+    if (expr.type === "LetRec") {
+      let newEnv = env;
+      const declarationBindings = new Map<string, Type>();
+
+      for (const declaration of expr.declarations) {
+        const type = pump.next();
+        declarationBindings.set(declaration.name, type);
+        newEnv = newEnv.extend(declaration.name, newEnv.generalise(type));
+      }
+
+      for (const declaration of expr.declarations) {
+        const tb = infer(newEnv, declaration.expr);
+        constraints.add(tb, declarationBindings.get(declaration.name)!);
+      }
+
+      const subst = solver(constraints.constraints);
+      newEnv = newEnv.apply(subst);
+
+      for (const declaration of expr.declarations) {
+        const sc = newEnv.generalise(
+          declarationBindings.get(declaration.name)!.apply(subst),
+        );
+        newEnv = newEnv.extend(declaration.name, sc);
+        // console.log(declaration.name, ": ", JSON.stringify(sc));
+      }
+
+      return infer(newEnv, expr.expr);
+    }
     if (expr.type === "LBool") {
       return typeBool;
     }
