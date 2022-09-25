@@ -23,7 +23,7 @@ factor
   | 'True'
   | 'False'
   | '\' identifier {identifier} '->' expression
-  | 'let' ['rec'] declaration {';' declaration}'in' expression
+  | 'let' ['rec'] declaration {';' declaration} 'in' expression
   | 'if' '(' expression ')' expression 'else' expression
   | identifier
   ;
