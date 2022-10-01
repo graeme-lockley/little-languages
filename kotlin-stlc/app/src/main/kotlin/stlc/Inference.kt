@@ -3,19 +3,19 @@ package stlc
 data class InferResult(val constraints: Constraints, val type: Type)
 
 fun infer(typeEnv: TypeEnv, e: Expression): InferResult {
-    val state = Infer()
+    val state = Inference()
 
-    val type = state.apply(typeEnv, e)
+    val type = state.infer(typeEnv, e)
 
     return InferResult(state.constraints, type)
 }
 
-private class Infer(val constraints: Constraints = Constraints(), val pump: Pump = Pump()) {
-    fun apply(typeEnv: TypeEnv, e: Expression): Type =
+private class Inference(val constraints: Constraints = Constraints(), val pump: Pump = Pump()) {
+    fun infer(typeEnv: TypeEnv, e: Expression): Type =
         when (e) {
             is AppExpression -> {
-                val t1 = apply(typeEnv, e.e1)
-                val t2 = apply(typeEnv, e.e2)
+                val t1 = infer(typeEnv, e.e1)
+                val t2 = infer(typeEnv, e.e2)
                 val tv = pump.next()
 
                 constraints.add(t1, TArr(t2, tv))
@@ -24,9 +24,9 @@ private class Infer(val constraints: Constraints = Constraints(), val pump: Pump
             }
 
             is IfExpression -> {
-                val t1 = apply(typeEnv, e.e1)
-                val t2 = apply(typeEnv, e.e2)
-                val t3 = apply(typeEnv, e.e3)
+                val t1 = infer(typeEnv, e.e1)
+                val t2 = infer(typeEnv, e.e2)
+                val t3 = infer(typeEnv, e.e3)
 
                 constraints.add(t1, typeBool)
                 constraints.add(t2, t3)
@@ -36,7 +36,7 @@ private class Infer(val constraints: Constraints = Constraints(), val pump: Pump
 
             is LamExpression -> {
                 val tv = pump.next()
-                val t = apply(typeEnv + Pair(e.name, Scheme(setOf(), tv)), e.e)
+                val t = infer(typeEnv + Pair(e.n, Scheme(setOf(), tv)), e.e)
 
                 TArr(tv, t)
             }
@@ -50,46 +50,46 @@ private class Infer(val constraints: Constraints = Constraints(), val pump: Pump
             is LetExpression -> {
                 var newTypeEnv = typeEnv
 
-                for (decl in e.declarations) {
-                    val tb = apply(newTypeEnv, decl.e)
+                for (decl in e.decls) {
+                    val tb = infer(newTypeEnv, decl.e)
                     val subst = constraints.solve()
                     newTypeEnv = newTypeEnv.apply(subst)
                     val sc = newTypeEnv.generalise(tb.apply(subst))
-                    newTypeEnv = newTypeEnv.extend(decl.name, sc)
+                    newTypeEnv = newTypeEnv.extend(decl.n, sc)
                 }
 
-                apply(newTypeEnv, e.e)
+                infer(newTypeEnv, e.e)
             }
 
             is LetRecExpression -> {
                 var newTypeEnv = typeEnv
                 val declarationBindings = mutableMapOf<String, Type>()
 
-                for (decl in e.declarations) {
+                for (decl in e.decls) {
                     val type = pump.next()
-                    declarationBindings[decl.name] = type
-                    newTypeEnv += Pair(decl.name, newTypeEnv.generalise(type))
+                    declarationBindings[decl.n] = type
+                    newTypeEnv += Pair(decl.n, newTypeEnv.generalise(type))
                 }
 
-                for (decl in e.declarations) {
-                    val tb = apply(newTypeEnv, decl.e)
-                    constraints.add(tb, declarationBindings[decl.name]!!)
+                for (decl in e.decls) {
+                    val tb = infer(newTypeEnv, decl.e)
+                    constraints.add(tb, declarationBindings[decl.n]!!)
                 }
 
                 val subst = constraints.solve()
                 newTypeEnv = newTypeEnv.apply(subst)
 
-                for (decl in e.declarations) {
-                    val sc = newTypeEnv.generalise(declarationBindings[decl.name]!!.apply(subst))
-                    newTypeEnv += Pair(decl.name, sc)
+                for (decl in e.decls) {
+                    val sc = newTypeEnv.generalise(declarationBindings[decl.n]!!.apply(subst))
+                    newTypeEnv += Pair(decl.n, sc)
                 }
 
-                apply(newTypeEnv, e.e)
+                infer(newTypeEnv, e.e)
             }
 
             is OpExpression -> {
-                val t1 = apply(typeEnv, e.left)
-                val t2 = apply(typeEnv, e.right)
+                val t1 = infer(typeEnv, e.e1)
+                val t2 = infer(typeEnv, e.e2)
                 val tv = pump.next()
 
                 val u1 = TArr(t1, TArr(t2, tv))

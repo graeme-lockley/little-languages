@@ -13,19 +13,19 @@ data class AppExpression(val e1: Expression, val e2: Expression) : Expression()
 
 data class IfExpression(val e1: Expression, val e2: Expression, val e3: Expression) : Expression()
 
-data class LetExpression(val declarations: List<Declaration>, val e: Expression) : Expression()
+data class LetExpression(val decls: List<Declaration>, val e: Expression) : Expression()
 
-data class LetRecExpression(val declarations: List<Declaration>, val e: Expression) : Expression()
+data class LetRecExpression(val decls: List<Declaration>, val e: Expression) : Expression()
 
-data class Declaration(val name: String, val e: Expression)
+data class Declaration(val n: String, val e: Expression)
 
-data class LamExpression(val name: String, val e: Expression) : Expression()
+data class LamExpression(val n: String, val e: Expression) : Expression()
 
-data class LBoolExpression(val value: Boolean) : Expression()
+data class LBoolExpression(val v: Boolean) : Expression()
 
-data class LIntExpression(val value: Int) : Expression()
+data class LIntExpression(val v: Int) : Expression()
 
-data class OpExpression(val left: Expression, val right: Expression, val op: Op) : Expression()
+data class OpExpression(val e1: Expression, val e2: Expression, val op: Op) : Expression()
 
 enum class Op { Equals, Plus, Minus, Times, Divide }
 
