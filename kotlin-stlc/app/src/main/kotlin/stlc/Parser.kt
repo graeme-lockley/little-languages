@@ -5,6 +5,7 @@ import stlc.parser.Parser
 import stlc.parser.Scanner
 import stlc.parser.Token
 import stlc.parser.Visitor
+import java.io.StringReader
 
 sealed class Expression
 
@@ -85,3 +86,7 @@ class ParserVisitor : Visitor<Expression, Expression, Expression, Expression, Op
 
 fun parse(scanner: Scanner): Expression =
     Parser(scanner, ParserVisitor()).program()
+
+fun parse(input: String): Expression =
+    parse(Scanner(StringReader(input)))
+

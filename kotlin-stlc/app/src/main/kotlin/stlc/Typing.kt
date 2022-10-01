@@ -7,7 +7,7 @@ sealed class Type {
     abstract fun ftv(): Set<Var>
 }
 
-data class TVar(private val name: String) : Type() {
+data class TVar(val name: String) : Type() {
     override fun apply(s: Subst): Type =
         s[name] ?: this
 
@@ -21,7 +21,7 @@ data class TCon(private val name: String) : Type() {
     override fun ftv(): Set<Var> = emptySet()
 }
 
-data class TArr(private val domain: Type, private val range: Type) : Type() {
+data class TArr(val domain: Type, val range: Type) : Type() {
     override fun apply(s: Subst): Type =
         TArr(domain.apply(s), range.apply(s))
 
@@ -38,8 +38,6 @@ data class Subst(private val items: Map<Var, Type>) {
         Subst(s.items.mapValues { it.value.apply(this) } + items)
 
     operator fun get(v: Var): Type? = items[v]
-
-    fun entries(): Set<Map.Entry<Var, Type>> = items.entries
 
     operator fun minus(names: Set<Var>): Subst =
         Subst(items - names)
@@ -62,6 +60,9 @@ data class TypeEnv(private val items: Map<String, Scheme>) {
     fun extend(name: String, scheme: Scheme): TypeEnv =
         TypeEnv(items + Pair(name, scheme))
 
+    operator fun plus(v: Pair<String, Scheme>): TypeEnv =
+        this.extend(v.first, v.second)
+
     fun apply(s: Subst): TypeEnv =
         TypeEnv(items.mapValues { it.value.apply(s) })
 
@@ -73,6 +74,8 @@ data class TypeEnv(private val items: Map<String, Scheme>) {
     fun generalise(type: Type): Scheme =
         Scheme(type.ftv() - ftv(), type)
 }
+
+val emptyTypeEnv = TypeEnv(emptyMap())
 
 data class Pump(private var counter: Int = 0) {
     fun next(): TVar {
