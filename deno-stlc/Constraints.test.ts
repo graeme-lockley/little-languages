@@ -9,7 +9,7 @@ const solve = (expression: string): Type => {
     parse(expression),
   );
 
-  const subst = constraints.solve()
+  const subst = constraints.solve();
 
   return type.apply(subst);
 };
