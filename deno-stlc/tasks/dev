@@ -21,6 +21,13 @@ build_parser() {
     )
 }
 
+unit_tests() {
+    echo "---| unit tests"
+    cd "$PROJECT_HOME" || exit 1
+    deno test || exit 1
+
+}
+
 case "$1" in
 "" | help)
     echo "Usage: $0 [<command>]"
@@ -40,8 +47,7 @@ run)
     unit_tests
     ;;
 
-\
-    parser)
+parser)
     build_parser
     ;;
 
