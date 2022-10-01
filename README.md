@@ -8,3 +8,9 @@ Essentially all implementations are
 [Hindley-Milner](https://en.wikipedia.org/wiki/Hindley–Milner_type_system) based
 and then seeded from the implementation described in
 https://github.com/sdiehl/write-you-a-haskell.
+
+## STLC - Simple Typed Lambda Calculus
+
+STLC is a small language helpful in getting the type inference engine working without the clutter of complexity.
+
+https://github.com/graeme-lockley/typed-lambda-calculus-deno/blob/78341303affc0ace0b5d0327b1ea8b28cf6f7a90/stlc/Grammar.llgd
