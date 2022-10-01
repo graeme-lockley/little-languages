@@ -11,7 +11,7 @@ const bind = (
   type: Type,
 ): Unifier => [new Subst(new Map([[name, type]])), []];
 
-export const unifies = (t1: Type, t2: Type): Unifier => {
+const unifies = (t1: Type, t2: Type): Unifier => {
   if (t1 == t2) return emptyUnifier;
   if (t1 instanceof TVar) return bind(t1.name, t2);
   if (t2 instanceof TVar) return bind(t2.name, t1);
@@ -24,7 +24,7 @@ export const unifies = (t1: Type, t2: Type): Unifier => {
 const applyTypes = (s: Subst, ts: Array<Type>): Array<Type> =>
   ts.map((t) => t.apply(s));
 
-export const unifyMany = (ta: Array<Type>, tb: Array<Type>): Unifier => {
+const unifyMany = (ta: Array<Type>, tb: Array<Type>): Unifier => {
   if (ta.length === 0 && tb.length === 0) return emptyUnifier;
   if (ta.length === 0 || tb.length === 0) {
     throw `Unification Mismatch: ${JSON.stringify(ta)} ${JSON.stringify(tb)}`;
@@ -39,7 +39,7 @@ export const unifyMany = (ta: Array<Type>, tb: Array<Type>): Unifier => {
   return [su2.compose(su1), cs1.concat(cs2)];
 };
 
-export const solver = (constraints: Array<Constraint>): Subst => {
+const solver = (constraints: Array<Constraint>): Subst => {
   let su = nullSubs;
   let cs = [...constraints];
 
@@ -59,3 +59,19 @@ export const solver = (constraints: Array<Constraint>): Subst => {
 
   return su;
 };
+
+export class Constraints {
+  constraints: Array<Constraint>;
+
+  constructor() {
+    this.constraints = [];
+  }
+
+  add(t1: Type, t2: Type): void {
+    this.constraints.push([t1, t2]);
+  }
+
+  solve(): Subst {
+    return solver(this.constraints);
+  }
+}

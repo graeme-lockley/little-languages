@@ -1,7 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 import { inferExpression } from "./Infer.ts";
 import { parse } from "./Parser.ts";
-import { solver } from "./Solver.ts";
 import { emptyTypeEnv, TArr, TVar, Type, typeBool, typeInt } from "./Typing.ts";
 
 const solve = (expression: string): Type => {
@@ -10,7 +9,7 @@ const solve = (expression: string): Type => {
     parse(expression),
   );
 
-  const subst = solver(constraints.constraints);
+  const subst = constraints.solve()
 
   return type.apply(subst);
 };

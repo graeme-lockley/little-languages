@@ -1,5 +1,5 @@
 import { Expression, Op } from "./Parser.ts";
-import { solver } from "./Solver.ts";
+import { Constraints } from "./Constraints.ts";
 import {
   createFresh,
   Scheme,
@@ -10,14 +10,6 @@ import {
   typeError,
   typeInt,
 } from "./Typing.ts";
-
-export class Constraints {
-  constraints: Array<[Type, Type]> = [];
-
-  add(t1: Type, t2: Type) {
-    this.constraints.push([t1, t2]);
-  }
-}
 
 const ops = new Map([
   [Op.Equals, new TArr(typeInt, new TArr(typeInt, typeBool))],
@@ -65,7 +57,7 @@ export const inferExpression = (
       for (const declaration of expr.declarations) {
         const tb = infer(newEnv, declaration.expr);
 
-        const subst = solver(constraints.constraints);
+        const subst = constraints.solve();
 
         newEnv = newEnv.apply(subst);
         const sc = newEnv.generalise(tb.apply(subst));
@@ -89,7 +81,7 @@ export const inferExpression = (
         constraints.add(tb, declarationBindings.get(declaration.name)!);
       }
 
-      const subst = solver(constraints.constraints);
+      const subst = constraints.solve();
       newEnv = newEnv.apply(subst);
 
       for (const declaration of expr.declarations) {
