@@ -13,12 +13,22 @@ Relational
     ;
 
 Multiplicative
-    : Additive {("*" | "/") Additive}
+    : Additive {MultiplicativeOps Additive}
+    ;
+
+MultiplicativeOps
+    : "*"
+    | "/"
     ;
 
 Additive
-    : Factor {("+" | "-") Factor}
-    ;   
+    : Factor {AdditiveOps Factor}
+    ;
+
+AdditiveOps
+    : "+"
+    | "-"
+    ;
 
 Factor
     : "(" Expression ")"

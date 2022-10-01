@@ -91,7 +91,9 @@ const visitor: Visitor<
   Expression,
   Expression,
   Expression,
+  string,
   Expression,
+  string,
   Expression,
   Declaration
 > = {
@@ -114,31 +116,37 @@ const visitor: Visitor<
 
   visitMultiplicative: (
     a1: Expression,
-    a2: Array<[(Token | Token), Expression]>,
+    a2: Array<[string, Expression]>,
   ): Expression =>
     a2 === undefined ? a1 : a2.reduce(
-      (acc: Expression, e: [(Token | Token), Expression]): Expression => ({
+      (acc: Expression, e: [string, Expression]): Expression => ({
         type: "Op",
         left: acc,
         right: e[1],
-        op: e[0][2] === "+" ? Op.Plus : Op.Minus,
+        op: e[0] === "+" ? Op.Plus : Op.Minus,
       }),
       a1,
     ),
 
+  visitMultiplicativeOps1: (a: Token): string => a[2],
+  visitMultiplicativeOps2: (a: Token): string => a[2],
+
   visitAdditive: (
     a1: Expression,
-    a2: Array<[(Token | Token), Expression]>,
+    a2: Array<[string, Expression]>,
   ): Expression =>
     a2 === undefined ? a1 : a2.reduce(
-      (acc: Expression, e: [(Token | Token), Expression]): Expression => ({
+      (acc: Expression, e: [string, Expression]): Expression => ({
         type: "Op",
         left: acc,
         right: e[1],
-        op: e[0][2] === "*" ? Op.Times : Op.Divide,
+        op: e[0] === "*" ? Op.Times : Op.Divide,
       }),
       a1,
     ),
+
+  visitAdditiveOps1: (a: Token): string => a[2],
+  visitAdditiveOps2: (a: Token): string => a[2],
 
   visitFactor1: (_a1: Token, a2: Expression, _a3: Token): Expression => a2,
 
