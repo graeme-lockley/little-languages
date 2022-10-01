@@ -5,5 +5,6 @@
 build
 .idea
 
+app/bin/
 app/src/main/kotlin/io/
 app/src/main/kotlin/stlc/parser/
