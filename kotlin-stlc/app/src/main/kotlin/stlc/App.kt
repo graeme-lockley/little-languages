@@ -3,6 +3,9 @@
  */
 package stlc
 
+import stlc.parser.Scanner
+import java.io.StringReader
+
 class App {
     val greeting: String
         get() {
@@ -11,5 +14,5 @@ class App {
 }
 
 fun main() {
-    println(App().greeting)
+    println(parse(Scanner(StringReader("let rec fact n = if (n == 0) 1 else fact(n - 1) * n in fact"))))
 }
