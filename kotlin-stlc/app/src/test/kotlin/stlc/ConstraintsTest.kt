@@ -57,6 +57,14 @@ class ConstraintsTest {
     }
 
     @Test
+    fun solve5a() {
+        assertType(
+            typeInt,
+            "let rec identity = \\n -> n; v = identity 10 in v"
+        )
+    }
+
+    @Test
     fun solve6() {
         assertType(
             typeInt,

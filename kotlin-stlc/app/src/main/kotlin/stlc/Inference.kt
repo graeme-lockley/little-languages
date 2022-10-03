@@ -68,7 +68,7 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
                 for (decl in e.decls) {
                     val type = pump.next()
                     declarationBindings[decl.n] = type
-                    newTypeEnv += Pair(decl.n, newTypeEnv.generalise(type))
+                    newTypeEnv += Pair(decl.n, Scheme(setOf(), type))
                 }
 
                 for (decl in e.decls) {
