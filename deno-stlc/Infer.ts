@@ -73,7 +73,7 @@ export const inferExpression = (
       for (const declaration of expr.declarations) {
         const type = pump.next();
         declarationBindings.set(declaration.name, type);
-        newEnv = newEnv.extend(declaration.name, newEnv.generalise(type));
+        newEnv = newEnv.extend(declaration.name, new Scheme([], type));
       }
 
       for (const declaration of expr.declarations) {

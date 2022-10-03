@@ -8,7 +8,7 @@ const solve = (expression: string): Type => {
     emptyTypeEnv,
     parse(expression),
   );
-
+  
   const subst = constraints.solve();
 
   return type.apply(subst);
@@ -92,6 +92,13 @@ Deno.test("solve let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven
 Deno.test("solve let rec a = b + 1; b = a + 1 in a", () => {
   assertType(
     "let rec a = b + 1; b = a + 1 in a",
+    typeInt,
+  );
+});
+
+Deno.test("solve let rec identity a = a; v = identity 10 in v", () => {
+  assertType(
+    "let rec identity a = a; v = identity 10 in v",
     typeInt,
   );
 });
