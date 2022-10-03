@@ -8,7 +8,7 @@ const solve = (expression: string): Type => {
     emptyTypeEnv,
     parse(expression),
   );
-  
+
   const subst = constraints.solve();
 
   return type.apply(subst);
