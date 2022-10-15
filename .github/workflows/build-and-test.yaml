@@ -43,3 +43,21 @@ jobs:
           cd ./deno-stlc
           deno test
 
+  'kotlin-stlc':
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '18'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Build
+        run: |
+          ./gradlew build
