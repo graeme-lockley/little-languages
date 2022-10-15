@@ -168,19 +168,8 @@ export const createFresh = (): Pump => {
   let count = 0;
 
   return {
-    next: (): TVar => {
-      count += 1;
-      return new TVar("V" + count);
-    },
-    nextN: (n: number): Array<TVar> => {
-      const result = [];
-
-      for (let i = 0; i < n; i++) {
-        result.push(new TVar("V" + count));
-        count += 1;
-      }
-
-      return result;
-    },
+    next: (): TVar => new TVar("V" + ++count),
+    nextN: (n: number): Array<TVar> =>
+      Array(n).fill(0).map(() => new TVar("V" + ++count)),
   };
 };
