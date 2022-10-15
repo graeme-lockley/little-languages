@@ -47,6 +47,9 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
             is LIntExpression ->
                 typeInt
 
+            is LTupleExpression ->
+                TTuple(e.es.map { infer(typeEnv, it) })
+
             is LetExpression -> {
                 var newTypeEnv = typeEnv
 
@@ -62,27 +65,12 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
             }
 
             is LetRecExpression -> {
-                var newTypeEnv = typeEnv
-                val declarationBindings = mutableMapOf<String, Type>()
+                val tvs = pump.nextN(e.decls.size)
+                val newTypeEnv = typeEnv + e.decls.zip(tvs).map { (decl, tv) -> Pair(decl.n, Scheme(setOf(), tv)) }
 
-                for (decl in e.decls) {
-                    val type = pump.next()
-                    declarationBindings[decl.n] = type
-                    newTypeEnv += Pair(decl.n, Scheme(setOf(), type))
-                }
+                val declarationType = fix(newTypeEnv, LamExpression("_bob", LTupleExpression(e.decls.map { it.e })))
 
-                for (decl in e.decls) {
-                    val tb = infer(newTypeEnv, decl.e)
-                    constraints.add(tb, declarationBindings[decl.n]!!)
-                }
-
-                val subst = constraints.solve()
-                newTypeEnv = newTypeEnv.apply(subst)
-
-                for (decl in e.decls) {
-                    val sc = newTypeEnv.generalise(declarationBindings[decl.n]!!.apply(subst))
-                    newTypeEnv += Pair(decl.n, sc)
-                }
+                constraints.add(declarationType, TTuple(tvs))
 
                 infer(newTypeEnv, e.e)
             }
@@ -105,6 +93,15 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
                 scheme.instantiate(pump)
             }
         }
+
+    private fun fix(typeEnv: TypeEnv, e: Expression): Type {
+        val t1 = infer(typeEnv, e)
+        val tv = pump.next()
+
+        constraints.add(TArr(tv, tv), t1)
+
+        return tv
+    }
 }
 
 val ops = mapOf<Op, Type>(

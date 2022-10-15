@@ -21,6 +21,14 @@ data class TCon(private val name: String) : Type() {
     override fun ftv(): Set<Var> = emptySet()
 }
 
+data class TTuple(val types: List<Type>) : Type() {
+    override fun apply(s: Subst): Type =
+        TTuple(types.map { it.apply(s) })
+
+    override fun ftv(): Set<Var> =
+        types.fold(emptySet()) { acc, t -> acc + t.ftv() }
+}
+
 data class TArr(val domain: Type, val range: Type) : Type() {
     override fun apply(s: Subst): Type =
         TArr(domain.apply(s), range.apply(s))
@@ -63,6 +71,9 @@ data class TypeEnv(private val items: Map<String, Scheme>) {
     operator fun plus(v: Pair<String, Scheme>): TypeEnv =
         this.extend(v.first, v.second)
 
+    operator fun plus(v: List<Pair<String, Scheme>>): TypeEnv =
+        v.fold(this) { acc, p -> acc + p }
+
     fun apply(s: Subst): TypeEnv =
         TypeEnv(items.mapValues { it.value.apply(s) })
 
@@ -82,4 +93,7 @@ data class Pump(private var counter: Int = 0) {
         counter += 1
         return TVar("V$counter")
     }
+
+    fun nextN(size: Int): List<TVar> =
+        (1..size).map { next() }
 }

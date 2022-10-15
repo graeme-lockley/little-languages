@@ -24,6 +24,7 @@ private fun unifies(t1: Type, t2: Type): Unifier =
         t1 is TVar -> bind(t1.name, t2)
         t2 is TVar -> bind(t2.name, t1)
         t1 is TArr && t2 is TArr -> unifyMany(listOf(t1.domain, t1.range), listOf(t2.domain, t2.range))
+        t1 is TTuple && t2 is TTuple -> unifyMany(t1.types, t2.types)
         else -> throw UnificationMismatch(t1, t2)
     }
 

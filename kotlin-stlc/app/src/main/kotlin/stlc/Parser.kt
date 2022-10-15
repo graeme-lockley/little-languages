@@ -25,6 +25,8 @@ data class LBoolExpression(val v: Boolean) : Expression()
 
 data class LIntExpression(val v: Int) : Expression()
 
+data class LTupleExpression(val es: List<Expression>) : Expression()
+
 data class OpExpression(val e1: Expression, val e2: Expression, val op: Op) : Expression()
 
 enum class Op { Equals, Plus, Minus, Times, Divide }
