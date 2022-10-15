@@ -65,10 +65,10 @@ jobs:
 
       - name: Generate parser and scanner
         run: |
-          cd ./deno-stlc
+          cd ./kotlin-stlc
           ./tasks/dev parser
 
       - name: Build
         run: |
-          cd ./deno-stlc
+          cd ./kotlin-stlc
           ./tasks/dev unit
