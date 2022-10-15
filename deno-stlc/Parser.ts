@@ -11,6 +11,7 @@ export type Expression =
   | LetRecExpression
   | LBoolExpression
   | LIntExpression
+  | LTupleExpression
   | OpExpression
   | VarExpression;
 
@@ -59,6 +60,11 @@ export type LBoolExpression = {
 export type LIntExpression = {
   type: "LInt";
   value: number;
+};
+
+export type LTupleExpression = {
+  type: "LTuple";
+  values: Array<Expression>;
 };
 
 export type OpExpression = {

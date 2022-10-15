@@ -4,6 +4,7 @@ import {
   createFresh,
   Scheme,
   TArr,
+  TTuple,
   Type,
   typeBool,
   TypeEnv,
@@ -25,6 +26,15 @@ export const inferExpression = (
 ): [Constraints, Type] => {
   const constraints = new Constraints();
   const pump = createFresh();
+
+  const fix = (env: TypeEnv, expr: Expression): Type => {
+    const t1 = infer(env, expr);
+    const tv = pump.next();
+
+    constraints.add(new TArr(tv, tv), t1);
+
+    return tv;
+  };
 
   const infer = (env: TypeEnv, expr: Expression): Type => {
     if (expr.type === "App") {
@@ -67,30 +77,25 @@ export const inferExpression = (
       return infer(newEnv, expr.expr);
     }
     if (expr.type === "LetRec") {
-      let newEnv = env;
-      const declarationBindings = new Map<string, Type>();
+      const tvs = pump.nextN(expr.declarations.length);
+      const newEnv = expr.declarations.reduce(
+        (acc, declaration, idx) =>
+          acc.extend(declaration.name, new Scheme([], tvs[idx])),
+        env,
+      );
 
-      for (const declaration of expr.declarations) {
-        const type = pump.next();
-        declarationBindings.set(declaration.name, type);
-        newEnv = newEnv.extend(declaration.name, new Scheme([], type));
-      }
-
-      for (const declaration of expr.declarations) {
-        const tb = infer(newEnv, declaration.expr);
-        constraints.add(tb, declarationBindings.get(declaration.name)!);
-      }
-
-      const subst = constraints.solve();
-      newEnv = newEnv.apply(subst);
-
-      for (const declaration of expr.declarations) {
-        const sc = newEnv.generalise(
-          declarationBindings.get(declaration.name)!.apply(subst),
-        );
-        newEnv = newEnv.extend(declaration.name, sc);
-        // console.log(declaration.name, ": ", JSON.stringify(sc));
-      }
+      const declarationType = fix(
+        newEnv,
+        {
+          type: "Lam",
+          name: "_bob",
+          expr: {
+            type: "LTuple",
+            values: expr.declarations.map((d) => d.expr),
+          },
+        },
+      );
+      constraints.add(new TTuple(tvs), declarationType);
 
       return infer(newEnv, expr.expr);
     }
@@ -99,6 +104,9 @@ export const inferExpression = (
     }
     if (expr.type === "LInt") {
       return typeInt;
+    }
+    if (expr.type === "LTuple") {
+      return new TTuple(expr.values.map((v) => infer(env, v)));
     }
     if (expr.type === "Op") {
       const tl = infer(env, expr.left);

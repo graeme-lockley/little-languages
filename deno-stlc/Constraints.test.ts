@@ -102,3 +102,15 @@ Deno.test("solve let rec identity a = a; v = identity 10 in v", () => {
     typeInt,
   );
 });
+
+Deno.test("solve let identity a = a in let rec v1 = identity 10; v2 = identity True in v?", () => {
+  assertType(
+    "let identity a = a in let rec v1 = identity 10; v2 = identity True in v1",
+    typeInt,
+  );
+
+  assertType(
+    "let identity a = a in let rec v1 = identity 10; v2 = identity True in v2",
+    typeBool,
+  );
+});

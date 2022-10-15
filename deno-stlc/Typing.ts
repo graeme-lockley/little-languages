@@ -56,6 +56,22 @@ export class TArr implements Type {
   }
 }
 
+export class TTuple implements Type {
+  types: Type[];
+
+  constructor(types: Type[]) {
+    this.types = types;
+  }
+
+  apply(s: Subst): Type {
+    return new TTuple(this.types.map((t) => t.apply(s)));
+  }
+
+  ftv(): Set<Var> {
+    return new Set(this.types.flatMap((t) => [...t.ftv()]));
+  }
+}
+
 export const typeError = new TCon("Error");
 export const typeInt = new TCon("Int");
 export const typeBool = new TCon("Bool");
@@ -146,7 +162,7 @@ export class TypeEnv {
 
 export const emptyTypeEnv = new TypeEnv(new Map());
 
-export type Pump = { next: () => TVar };
+export type Pump = { next: () => TVar; nextN: (n: number) => Array<TVar> };
 
 export const createFresh = (): Pump => {
   let count = 0;
@@ -155,6 +171,16 @@ export const createFresh = (): Pump => {
     next: (): TVar => {
       count += 1;
       return new TVar("V" + count);
+    },
+    nextN: (n: number): Array<TVar> => {
+      const result = [];
+
+      for (let i = 0; i < n; i++) {
+        result.push(new TVar("V" + count));
+        count += 1;
+      }
+
+      return result;
     },
   };
 };

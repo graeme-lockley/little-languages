@@ -1,4 +1,4 @@
-import { nullSubs, Subst, TArr, TVar, Var } from "./Typing.ts";
+import { nullSubs, Subst, TArr, TTuple, TVar, Var } from "./Typing.ts";
 import { Type } from "./Typing.ts";
 
 type Constraint = [Type, Type];
@@ -18,6 +18,16 @@ const unifies = (t1: Type, t2: Type): Unifier => {
   if (t1 instanceof TArr && t2 instanceof TArr) {
     return unifyMany([t1.domain, t1.range], [t2.domain, t2.range]);
   }
+  if (t1 instanceof TTuple && t2 instanceof TTuple) {
+    if (t1.types.length !== t2.types.length) {
+      throw `Unification Mismatch: Tuple: ${JSON.stringify(t1)} ${
+        JSON.stringify(t2)
+      }`;
+    }
+
+    return unifyMany(t1.types, t2.types);
+  }
+
   throw `Unification Mismatch: ${JSON.stringify(t1)} ${JSON.stringify(t2)}`;
 };
 
