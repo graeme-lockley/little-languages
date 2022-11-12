@@ -85,7 +85,7 @@ which we infer into `T`.  We then create the fresh types `S1` and `S2`.  Followi
 (S1, S2) -> (S1, S2) ~ T
 ```
 
-Further to that we associate `S1` to `isOdd` and `S2` to `isEven`.  A final consideration is the transformation of the original source where calls to `isEven` and `isOdd` needs to be replaced with `ioie[1]` and `ioie[0]` respectively.  We know that `ioie[1]` and `ioie[0]` will infer `S2` and `S1` respectively.  Rather than transforming the code, binding`isEven` and `isOdd` with `S2` and `S1` prior to inferring the type of `f` would render the same outcome.
+Further to that we associate `S1` to `isOdd` and `S2` to `isEven`.  A final consideration is the transformation of the original source where calls to `isEven` and `isOdd` needs to be replaced with `ioie[1]` and `ioie[0]` respectively.  We know that `ioie[1]` and `ioie[0]` will infer `S2` and `S1` respectively.  Rather than transforming the code, binding `isEven` and `isOdd` with `S2` and `S1` prior to inferring the type of `f` would render the same outcome.
 
 
 # Limitations
@@ -105,15 +105,3 @@ let identity n = n in
   let rec v1 = identity 10 ;
           v2 = identity True
 ```
-
-let identity n = n ;
-let map f [] = []
-  | map f (x:xs) = (f x) : (map f xs) ;
-  
-let name = 10 ;
-let otherName = 10 ;
-let rec isOdd = ...
-    and isEven = ... ;
-
-
-
