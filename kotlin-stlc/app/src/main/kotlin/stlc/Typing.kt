@@ -13,12 +13,16 @@ data class TVar(val name: String) : Type() {
 
     override fun ftv(): Set<Var> =
         setOf(name)
+
+    override fun toString(): String = name
 }
 
 data class TCon(private val name: String) : Type() {
     override fun apply(s: Subst): Type = this
 
     override fun ftv(): Set<Var> = emptySet()
+
+    override fun toString(): String = name
 }
 
 data class TTuple(val types: List<Type>) : Type() {
@@ -27,6 +31,8 @@ data class TTuple(val types: List<Type>) : Type() {
 
     override fun ftv(): Set<Var> =
         types.fold(emptySet()) { acc, t -> acc + t.ftv() }
+
+    override fun toString(): String = "(${types.joinToString(" * ")})"
 }
 
 data class TArr(val domain: Type, val range: Type) : Type() {
@@ -35,6 +41,9 @@ data class TArr(val domain: Type, val range: Type) : Type() {
 
     override fun ftv(): Set<Var> =
         domain.ftv() + range.ftv()
+
+    override fun toString(): String =
+        if (domain is TArr) "($domain) -> $range" else "$domain -> $range"
 }
 
 val typeError = TCon("Error")
