@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { inferExpression } from "./Infer.ts";
 import { Expression, Op, parse } from "./Parser.ts";
-import { emptyTypeEnv, TArr, Type } from "./Typing.ts";
+import { emptyTypeEnv, Type } from "./Typing.ts";
 
 const solve = (expression: Expression): Type => {
   const [constraints, type] = inferExpression(
