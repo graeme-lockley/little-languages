@@ -13,16 +13,9 @@ class InferTest {
             parse("a b")
         )
 
-        assertEquals(
-            constraints, Constraints(
-                mutableListOf(
-                    Pair(
-                        TArr(TVar("V1"), TVar("V1")),
-                        TArr(typeInt, TVar("V2"))
-                    )
-                )
-            )
-        )
+        assertConstraints(constraints, listOf(
+            "V1 -> V1 ~ Int -> V2"
+        ))
         assertEquals(TVar("V2"), type)
     }
 
@@ -36,20 +29,10 @@ class InferTest {
             parse("if (a) b else c")
         )
 
-        assertEquals(
-            constraints, Constraints(
-                mutableListOf(
-                    Pair(
-                        TVar("V1"),
-                        typeBool
-                    ),
-                    Pair(
-                        typeInt,
-                        TVar("V2")
-                    )
-                )
-            )
-        )
+        assertConstraints(constraints, listOf(
+            "V1 ~ Bool",
+            "Int ~ V2"
+        ))
         assertEquals(typeInt, type)
     }
 
@@ -60,24 +43,17 @@ class InferTest {
             parse("\\x -> x 10")
         )
 
-        assertEquals(
-            constraints, Constraints(
-                mutableListOf(
-                    Pair(
-                        TVar("V1"),
-                        TArr(typeInt, TVar("V2"))
-                    )
-                )
-            )
-        )
-        assertEquals(TArr(TVar("V1"), TVar("V2")), type)
+        assertConstraints(constraints, listOf(
+            "V1 ~ Int -> V2"
+        ))
+        assertEquals("V1 -> V2", type.toString())
     }
 
     @Test
     fun inferLBool() {
         val (constraints, type) = infer(emptyTypeEnv, parse("True"))
 
-        assertEquals(constraints, Constraints())
+        assertConstraints(constraints, emptyList())
         assertEquals(typeBool, type)
     }
 
@@ -85,7 +61,7 @@ class InferTest {
     fun inferLInt() {
         val (constraints, type) = infer(emptyTypeEnv, parse("123"))
 
-        assertEquals(constraints, Constraints())
+        assertConstraints(constraints, emptyList())
         assertEquals(typeInt, type)
     }
 
@@ -93,16 +69,9 @@ class InferTest {
     fun inferLet() {
         val (constraints, type) = infer(emptyTypeEnv, parse("let x = 10; y = x + 1 in y"))
 
-        assertEquals(
-            constraints, Constraints(
-                mutableListOf(
-                    Pair(
-                        TArr(typeInt, TArr(typeInt, TVar("V1"))),
-                        TArr(typeInt, TArr(typeInt, typeInt))
-                    )
-                )
-            )
-        )
+        assertConstraints(constraints, listOf(
+            "Int -> Int -> V1 ~ Int -> Int -> Int"
+        ))
         assertEquals(typeInt, type)
     }
 
@@ -116,16 +85,9 @@ class InferTest {
                 parse(input)
             )
 
-            assertEquals(
-                constraints, Constraints(
-                    mutableListOf(
-                        Pair(
-                            TArr(TVar("V1"), TArr(TVar("V2"), TVar("V3"))),
-                            TArr(typeInt, TArr(typeInt, resultType)),
-                        )
-                    )
-                )
-            )
+            assertConstraints(constraints, listOf(
+                "V1 -> V2 -> V3 ~ Int -> Int -> $resultType"
+            ))
 
             assertEquals(TVar("V3"), type)
         }
@@ -146,5 +108,9 @@ class InferTest {
 
         assertEquals(constraints, Constraints())
         assertEquals(TArr(TVar("V1"), TVar("V1")), type)
+    }
+
+    private fun assertConstraints(constraints: Constraints, expected: List<String>) {
+        assertEquals(constraints.toString(), expected.joinToString(", "))
     }
 }
