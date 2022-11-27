@@ -13,9 +13,11 @@ class InferTest {
             parse("a b")
         )
 
-        assertConstraints(constraints, listOf(
-            "V1 -> V1 ~ Int -> V2"
-        ))
+        assertConstraints(
+            constraints, listOf(
+                "V1 -> V1 ~ Int -> V2"
+            )
+        )
         assertEquals(TVar("V2"), type)
     }
 
@@ -29,10 +31,12 @@ class InferTest {
             parse("if (a) b else c")
         )
 
-        assertConstraints(constraints, listOf(
-            "V1 ~ Bool",
-            "Int ~ V2"
-        ))
+        assertConstraints(
+            constraints, listOf(
+                "V1 ~ Bool",
+                "Int ~ V2"
+            )
+        )
         assertEquals(typeInt, type)
     }
 
@@ -43,9 +47,11 @@ class InferTest {
             parse("\\x -> x 10")
         )
 
-        assertConstraints(constraints, listOf(
-            "V1 ~ Int -> V2"
-        ))
+        assertConstraints(
+            constraints, listOf(
+                "V1 ~ Int -> V2"
+            )
+        )
         assertEquals("V1 -> V2", type.toString())
     }
 
@@ -69,9 +75,7 @@ class InferTest {
     fun inferLet() {
         val (constraints, type) = infer(emptyTypeEnv, parse("let x = 10; y = x + 1 in y"))
 
-        assertConstraints(constraints, listOf(
-            "Int -> Int -> V1 ~ Int -> Int -> Int"
-        ))
+        assertConstraints(constraints, emptyList())
         assertEquals(typeInt, type)
     }
 
@@ -85,9 +89,11 @@ class InferTest {
                 parse(input)
             )
 
-            assertConstraints(constraints, listOf(
-                "V1 -> V2 -> V3 ~ Int -> Int -> $resultType"
-            ))
+            assertConstraints(
+                constraints, listOf(
+                    "V1 -> V2 -> V3 ~ Int -> Int -> $resultType"
+                )
+            )
 
             assertEquals(TVar("V3"), type)
         }

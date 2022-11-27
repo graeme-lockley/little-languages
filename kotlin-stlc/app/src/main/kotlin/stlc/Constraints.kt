@@ -11,6 +11,8 @@ data class Constraints(private val constraints: MutableList<Constraint> = mutabl
         solver(constraints)
 
     override fun toString(): String = constraints.joinToString(", ") { "${it.first} ~ ${it.second}" }
+
+    fun clone(): Constraints = Constraints(constraints.toMutableList())
 }
 
 private data class Unifier(val subst: Subst, val constraints: List<Constraint>)

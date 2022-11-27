@@ -54,10 +54,11 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
                 var newTypeEnv = typeEnv
 
                 for (decl in e.decls) {
-                    val tb = infer(newTypeEnv, decl.e)
-                    val subst = constraints.solve()
+                    val interimConstraints = constraints.clone()
+                    val inferredType = inferExpression(newTypeEnv, decl.e, interimConstraints)
+                    val subst = interimConstraints.solve()
                     newTypeEnv = newTypeEnv.apply(subst)
-                    val sc = newTypeEnv.generalise(tb.apply(subst))
+                    val sc = newTypeEnv.generalise(inferredType.apply(subst))
                     newTypeEnv = newTypeEnv.extend(decl.n, sc)
                 }
 
@@ -65,14 +66,15 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
             }
 
             is LetRecExpression -> {
+                val interimConstraints = constraints.clone()
+
                 val tvs = pump.nextN(e.decls.size)
+
                 val interimTypeEnv = typeEnv + e.decls.zip(tvs).map { (decl, tv) -> Pair(decl.n, Scheme(setOf(), tv)) }
+                val declarationType = fix(interimTypeEnv, LamExpression("_bob", LTupleExpression(e.decls.map { it.e })), interimConstraints)
+                interimConstraints.add(declarationType, TTuple(tvs))
 
-                val declarationType = fix(interimTypeEnv, LamExpression("_bob", LTupleExpression(e.decls.map { it.e })))
-
-                constraints.add(declarationType, TTuple(tvs))
-
-                val subst = constraints.solve()
+                val subst = interimConstraints.solve()
                 val solvedTypeEnv = typeEnv.apply(subst)
                 val newTypeEnv = solvedTypeEnv +
                         e.decls.zip(tvs).map { (decl, tv) -> Pair(decl.n, solvedTypeEnv.generalise(tv.apply(subst))) }
@@ -99,14 +101,17 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
             }
         }
 
-    private fun fix(typeEnv: TypeEnv, e: Expression): Type {
-        val t1 = infer(typeEnv, e)
+    private fun fix(typeEnv: TypeEnv, e: Expression, constraints: Constraints): Type {
+        val t1 = inferExpression(typeEnv, e, constraints)
         val tv = pump.next()
 
         constraints.add(TArr(tv, tv), t1)
 
         return tv
     }
+
+    private fun inferExpression(typeEnv: TypeEnv, e: Expression, constraints: Constraints): Type =
+        Inference(constraints, pump).infer(typeEnv, e)
 }
 
 val ops = mapOf<Op, Type>(
