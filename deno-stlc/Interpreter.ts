@@ -14,27 +14,6 @@ const solve = (expression: Expression): Type => {
   return type.apply(subst);
 };
 
-const input: Array<string> = [
-  "123",
-  "True",
-  "False",
-  "1 == 2",
-  "2 == 2",
-  "3 + 2",
-  "3 - 2",
-  "3 * 2",
-  "3 / 2",
-  "if (True) 1 else 2",
-  "if (False) 1 else 2",
-  "\\a -> \\b -> a + b",
-  "(\\a -> \\b -> a + b) 10 20",
-  "let add a b = a + b ; incr = add 1 in incr 10",
-  "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact",
-  "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact 5",
-  "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd 5",
-  "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isEven 5",
-];
-
 const binaryOps = new Map<number, (v1: any, v2: any) => any>([
   [Op.Equals, (a, b) => a === b],
   [Op.Plus, (a, b) => a + b],
@@ -92,14 +71,33 @@ export const execute = (t: string): [any, Type] => {
   return [evaluate(ast, {}), solve(ast)];
 };
 
-input.forEach((t: string) => {
-  console.log(t);
+// [
+//   "123",
+//   "True",
+//   "False",
+//   "1 == 2",
+//   "2 == 2",
+//   "3 + 2",
+//   "3 - 2",
+//   "3 * 2",
+//   "3 / 2",
+//   "if (True) 1 else 2",
+//   "if (False) 1 else 2",
+//   "\\a -> \\b -> a + b",
+//   "(\\a -> \\b -> a + b) 10 20",
+//   "let add a b = a + b ; incr = add 1 in incr 10",
+//   "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact",
+//   "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact 5",
+//   "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd 5",
+//   "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isEven 5",
+// ].forEach((t: string) => {
+//   console.log(t);
 
-  const [v, type] = execute(t);
+//   const [v, type] = execute(t);
 
-  if (type instanceof TArr) {
-    console.log(`> function: ${type}`);
-  } else {
-    console.log(`> ${v}: ${type}`);
-  }
-});
+//   if (type instanceof TArr) {
+//     console.log(`> function: ${type}`);
+//   } else {
+//     console.log(`> ${v}: ${type}`);
+//   }
+// });
