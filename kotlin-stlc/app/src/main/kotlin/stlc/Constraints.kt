@@ -9,6 +9,8 @@ data class Constraints(private val constraints: MutableList<Constraint> = mutabl
 
     fun solve(): Subst =
         solver(constraints)
+
+    override fun toString(): String = constraints.joinToString(", ") { "${it.first} ~ ${it.second}" }
 }
 
 private data class Unifier(val subst: Subst, val constraints: List<Constraint>)
