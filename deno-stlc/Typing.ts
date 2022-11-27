@@ -22,6 +22,10 @@ export class TVar implements Type {
   ftv(): Set<Var> {
     return new Set([this.name]);
   }
+
+  toString(): string {
+    return this.name;
+  }
 }
 
 export class TCon implements Type {
@@ -37,11 +41,16 @@ export class TCon implements Type {
   ftv(): Set<Var> {
     return new Set();
   }
+
+  toString(): string {
+    return this.name;
+  }
 }
 
 export class TArr implements Type {
   domain: Type;
   range: Type;
+
   constructor(domain: Type, range: Type) {
     this.domain = domain;
     this.range = range;
@@ -53,6 +62,14 @@ export class TArr implements Type {
 
   ftv(): Set<Var> {
     return new Set([...this.domain.ftv(), ...this.range.ftv()]);
+  }
+
+  toString(): string {
+    if (this.domain instanceof TArr) {
+      return `(${this.domain.toString()}) -> ${this.range.toString()}`;
+    } else {
+      return `${this.domain.toString()} -> ${this.range.toString()}`;
+    }
   }
 }
 
@@ -69,6 +86,10 @@ export class TTuple implements Type {
 
   ftv(): Set<Var> {
     return new Set(this.types.flatMap((t) => [...t.ftv()]));
+  }
+
+  toString(): string {
+    return `(${this.types.join(" * ")})`;
   }
 }
 

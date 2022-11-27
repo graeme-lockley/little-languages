@@ -14,9 +14,9 @@ const solve = (expression: string): Type => {
   return type.apply(subst);
 };
 
-const assertType = (expression: string, expected: Type) => {
+const assertType = (expression: string, expected: string) => {
   assertEquals(
-    solve(expression),
+    solve(expression).toString(),
     expected,
   );
 };
@@ -24,93 +24,81 @@ const assertType = (expression: string, expected: Type) => {
 Deno.test("solve \\x -> \\y -> \\z -> x + y + z", () => {
   assertType(
     "\\x -> \\y -> \\z -> x + y + z",
-    new TArr(typeInt, new TArr(typeInt, new TArr(typeInt, typeInt))),
+    "Int -> Int -> Int -> Int",
   );
 });
 
 Deno.test("solve \\f -> \\g -> \\x -> f (g x)", () => {
   assertType(
     "\\f -> \\g -> \\x -> f (g x)",
-    new TArr(
-      new TArr(new TVar("V4"), new TVar("V5")),
-      new TArr(
-        new TArr(new TVar("V3"), new TVar("V4")),
-        new TArr(new TVar("V3"), new TVar("V5")),
-      ),
-    ),
+    "(V4 -> V5) -> (V3 -> V4) -> V3 -> V5",
   );
 });
 
 Deno.test("solve let compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
   assertType(
     "let compose = \\f -> \\g -> \\x -> f (g x) in compose",
-    new TArr(
-      new TArr(new TVar("V6"), new TVar("V7")),
-      new TArr(
-        new TArr(new TVar("V8"), new TVar("V6")),
-        new TArr(new TVar("V8"), new TVar("V7")),
-      ),
-    ),
+    "(V6 -> V7) -> (V8 -> V6) -> V8 -> V7"
   );
 });
 
 Deno.test("solve let f = (\\x -> x) in let g = (f True) in f 3", () => {
   assertType(
     "let f = (\\x -> x) in let g = (f True) in f 3",
-    typeInt,
+    "Int",
   );
 });
 
 Deno.test("solve let identity = \\n -> n in identity", () => {
   assertType(
     "let identity = \\n -> n in identity",
-    new TArr(new TVar("V2"), new TVar("V2")),
+    "V2 -> V2",
   );
 });
 
 Deno.test("solve let add a b = a + b; succ = add 1 in succ 10", () => {
   assertType(
     "let add a b = a + b; succ = add 1 in succ 10",
-    typeInt,
+    "Int",
   );
 });
 
 Deno.test("solve let rec fact n = if (n == 0) 1 else fact (n - 1) * n in fact", () => {
   assertType(
     "let rec fact n = if (n == 0) 1 else fact(n - 1) * n in fact",
-    new TArr(typeInt, typeInt),
+    "Int -> Int",
   );
 });
 
 Deno.test("solve let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd", () => {
   assertType(
     "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd",
-    new TArr(typeInt, typeBool),
+    "Int -> Bool",
   );
 });
 
 Deno.test("solve let rec a = b + 1; b = a + 1 in a", () => {
   assertType(
     "let rec a = b + 1; b = a + 1 in a",
-    typeInt,
+    "Int",
   );
 });
 
 Deno.test("solve let rec identity a = a; v = identity 10 in v", () => {
   assertType(
     "let rec identity a = a; v = identity 10 in v",
-    typeInt,
+    "Int",
   );
 });
 
 Deno.test("solve let identity a = a in let rec v1 = identity 10; v2 = identity True in v?", () => {
   assertType(
     "let identity a = a in let rec v1 = identity 10; v2 = identity True in v1",
-    typeInt,
+    "Int",
   );
 
   assertType(
     "let identity a = a in let rec v1 = identity 10; v2 = identity True in v2",
-    typeBool,
+    "Bool",
   );
 });
