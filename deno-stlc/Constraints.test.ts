@@ -35,7 +35,7 @@ Deno.test("solve \\f -> \\g -> \\x -> f (g x)", () => {
   );
 });
 
-Deno.test("solve let compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
+Deno.test("solve let rec? compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
   assertType(
     "let compose = \\f -> \\g -> \\x -> f (g x) in compose",
     "(V6 -> V7) -> (V8 -> V6) -> V8 -> V7",
@@ -47,7 +47,7 @@ Deno.test("solve let compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
   );
 });
 
-Deno.test("solve let f = (\\x -> x) in let g = (f True) in f 3", () => {
+Deno.test("solve let rec? f = (\\x -> x) in let rec? g = (f True) in f 3", () => {
   assertType(
     "let f = (\\x -> x) in let g = (f True) in f 3",
     "Int",
@@ -69,7 +69,7 @@ Deno.test("solve let f = (\\x -> x) in let g = (f True) in f 3", () => {
   );
 });
 
-Deno.test("solve let identity = \\n -> n in identity", () => {
+Deno.test("solve let rec? identity = \\n -> n in identity", () => {
   assertType(
     "let identity = \\n -> n in identity",
     "V2 -> V2",
@@ -81,7 +81,7 @@ Deno.test("solve let identity = \\n -> n in identity", () => {
   );
 });
 
-Deno.test("solve let add a b = a + b; succ = add 1 in succ 10", () => {
+Deno.test("solve let rec? add a b = a + b; succ = add 1 in succ 10", () => {
   assertType(
     "let add a b = a + b; succ = add 1 in succ 10",
     "Int",
@@ -114,7 +114,7 @@ Deno.test("solve let rec a = b + 1; b = a + 1 in a", () => {
   );
 });
 
-Deno.test("solve let rec identity a = a; v = identity 10 in v", () => {
+Deno.test("solve let rec? identity a = a; v = identity 10 in v", () => {
   assertType(
     "let identity a = a; v = identity 10 in v",
     "Int",
@@ -126,7 +126,7 @@ Deno.test("solve let rec identity a = a; v = identity 10 in v", () => {
   );
 });
 
-Deno.test("solve let identity a = a in let rec v1 = identity 10; v2 = identity True in v?", () => {
+Deno.test("solve let rec? identity a = a in let rec? v1 = identity 10; v2 = identity True in v?", () => {
   assertType(
     "let identity a = a in let rec v1 = identity 10; v2 = identity True in v1",
     "Int",
