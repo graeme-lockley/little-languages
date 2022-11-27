@@ -56,7 +56,7 @@ Deno.test("Op", () => {
   assertExecute("3 + 2", "5: Int");
   assertExecute("3 - 2", "1: Int");
   assertExecute("3 * 2", "6: Int");
-  assertExecute("3 / 2", "1.5: Int");
+  assertExecute("9 / 2", "4: Int");
 });
 
 Deno.test("Var", () => {

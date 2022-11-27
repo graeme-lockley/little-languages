@@ -16,10 +16,10 @@ const solve = (expression: Expression): Type => {
 
 const binaryOps = new Map<number, (v1: any, v2: any) => any>([
   [Op.Equals, (a, b) => a === b],
-  [Op.Plus, (a, b) => a + b],
-  [Op.Minus, (a, b) => a - b],
-  [Op.Times, (a, b) => a * b],
-  [Op.Divide, (a, b) => a / b],
+  [Op.Plus, (a, b) => (a + b) | 0],
+  [Op.Minus, (a, b) => (a - b) | 0],
+  [Op.Times, (a, b) => (a * b) | 0],
+  [Op.Divide, (a, b) => (a / b) | 0],
 ]);
 
 const evaluate = (expr: Expression, env: any): any => {
