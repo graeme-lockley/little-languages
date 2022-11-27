@@ -96,8 +96,16 @@ export const inferExpression = (
         },
       );
       constraints.add(new TTuple(tvs), declarationType);
+      const subst = constraints.solve();
+      const solvedTypeEnv = env.apply(subst);
+      const solvedEnv = expr.declarations.reduce(
+        (acc, declaration, idx) =>
+          acc.extend(declaration.name, solvedTypeEnv.generalise(tvs[idx].apply(subst))),
+        solvedTypeEnv,
+      );
 
-      return infer(newEnv, expr.expr);
+
+      return infer(solvedEnv, expr.expr);
     }
     if (expr.type === "LBool") {
       return typeBool;
