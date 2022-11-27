@@ -5,116 +5,144 @@ import kotlin.test.assertEquals
 
 class ConstraintsTest {
     @Test
-    fun solve1() {
+    fun `lambda function with arithmetic operators`() {
         assertType(
-            TArr(typeInt, TArr(typeInt, TArr(typeInt, typeInt))),
+            "Int -> Int -> Int -> Int",
             "\\x -> \\y -> \\z -> x + y + z"
         )
     }
 
     @Test
-    fun solve2() {
+    fun `lambda function composition`() {
         assertType(
-            TArr(
-                TArr(TVar("V4"), TVar("V5")),
-                TArr(
-                    TArr(TVar("V3"), TVar("V4")),
-                    TArr(TVar("V3"), TVar("V5"))
-                )
-            ),
+            "(V4 -> V5) -> (V3 -> V4) -> V3 -> V5",
             "\\f -> \\g -> \\x -> f (g x)"
         )
     }
 
     @Test
-    fun solve3() {
+    fun `returns compose function where compose is defined using lambda`() {
         assertType(
-            TArr(
-                TArr(TVar("V6"), TVar("V7")),
-                TArr(
-                    TArr(TVar("V8"), TVar("V6")),
-                    TArr(TVar("V8"), TVar("V7"))
-                )
-            ),
+            "(V6 -> V7) -> (V8 -> V6) -> V8 -> V7",
             "let compose = \\f -> \\g -> \\x -> f (g x) in compose"
         )
+
+        assertType(
+            "(V6 -> V7) -> (V5 -> V6) -> V5 -> V7",
+            "let rec compose = \\f -> \\g -> \\x -> f (g x) in compose"
+        )
     }
 
     @Test
-    fun solve4() {
+    fun `generalised inferred scheme used in different forms`() {
         assertType(
-            typeInt,
+            "Int",
             "let f = (\\x -> x) in let g = (f True) in f 3"
         )
+
+//        assertType(
+//            "Int",
+//            "let rec f = (\\x -> x) in let g = (f True) in f 3"
+//        )
+
+//        assertType(
+//            "Int",
+//            "let f = (\\x -> x) in let rec g = (f True) in f 3"
+//        )
+
+//        assertType(
+//            "Int",
+//            "let rec f = (\\x -> x) in let rec g = (f True) in f 3"
+//        )
     }
 
     @Test
-    fun solve5() {
+    fun `identity declaration and returned`() {
         assertType(
-            TArr(TVar("V2"), TVar("V2")),
+            "V2 -> V2",
             "let identity = \\n -> n in identity"
+        )
+
+        assertType(
+            "V3 -> V3",
+            "let rec identity = \\n -> n in identity"
         )
     }
 
     @Test
-    fun solve5a() {
+    fun `identity declared and used and returned`() {
         assertType(
-            typeInt,
+            "Int",
+            "let identity = \\n -> n; v = identity 10 in v"
+        )
+
+        assertType(
+            "Int",
             "let rec identity = \\n -> n; v = identity 10 in v"
         )
     }
 
     @Test
-    fun solve5b() {
+    fun `sequential declarations`() {
         assertType(
-            typeInt,
+            "Int",
             "let identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v1"
         )
 
+//        assertType(
+//            "Int",
+//            "let rec identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v1"
+//        )
+
         assertType(
-            typeBool,
+            "Bool",
             "let identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v2"
         )
+
+//        assertType(
+//            "Bool",
+//            "let rec identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v2"
+//        )
     }
 
     @Test
-    fun solve6() {
+    fun `sequential declarations with partial application`() {
         assertType(
-            typeInt,
+            "Int",
             "let add a b = a + b; succ = add 1 in succ 10"
         )
     }
 
     @Test
-    fun solve7() {
+    fun `factorial declaration`() {
         assertType(
-            TArr(typeInt, typeInt),
+            "Int -> Int",
             "let rec fact n = if (n == 0) 1 else fact (n - 1) * n in fact"
         )
     }
 
     @Test
-    fun solve8() {
+    fun `mutually recursive function declarations`() {
         assertType(
-            TArr(typeInt, typeBool),
+            "Int -> Bool",
             "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd"
         )
     }
 
     @Test
-    fun solve9() {
+    fun `mutually recursive constant value declarations`() {
         assertType(
-            typeInt,
+            "Int",
             "let rec a = b + 1; b = a + 1 in a"
         )
     }
 
-    private fun assertType(expected: Type, expression: String) {
+    private fun assertType(expected: String, expression: String) {
         val (constraints, type) = infer(
             emptyTypeEnv,
             parse(expression)
         )
 
-        assertEquals(expected, type.apply(constraints.solve()))
+        assertEquals(expected, type.apply(constraints.solve()).toString())
     }
 }
