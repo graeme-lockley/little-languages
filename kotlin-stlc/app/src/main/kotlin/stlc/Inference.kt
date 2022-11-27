@@ -66,11 +66,16 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
 
             is LetRecExpression -> {
                 val tvs = pump.nextN(e.decls.size)
-                val newTypeEnv = typeEnv + e.decls.zip(tvs).map { (decl, tv) -> Pair(decl.n, Scheme(setOf(), tv)) }
+                val interimTypeEnv = typeEnv + e.decls.zip(tvs).map { (decl, tv) -> Pair(decl.n, Scheme(setOf(), tv)) }
 
-                val declarationType = fix(newTypeEnv, LamExpression("_bob", LTupleExpression(e.decls.map { it.e })))
+                val declarationType = fix(interimTypeEnv, LamExpression("_bob", LTupleExpression(e.decls.map { it.e })))
 
                 constraints.add(declarationType, TTuple(tvs))
+
+                val subst = constraints.solve()
+                val solvedTypeEnv = typeEnv.apply(subst)
+                val newTypeEnv = solvedTypeEnv +
+                        e.decls.zip(tvs).map { (decl, tv) -> Pair(decl.n, solvedTypeEnv.generalise(tv.apply(subst))) }
 
                 infer(newTypeEnv, e.e)
             }

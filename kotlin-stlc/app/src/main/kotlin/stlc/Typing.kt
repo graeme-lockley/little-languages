@@ -74,6 +74,8 @@ data class Scheme(private val names: Set<Var>, private val type: Type) {
 }
 
 data class TypeEnv(private val items: Map<String, Scheme>) {
+    private val ftv = items.toList().flatMap { it.second.ftv() }.toSet()
+
     fun extend(name: String, scheme: Scheme): TypeEnv =
         TypeEnv(items + Pair(name, scheme))
 
@@ -86,13 +88,10 @@ data class TypeEnv(private val items: Map<String, Scheme>) {
     fun apply(s: Subst): TypeEnv =
         TypeEnv(items.mapValues { it.value.apply(s) })
 
-    private fun ftv(): Set<Var> =
-        items.toList().flatMap { it.second.ftv() }.toSet()
-
     operator fun get(name: String): Scheme? = items[name]
 
     fun generalise(type: Type): Scheme =
-        Scheme(type.ftv() - ftv(), type)
+        Scheme(type.ftv() - ftv, type)
 }
 
 val emptyTypeEnv = TypeEnv(emptyMap())

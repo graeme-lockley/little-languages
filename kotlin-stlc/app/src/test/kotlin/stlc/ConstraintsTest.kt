@@ -28,7 +28,7 @@ class ConstraintsTest {
         )
 
         assertType(
-            "(V6 -> V7) -> (V5 -> V6) -> V5 -> V7",
+            "(V9 -> V10) -> (V11 -> V9) -> V11 -> V10",
             "let rec compose = \\f -> \\g -> \\x -> f (g x) in compose"
         )
     }
@@ -40,20 +40,20 @@ class ConstraintsTest {
             "let f = (\\x -> x) in let g = (f True) in f 3"
         )
 
-//        assertType(
-//            "Int",
-//            "let rec f = (\\x -> x) in let g = (f True) in f 3"
-//        )
+        assertType(
+            "Int",
+            "let rec f = (\\x -> x) in let g = (f True) in f 3"
+        )
 
-//        assertType(
-//            "Int",
-//            "let f = (\\x -> x) in let rec g = (f True) in f 3"
-//        )
+        assertType(
+            "Int",
+            "let f = (\\x -> x) in let rec g = (f True) in f 3"
+        )
 
-//        assertType(
-//            "Int",
-//            "let rec f = (\\x -> x) in let rec g = (f True) in f 3"
-//        )
+        assertType(
+            "Int",
+            "let rec f = (\\x -> x) in let rec g = (f True) in f 3"
+        )
     }
 
     @Test
@@ -64,7 +64,7 @@ class ConstraintsTest {
         )
 
         assertType(
-            "V3 -> V3",
+            "V5 -> V5",
             "let rec identity = \\n -> n in identity"
         )
     }
@@ -89,20 +89,20 @@ class ConstraintsTest {
             "let identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v1"
         )
 
-//        assertType(
-//            "Int",
-//            "let rec identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v1"
-//        )
+        assertType(
+            "Int",
+            "let rec identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v1"
+        )
 
         assertType(
             "Bool",
             "let identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v2"
         )
 
-//        assertType(
-//            "Bool",
-//            "let rec identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v2"
-//        )
+        assertType(
+            "Bool",
+            "let rec identity = \\n -> n in let rec v1 = identity 10; v2 = identity True in v2"
+        )
     }
 
     @Test
