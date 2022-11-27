@@ -11,6 +11,9 @@ https://github.com/sdiehl/write-you-a-haskell.
 
 ## STLC - Simple Typed Lambda Calculus
 
-STLC is a small language helpful in getting the type inference engine working without the clutter of complexity.
+STLC is helpful in getting the type inference engine working without the clutter of complexity.  The bits that I found most helpful with this project is:
+
+- Determining how to infer `let rec` - the literature often implies that this is trivial however it is certainly not trivial for a practitioner as there is subtleties that need to be worked through.
+- When to solve over the constraints and when to defer - this is material in getting the most general type solution.
 
 https://github.com/graeme-lockley/typed-lambda-calculus-deno/blob/78341303affc0ace0b5d0327b1ea8b28cf6f7a90/stlc/Grammar.llgd
