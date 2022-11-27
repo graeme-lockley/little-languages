@@ -32,7 +32,7 @@ Deno.test("infer Apply", () => {
   );
 
   assertConstraintsEquals(constraints, [
-    "V1 -> V1 ~ Int -> V2"
+    "V1 -> V1 ~ Int -> V2",
   ]);
   assertTypeEquals(type, "V2");
 });
@@ -48,7 +48,7 @@ Deno.test("infer If", () => {
 
   assertConstraintsEquals(constraints, [
     "V1 ~ Bool",
-    "Int ~ V2"
+    "Int ~ V2",
   ]);
   assertTypeEquals(type, "Int");
 });
@@ -70,7 +70,7 @@ Deno.test("infer Lam", () => {
   );
 
   assertConstraintsEquals(constraints, [
-    "V1 ~ Int -> V2"
+    "V1 ~ Int -> V2",
   ]);
   assertTypeEquals(type, "V1 -> V2");
 });
@@ -82,7 +82,7 @@ Deno.test("infer Let", () => {
   );
 
   assertConstraintsEquals(constraints, [
-    "Int -> Int -> V1 ~ Int -> Int -> Int"
+    "Int -> Int -> V1 ~ Int -> Int -> Int",
   ]);
   assertTypeEquals(type, "Int");
 });
@@ -107,7 +107,7 @@ Deno.test("infer Op", () => {
     );
 
     assertConstraintsEquals(constraints, [
-      `V1 -> V2 -> V3 ~ Int -> Int -> ${resultType}`
+      `V1 -> V2 -> V3 ~ Int -> Int -> ${resultType}`,
     ]);
     assertTypeEquals(type, "V3");
   };

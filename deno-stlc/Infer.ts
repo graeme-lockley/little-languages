@@ -100,10 +100,12 @@ export const inferExpression = (
       const solvedTypeEnv = env.apply(subst);
       const solvedEnv = expr.declarations.reduce(
         (acc, declaration, idx) =>
-          acc.extend(declaration.name, solvedTypeEnv.generalise(tvs[idx].apply(subst))),
+          acc.extend(
+            declaration.name,
+            solvedTypeEnv.generalise(tvs[idx].apply(subst)),
+          ),
         solvedTypeEnv,
       );
-
 
       return infer(solvedEnv, expr.expr);
     }
