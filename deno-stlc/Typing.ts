@@ -66,9 +66,9 @@ export class TArr implements Type {
 
   toString(): string {
     if (this.domain instanceof TArr) {
-      return `(${this.domain.toString()}) -> ${this.range.toString()}`;
+      return `(${this.domain}) -> ${this.range}`;
     } else {
-      return `${this.domain.toString()} -> ${this.range.toString()}`;
+      return `${this.domain} -> ${this.range}`;
     }
   }
 }
