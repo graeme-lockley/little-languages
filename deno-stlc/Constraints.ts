@@ -84,4 +84,10 @@ export class Constraints {
   solve(): Subst {
     return solver(this.constraints);
   }
+
+  toString(): string {
+    return this.constraints.map((a) =>
+      `${a[0].toString()} ~ ${a[1].toString()}`
+    ).join(", ");
+  }
 }

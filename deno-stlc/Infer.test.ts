@@ -1,16 +1,27 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
+import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
 import { parse } from "./Parser.ts";
 import {
   emptyTypeEnv,
   Scheme,
   TArr,
-  TCon,
   TVar,
   Type,
   typeBool,
   typeInt,
 } from "./Typing.ts";
+
+const assertTypeEquals = (t: Type, expected: string) => {
+  assertEquals(t.toString(), expected);
+};
+
+const assertConstraintsEquals = (
+  constraints: Constraints,
+  expected: Array<string>,
+) => {
+  assertEquals(constraints.toString(), expected.join(", "));
+};
 
 Deno.test("infer Apply", () => {
   const [constraints, type] = inferExpression(
@@ -20,12 +31,10 @@ Deno.test("infer Apply", () => {
     parse("a b"),
   );
 
-  assertEquals(constraints.constraints.length, 1);
-  assertEquals(constraints.constraints[0], [
-    new TArr(new TVar("V1"), new TVar("V1")),
-    new TArr(new TCon("Int"), new TVar("V2")),
+  assertConstraintsEquals(constraints, [
+    "V1 -> V1 ~ Int -> V2"
   ]);
-  assertEquals(type, new TVar("V2"));
+  assertTypeEquals(type, "V2");
 });
 
 Deno.test("infer If", () => {
@@ -37,10 +46,11 @@ Deno.test("infer If", () => {
     parse("if (a) b else c"),
   );
 
-  assertEquals(constraints.constraints.length, 2);
-  assertEquals(constraints.constraints[0], [new TVar("V1"), typeBool]);
-  assertEquals(constraints.constraints[1], [typeInt, new TVar("V2")]);
-  assertEquals(type, typeInt);
+  assertConstraintsEquals(constraints, [
+    "V1 ~ Bool",
+    "Int ~ V2"
+  ]);
+  assertTypeEquals(type, "Int");
 });
 
 Deno.test("infer LBool", () => {
@@ -49,8 +59,8 @@ Deno.test("infer LBool", () => {
     parse("True"),
   );
 
-  assertEquals(constraints.constraints.length, 0);
-  assertEquals(type, typeBool);
+  assertConstraintsEquals(constraints, []);
+  assertTypeEquals(type, "Bool");
 });
 
 Deno.test("infer Lam", () => {
@@ -59,12 +69,10 @@ Deno.test("infer Lam", () => {
     parse("\\x -> x 10"),
   );
 
-  assertEquals(constraints.constraints.length, 1);
-  assertEquals(constraints.constraints[0], [
-    new TVar("V1"),
-    new TArr(typeInt, new TVar("V2")),
+  assertConstraintsEquals(constraints, [
+    "V1 ~ Int -> V2"
   ]);
-  assertEquals(type, new TArr(new TVar("V1"), new TVar("V2")));
+  assertTypeEquals(type, "V1 -> V2");
 });
 
 Deno.test("infer Let", () => {
@@ -73,12 +81,10 @@ Deno.test("infer Let", () => {
     parse("let x = 10; y = x + 1 in y"),
   );
 
-  assertEquals(constraints.constraints.length, 1);
-  assertEquals(constraints.constraints[0], [
-    new TArr(typeInt, new TArr(typeInt, new TVar("V1"))),
-    new TArr(typeInt, new TArr(typeInt, typeInt)),
+  assertConstraintsEquals(constraints, [
+    "Int -> Int -> V1 ~ Int -> Int -> Int"
   ]);
-  assertEquals(type, typeInt);
+  assertTypeEquals(type, "Int");
 });
 
 Deno.test("infer LInt", () => {
@@ -88,7 +94,7 @@ Deno.test("infer LInt", () => {
   );
 
   assertEquals(constraints.constraints.length, 0);
-  assertEquals(type, typeInt);
+  assertTypeEquals(type, "Int");
 });
 
 Deno.test("infer Op", () => {
@@ -99,16 +105,11 @@ Deno.test("infer Op", () => {
         .extend("b", new Scheme(["T"], new TVar("T"))),
       parse(input),
     );
-    assertEquals(constraints.constraints.length, 1);
 
-    assertEquals(
-      constraints.constraints[0],
-      [
-        new TArr(new TVar("V1"), new TArr(new TVar("V2"), new TVar("V3"))),
-        new TArr(typeInt, new TArr(typeInt, resultType)),
-      ],
-    );
-    assertEquals(type, new TVar("V3"));
+    assertConstraintsEquals(constraints, [
+      `V1 -> V2 -> V3 ~ Int -> Int -> ${resultType}`
+    ]);
+    assertTypeEquals(type, "V3");
   };
 
   scenario("a + b", typeInt);
@@ -127,6 +128,6 @@ Deno.test("infer Var", () => {
     parse("a"),
   );
 
-  assertEquals(constraints.constraints.length, 0);
-  assertEquals(type, new TArr(new TVar("V1"), new TVar("V1")));
+  assertConstraintsEquals(constraints, []);
+  assertTypeEquals(type, "V1 -> V1");
 });
