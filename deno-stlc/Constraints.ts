@@ -73,8 +73,8 @@ const solver = (constraints: Array<Constraint>): Subst => {
 export class Constraints {
   constraints: Array<Constraint>;
 
-  constructor() {
-    this.constraints = [];
+  constructor(constraints: Array<Constraint> = []) {
+    this.constraints = constraints;
   }
 
   add(t1: Type, t2: Type): void {
@@ -89,5 +89,9 @@ export class Constraints {
     return this.constraints.map((a) =>
       `${a[0].toString()} ~ ${a[1].toString()}`
     ).join(", ");
+  }
+
+  clone(): Constraints {
+    return new Constraints([...this.constraints]);
   }
 }

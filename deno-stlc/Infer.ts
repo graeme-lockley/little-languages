@@ -2,6 +2,7 @@ import { Expression, Op } from "./Parser.ts";
 import { Constraints } from "./Constraints.ts";
 import {
   createFresh,
+  Pump,
   Scheme,
   TArr,
   TTuple,
@@ -23,12 +24,15 @@ const ops = new Map([
 export const inferExpression = (
   env: TypeEnv,
   expression: Expression,
+  constraints: Constraints = new Constraints(),
+  pump: Pump = createFresh(),
 ): [Constraints, Type] => {
-  const constraints = new Constraints();
-  const pump = createFresh();
-
-  const fix = (env: TypeEnv, expr: Expression): Type => {
-    const t1 = infer(env, expr);
+  const fix = (
+    env: TypeEnv,
+    expr: Expression,
+    constraints: Constraints,
+  ): Type => {
+    const [_, t1] = inferExpression(env, expr, constraints, pump);
     const tv = pump.next();
 
     constraints.add(new TArr(tv, tv), t1);
@@ -65,9 +69,14 @@ export const inferExpression = (
       let newEnv = env;
 
       for (const declaration of expr.declarations) {
-        const tb = infer(newEnv, declaration.expr);
+        const [nc, tb] = inferExpression(
+          newEnv,
+          declaration.expr,
+          constraints.clone(),
+          pump,
+        );
 
-        const subst = constraints.solve();
+        const subst = nc.solve();
 
         newEnv = newEnv.apply(subst);
         const sc = newEnv.generalise(tb.apply(subst));
@@ -84,6 +93,7 @@ export const inferExpression = (
         env,
       );
 
+      const nc = constraints.clone();
       const declarationType = fix(
         newEnv,
         {
@@ -94,9 +104,10 @@ export const inferExpression = (
             values: expr.declarations.map((d) => d.expr),
           },
         },
+        nc,
       );
-      constraints.add(new TTuple(tvs), declarationType);
-      const subst = constraints.solve();
+      nc.add(new TTuple(tvs), declarationType);
+      const subst = nc.solve();
       const solvedTypeEnv = env.apply(subst);
       const solvedEnv = expr.declarations.reduce(
         (acc, declaration, idx) =>
