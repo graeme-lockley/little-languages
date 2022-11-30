@@ -25,7 +25,7 @@ A [Deno](./deno-stlc/) and [Kotlin](/kotlin-stlc/) implementation have been deve
 
 TLCA is helpful in understanding how to implement abstract data types (ADT) and pattern matching.  The language has the following characteristics:
 
-- Bool, Int, String, higher-order functions and abstract data types
+- Unit, Bool, Int, String, higher-order functions, tuples and abstract data types
 - Lambda functions
 - Pattern matching
 - Declaration based rather than expression based
