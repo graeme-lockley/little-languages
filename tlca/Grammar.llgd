@@ -1,0 +1,46 @@
+uses "./Scanner.llld";
+
+Program
+    : Expression
+    ;
+
+Expression
+    : Relational {Relational}
+    ;
+
+Relational
+    : Multiplicative ["==" Multiplicative]
+    ;
+
+Multiplicative
+    : Additive {MultiplicativeOps Additive}
+    ;
+
+MultiplicativeOps
+    : "*"
+    | "/"
+    ;
+
+Additive
+    : Factor {AdditiveOps Factor}
+    ;
+
+AdditiveOps
+    : "+"
+    | "-"
+    ;
+
+Factor
+    : "(" Expression ")"
+    | LiteralInt
+    | "True"
+    | "False"
+    | "\" Identifier {Identifier} "->" Expression
+    | "let" ["rec"] Declaration {";" Declaration} "in" Expression
+    | "if" "(" Expression ")" Expression "else" Expression
+    | Identifier
+    ;
+
+Declaration
+    : Identifier {Identifier} "=" Expression
+    ;
