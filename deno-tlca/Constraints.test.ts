@@ -4,7 +4,7 @@ import { parse } from "./Parser.ts";
 import { emptyTypeEnv, Type } from "./Typing.ts";
 
 const solve = (expression: string): Type => {
-  const [constraints, type, ] = inferProgram(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse(expression),
   );
