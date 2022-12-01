@@ -3,6 +3,10 @@ import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 import { execute } from "./Interpreter.ts";
 import { TArr } from "./Typing.ts";
 
+Deno.test("App 1", () => {
+  assertExecute("(\\n -> n + 1) 1", "2: Int");
+});
+
 Deno.test("App", () => {
   assertExecute("(\\a -> \\b -> a + b) 10 20", "30: Int");
 });
@@ -17,25 +21,25 @@ Deno.test("Lam", () => {
 });
 
 Deno.test("Let", () => {
-  assertExecute("let add a b = a + b ; incr = add 1 in incr 10", "11: Int");
+  assertExecute("let add a b = a + b and incr = add 1 ; incr 10", "11: Int");
 });
 
 Deno.test("LetRec", () => {
   assertExecute(
-    "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact",
+    "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) ; fact",
     "function: Int -> Int",
   );
   assertExecute(
-    "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact 5",
+    "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) ; fact 5",
     "120: Int",
   );
 
   assertExecute(
-    "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isEven 5",
+    "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isEven 5",
     "false: Bool",
   );
   assertExecute(
-    "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd 5",
+    "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isOdd 5",
     "true: Bool",
   );
 });
@@ -60,9 +64,9 @@ Deno.test("Op", () => {
 });
 
 Deno.test("Var", () => {
-  assertExecute("let x = 1 in x", "1: Int");
-  assertExecute("let x = True in x", "true: Bool");
-  assertExecute("let x = \\a -> a in x", "function: V2 -> V2");
+  assertExecute("let x = 1 ; x", "1: Int");
+  assertExecute("let x = True ; x", "true: Bool");
+  assertExecute("let x = \\a -> a ; x", "function: V2 -> V2");
 });
 
 const assertExecute = (expression: string, expected: string) => {

@@ -1,4 +1,4 @@
-import { Expression, Op } from "./Parser.ts";
+import { Expression, Op, Program } from "./Parser.ts";
 import { Constraints } from "./Constraints.ts";
 import {
   createFresh,
@@ -11,6 +11,7 @@ import {
   TypeEnv,
   typeError,
   typeInt,
+  typeUnit,
 } from "./Typing.ts";
 
 const ops = new Map([
@@ -21,12 +22,30 @@ const ops = new Map([
   [Op.Divide, new TArr(typeInt, new TArr(typeInt, typeInt))],
 ]);
 
+export const inferProgram = (
+  env: TypeEnv,
+  program: Program,
+  constraints: Constraints = new Constraints(),
+  pump: Pump = createFresh(),
+): [Constraints, Type, TypeEnv] => {
+  let t: Type = typeUnit;
+
+  program.forEach((e) => {
+    const [, tp, newEnv] = inferExpression(env, e, constraints, pump);
+
+    t = tp;
+    env = newEnv;
+  });
+
+  return [constraints, t, env];
+};
+
 export const inferExpression = (
   env: TypeEnv,
   expression: Expression,
   constraints: Constraints = new Constraints(),
   pump: Pump = createFresh(),
-): [Constraints, Type] => {
+): [Constraints, Type, TypeEnv] => {
   const fix = (
     env: TypeEnv,
     expr: Expression,
@@ -40,30 +59,30 @@ export const inferExpression = (
     return tv;
   };
 
-  const infer = (env: TypeEnv, expr: Expression): Type => {
+  const infer = (env: TypeEnv, expr: Expression): [Type, TypeEnv] => {
     if (expr.type === "App") {
-      const t1 = infer(env, expr.e1);
-      const t2 = infer(env, expr.e2);
+      const [t1] = infer(env, expr.e1);
+      const [t2] = infer(env, expr.e2);
       const tv = pump.next();
 
       constraints.add(t1, new TArr(t2, tv));
 
-      return tv;
+      return [tv, env];
     }
     if (expr.type === "If") {
-      const tg = infer(env, expr.guard);
-      const tt = infer(env, expr.then);
-      const et = infer(env, expr.else);
+      const [tg] = infer(env, expr.guard);
+      const [tt] = infer(env, expr.then);
+      const [et] = infer(env, expr.else);
 
       constraints.add(tg, typeBool);
       constraints.add(tt, et);
 
-      return tt;
+      return [tt, env];
     }
     if (expr.type === "Lam") {
       const tv = pump.next();
-      const t = infer(env.extend(expr.name, new Scheme([], tv)), expr.expr);
-      return new TArr(tv, t);
+      const [t] = infer(env.extend(expr.name, new Scheme([], tv)), expr.expr);
+      return [new TArr(tv, t), env];
     }
     if (expr.type === "Let") {
       let newEnv = env;
@@ -83,7 +102,7 @@ export const inferExpression = (
         newEnv = newEnv.extend(declaration.name, sc);
       }
 
-      return infer(newEnv, expr.expr);
+      return [typeUnit, newEnv];
     }
     if (expr.type === "LetRec") {
       const tvs = pump.nextN(expr.declarations.length);
@@ -118,37 +137,37 @@ export const inferExpression = (
         solvedTypeEnv,
       );
 
-      return infer(solvedEnv, expr.expr);
+      return [typeUnit, solvedEnv];
     }
     if (expr.type === "LBool") {
-      return typeBool;
+      return [typeBool, env];
     }
     if (expr.type === "LInt") {
-      return typeInt;
+      return [typeInt, env];
     }
     if (expr.type === "LTuple") {
-      return new TTuple(expr.values.map((v) => infer(env, v)));
+      return [new TTuple(expr.values.map((v) => infer(env, v)[0])), env];
     }
     if (expr.type === "Op") {
-      const tl = infer(env, expr.left);
-      const tr = infer(env, expr.right);
+      const [tl] = infer(env, expr.left);
+      const [tr] = infer(env, expr.right);
       const tv = pump.next();
 
       const u1 = new TArr(tl, new TArr(tr, tv));
       const u2 = ops.get(expr.op)!;
       constraints.add(u1, u2);
-      return tv;
+      return [tv, env];
     }
     if (expr.type === "Var") {
       const scheme = env.scheme(expr.name);
 
       if (scheme === undefined) throw `Unknown name: ${expr.name}`;
 
-      return scheme.instantiate(pump);
+      return [scheme.instantiate(pump), env];
     }
 
-    return typeError;
+    return [typeError, env];
   };
 
-  return [constraints, infer(env, expression)];
+  return [constraints, ...infer(env, expression)];
 };

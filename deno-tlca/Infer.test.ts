@@ -1,6 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 import { Constraints } from "./Constraints.ts";
-import { inferExpression } from "./Infer.ts";
+import { inferProgram } from "./Infer.ts";
 import { parse } from "./Parser.ts";
 import {
   emptyTypeEnv,
@@ -24,7 +24,7 @@ const assertConstraintsEquals = (
 };
 
 Deno.test("infer Apply", () => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv
       .extend("a", new Scheme(["T"], new TArr(new TVar("T"), new TVar("T"))))
       .extend("b", new Scheme([], typeInt)),
@@ -38,7 +38,7 @@ Deno.test("infer Apply", () => {
 });
 
 Deno.test("infer If", () => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv
       .extend("a", new Scheme(["S"], new TVar("S")))
       .extend("b", new Scheme([], typeInt))
@@ -54,7 +54,7 @@ Deno.test("infer If", () => {
 });
 
 Deno.test("infer LBool", () => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("True"),
   );
@@ -64,7 +64,7 @@ Deno.test("infer LBool", () => {
 });
 
 Deno.test("infer Lam", () => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("\\x -> x 10"),
   );
@@ -76,9 +76,9 @@ Deno.test("infer Lam", () => {
 });
 
 Deno.test("infer Let", () => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv,
-    parse("let x = 10; y = x + 1 in y"),
+    parse("let x = 10 and y = x + 1 ; y"),
   );
 
   assertConstraintsEquals(constraints, []);
@@ -86,7 +86,7 @@ Deno.test("infer Let", () => {
 });
 
 Deno.test("infer LInt", () => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("123"),
   );
@@ -97,7 +97,7 @@ Deno.test("infer LInt", () => {
 
 Deno.test("infer Op", () => {
   const scenario = (input: string, resultType: Type) => {
-    const [constraints, type] = inferExpression(
+    const [constraints, type] = inferProgram(
       emptyTypeEnv
         .extend("a", new Scheme(["T"], new TVar("T")))
         .extend("b", new Scheme(["T"], new TVar("T"))),
@@ -118,7 +118,7 @@ Deno.test("infer Op", () => {
 });
 
 Deno.test("infer Var", () => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type] = inferProgram(
     emptyTypeEnv.extend(
       "a",
       new Scheme(["T"], new TArr(new TVar("T"), new TVar("T"))),

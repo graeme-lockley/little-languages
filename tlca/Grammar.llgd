@@ -1,7 +1,7 @@
 uses "./Scanner.llld";
 
 Program
-    : Expression
+    : Expression {";" Expression}
     ;
 
 Expression
@@ -32,11 +32,12 @@ AdditiveOps
 
 Factor
     : "(" Expression ")"
+    | "{" Expression {";" Expression} "}"
     | LiteralInt
     | "True"
     | "False"
     | "\" Identifier {Identifier} "->" Expression
-    | "let" ["rec"] Declaration {";" Declaration} "in" Expression
+    | "let" ["rec"] Declaration {"and" Declaration}
     | "if" "(" Expression ")" Expression "else" Expression
     | Identifier
     ;

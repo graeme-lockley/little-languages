@@ -1,10 +1,10 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
-import { inferExpression } from "./Infer.ts";
+import { inferProgram } from "./Infer.ts";
 import { parse } from "./Parser.ts";
 import { emptyTypeEnv, Type } from "./Typing.ts";
 
 const solve = (expression: string): Type => {
-  const [constraints, type] = inferExpression(
+  const [constraints, type, ] = inferProgram(
     emptyTypeEnv,
     parse(expression),
   );
@@ -35,115 +35,115 @@ Deno.test("solve \\f -> \\g -> \\x -> f (g x)", () => {
   );
 });
 
-Deno.test("solve let rec? compose = \\f -> \\g -> \\x -> f (g x) in compose", () => {
+Deno.test("solve let rec? compose = \\f -> \\g -> \\x -> f (g x) ; compose", () => {
   assertType(
-    "let compose = \\f -> \\g -> \\x -> f (g x) in compose",
+    "let compose = \\f -> \\g -> \\x -> f (g x) ; compose",
     "(V6 -> V7) -> (V8 -> V6) -> V8 -> V7",
   );
 
   assertType(
-    "let rec compose = \\f -> \\g -> \\x -> f (g x) in compose",
+    "let rec compose = \\f -> \\g -> \\x -> f (g x) ; compose",
     "(V9 -> V10) -> (V11 -> V9) -> V11 -> V10",
   );
 });
 
-Deno.test("solve let rec? f = (\\x -> x) in let rec? g = (f True) in f 3", () => {
+Deno.test("solve let rec? f = (\\x -> x) ; let rec? g = (f True) ; f 3", () => {
   assertType(
-    "let f = (\\x -> x) in let g = (f True) in f 3",
+    "let f = (\\x -> x) ; let g = (f True) ; f 3",
     "Int",
   );
 
   assertType(
-    "let f = (\\x -> x) in let rec g = (f True) in f 3",
+    "let f = (\\x -> x) ; let rec g = (f True) ; f 3",
     "Int",
   );
 
   assertType(
-    "let rec f = (\\x -> x) in let g = (f True) in f 3",
+    "let rec f = (\\x -> x) ; let g = (f True) ; f 3",
     "Int",
   );
 
   assertType(
-    "let rec f = (\\x -> x) in let rec g = (f True) in f 3",
+    "let rec f = (\\x -> x) ; let rec g = (f True) ; f 3",
     "Int",
   );
 });
 
-Deno.test("solve let rec? identity = \\n -> n in identity", () => {
+Deno.test("solve let rec? identity = \\n -> n ; identity", () => {
   assertType(
-    "let identity = \\n -> n in identity",
+    "let identity = \\n -> n ; identity",
     "V2 -> V2",
   );
 
   assertType(
-    "let rec identity = \\n -> n in identity",
+    "let rec identity = \\n -> n ; identity",
     "V5 -> V5",
   );
 });
 
-Deno.test("solve let rec? add a b = a + b; succ = add 1 in succ 10", () => {
+Deno.test("solve let rec? add a b = a + b and succ = add 1 ; succ 10", () => {
   assertType(
-    "let add a b = a + b; succ = add 1 in succ 10",
+    "let add a b = a + b and succ = add 1 ; succ 10",
     "Int",
   );
 
   assertType(
-    "let rec add a b = a + b; succ = add 1 in succ 10",
+    "let rec add a b = a + b and succ = add 1 ; succ 10",
     "Int",
   );
 });
 
-Deno.test("solve let rec fact n = if (n == 0) 1 else fact (n - 1) * n in fact", () => {
+Deno.test("solve let rec fact n = if (n == 0) 1 else fact (n - 1) * n ; fact", () => {
   assertType(
-    "let rec fact n = if (n == 0) 1 else fact(n - 1) * n in fact",
+    "let rec fact n = if (n == 0) 1 else fact(n - 1) * n ; fact",
     "Int -> Int",
   );
 });
 
-Deno.test("solve let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd", () => {
+Deno.test("solve let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isOdd", () => {
   assertType(
-    "let rec isOdd n = if (n == 0) False else isEven (n - 1); isEven n = if (n == 0) True else isOdd (n - 1) in isOdd",
+    "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isOdd",
     "Int -> Bool",
   );
 });
 
-Deno.test("solve let rec a = b + 1; b = a + 1 in a", () => {
+Deno.test("solve let rec a = b + 1 and b = a + 1 ; a", () => {
   assertType(
-    "let rec a = b + 1; b = a + 1 in a",
+    "let rec a = b + 1 and b = a + 1 ; a",
     "Int",
   );
 });
 
-Deno.test("solve let rec? identity a = a; v = identity 10 in v", () => {
+Deno.test("solve let rec? identity a = a and v = identity 10 ; v", () => {
   assertType(
-    "let identity a = a; v = identity 10 in v",
+    "let identity a = a and v = identity 10 ; v",
     "Int",
   );
 
   assertType(
-    "let rec identity a = a; v = identity 10 in v",
+    "let rec identity a = a and v = identity 10 ; v",
     "Int",
   );
 });
 
-Deno.test("solve let rec? identity a = a in let rec? v1 = identity 10; v2 = identity True in v?", () => {
+Deno.test("solve let rec? identity a = a ; let rec? v1 = identity 10 and v2 = identity True ; v?", () => {
   assertType(
-    "let identity a = a in let rec v1 = identity 10; v2 = identity True in v1",
+    "let identity a = a ; let rec v1 = identity 10 and v2 = identity True ; v1",
     "Int",
   );
 
   assertType(
-    "let rec identity a = a in let rec v1 = identity 10; v2 = identity True in v1",
+    "let rec identity a = a ; let rec v1 = identity 10 and v2 = identity True ; v1",
     "Int",
   );
 
   assertType(
-    "let identity a = a in let rec v1 = identity 10; v2 = identity True in v2",
+    "let identity a = a ; let rec v1 = identity 10 and v2 = identity True ; v2",
     "Bool",
   );
 
   assertType(
-    "let rec identity a = a in let rec v1 = identity 10; v2 = identity True in v2",
+    "let rec identity a = a ; let rec v1 = identity 10 and v2 = identity True ; v2",
     "Bool",
   );
 });

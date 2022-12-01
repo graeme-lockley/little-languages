@@ -1,10 +1,11 @@
 import { parseProgram, SyntaxError, Visitor } from "./parser/Parser.ts";
 import { Token } from "./parser/Scanner.ts";
 
-export type Program = Expression;
+export type Program = Array<Expression>;
 
 export type Expression =
   | AppExpression
+  | BlockExpression
   | IfExpression
   | LamExpression
   | LetExpression
@@ -21,6 +22,11 @@ export type AppExpression = {
   e2: Expression;
 };
 
+export type BlockExpression = {
+  type: "Block";
+  es: Array<Expression>;
+};
+
 export type IfExpression = {
   type: "If";
   guard: Expression;
@@ -31,13 +37,11 @@ export type IfExpression = {
 export type LetExpression = {
   type: "Let";
   declarations: Array<Declaration>;
-  expr: Expression;
 };
 
 export type LetRecExpression = {
   type: "LetRec";
   declarations: Array<Declaration>;
-  expr: Expression;
 };
 
 export type Declaration = {
@@ -90,10 +94,10 @@ export type VarExpression = {
 export const parse = (input: string): Program =>
   parseProgram(input, visitor).either((l: SyntaxError): Program => {
     throw l;
-  }, (r: Expression): Program => r);
+  }, (r: Array<Expression>): Program => r);
 
 const visitor: Visitor<
-  Expression,
+  Array<Expression>,
   Expression,
   Expression,
   Expression,
@@ -103,7 +107,10 @@ const visitor: Visitor<
   Expression,
   Declaration
 > = {
-  visitProgram: (a: Expression): Expression => a,
+  visitProgram: (
+    a1: Expression,
+    a2: Array<[Token, Expression]>,
+  ): Array<Expression> => [a1].concat(a2.map(([, e]) => e)),
 
   visitExpression: (a1: Expression, a2: Array<Expression>): Expression =>
     a2.reduce((acc: Expression, e: Expression): Expression => ({
@@ -156,22 +163,32 @@ const visitor: Visitor<
 
   visitFactor1: (_a1: Token, a2: Expression, _a3: Token): Expression => a2,
 
-  visitFactor2: (a: Token): Expression => ({
+  visitFactor2: (
+    _a1: Token,
+    a2: Expression,
+    a3: Array<[Token, Expression]>,
+    _a4: Token,
+  ): Expression => ({
+    type: "Block",
+    es: [a2].concat(a3.map(([, e]) => e)),
+  }),
+
+  visitFactor3: (a: Token): Expression => ({
     type: "LInt",
     value: parseInt(a[2]),
   }),
 
-  visitFactor3: (_a: Token): Expression => ({
+  visitFactor4: (_a: Token): Expression => ({
     type: "LBool",
     value: true,
   }),
 
-  visitFactor4: (_a: Token): Expression => ({
+  visitFactor5: (_a: Token): Expression => ({
     type: "LBool",
     value: false,
   }),
 
-  visitFactor5: (
+  visitFactor6: (
     _a1: Token,
     a2: Token,
     a3: Array<Token>,
@@ -180,20 +197,17 @@ const visitor: Visitor<
   ): Expression =>
     composeLambda([a2].concat(a3).map((n: Token): string => n[2]), a5),
 
-  visitFactor6: (
+  visitFactor7: (
     _a1: Token,
     a2: Token | undefined,
     a3: Declaration,
     a4: Array<[Token, Declaration]>,
-    _a5: Token,
-    a6: Expression,
   ): Expression => ({
     type: a2 === undefined ? "Let" : "LetRec",
     declarations: [a3].concat(a4.map((a) => a[1])),
-    expr: a6,
   }),
 
-  visitFactor7: (
+  visitFactor8: (
     _a1: Token,
     _a2: Token,
     a3: Expression,
@@ -208,7 +222,7 @@ const visitor: Visitor<
     else: a7,
   }),
 
-  visitFactor8: (a: Token): Expression => ({
+  visitFactor9: (a: Token): Expression => ({
     type: "Var",
     name: a[2],
   }),
@@ -232,4 +246,4 @@ const composeLambda = (names: Array<string>, expr: Expression): Expression =>
     expr: acc,
   }), expr);
 
-// console.log(JSON.stringify(parse("let compose f g x = f(g x) in compose"), null, 2));
+// console.log(JSON.stringify(parse("let compose f g x = f(g x) ; compose"), null, 2));
