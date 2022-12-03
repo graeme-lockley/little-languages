@@ -7,4 +7,4 @@ build
 
 app/bin/
 app/src/main/kotlin/io/
-app/src/main/kotlin/stlc/parser/
+app/src/main/kotlin/tlca/parser/
