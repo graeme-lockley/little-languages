@@ -82,7 +82,7 @@ Deno.test("infer Let", () => {
   );
 
   assertConstraintsEquals(constraints, []);
-  assertTypeEquals(type, ["()", "Int"]);
+  assertTypeEquals(type, ["(Int * Int)", "Int"]);
 });
 
 Deno.test("infer LInt", () => {

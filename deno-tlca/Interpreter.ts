@@ -2,7 +2,15 @@
 import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
 import { Expression, Op, parse, Program } from "./Parser.ts";
-import { createFresh, emptyTypeEnv, Type, TypeEnv } from "./Typing.ts";
+import {
+  createFresh,
+  emptyTypeEnv,
+  TArr,
+  TTuple,
+  Type,
+  TypeEnv,
+  typeUnit,
+} from "./Typing.ts";
 
 const binaryOps = new Map<number, (v1: any, v2: any) => any>([
   [Op.Equals, (a, b) => a === b],
@@ -34,10 +42,13 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
   }
   if (expr.type === "Let" || expr.type === "LetRec") {
     const newEnv = { ...env };
+    const values: Array<any> = [];
     expr.declarations.forEach((d) => {
-      newEnv[d.name] = evaluate(d.expr, newEnv)[0];
+      const value = evaluate(d.expr, newEnv)[0];
+      newEnv[d.name] = value;
+      values.push(value);
     });
-    return [null, newEnv];
+    return [values, newEnv];
   }
   if (expr.type === "LBool") {
     return [expr.value, env];
@@ -62,15 +73,17 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
 
 export type Env = [any, TypeEnv];
 
-export const mkEnv = (
+const mkEnv = (
   runtime: any,
   typeEnv: TypeEnv,
 ): Env => [runtime, typeEnv];
 
+export const emptyEnv = mkEnv({}, emptyTypeEnv);
+
 export const runtime = (env: Env): any => env[0];
 export const typeEnv = (env: Env): TypeEnv => env[1];
 
-const executeProgram = (
+export const executeProgram = (
   program: Program,
   env: Env,
 ): [Array<[any, Type]>, Env] => {
@@ -103,4 +116,36 @@ export const execute = (
   const ast = parse(t);
 
   return executeProgram(ast, env);
+};
+
+export const valueToString = (v: any, type: Type): string => {
+  if (type === typeUnit) {
+    return "null";
+  }
+  if (type instanceof TArr) {
+    return "function";
+  }
+  return `${v}`;
+};
+
+export type NestedString = string | Array<NestedString>;
+
+export const expressionToNestedString = (
+  value: any,
+  type: Type,
+  e: Expression,
+): NestedString => {
+  if ((e.type === "Let" || e.type === "LetRec") && type instanceof TTuple) {
+    return e.declarations.map((d, i) => `${d.name} = ${valueToString(value[i], type.types[i])}: ${type.types[i]}`);
+  } else {
+    return `${valueToString(value, type)}: ${type}`;
+  }
+};
+
+export const nestedStringToString = (s: NestedString): string => {
+  if (Array.isArray(s)) {
+    return s.map(nestedStringToString).join("\n");
+  } else {
+    return s;
+  }
 };

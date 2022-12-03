@@ -85,6 +85,7 @@ export const inferExpression = (
     }
     if (expr.type === "Let") {
       let newEnv = env;
+      const types: Array<Type> = [];
 
       for (const declaration of expr.declarations) {
         const [nc, tb] = inferExpression(
@@ -97,11 +98,13 @@ export const inferExpression = (
         const subst = nc.solve();
 
         newEnv = newEnv.apply(subst);
-        const sc = newEnv.generalise(tb.apply(subst));
+        const type = tb.apply(subst);
+        types.push(type);
+        const sc = newEnv.generalise(type);
         newEnv = newEnv.extend(declaration.name, sc);
       }
 
-      return [typeUnit, newEnv];
+      return [new TTuple(types), newEnv];
     }
     if (expr.type === "LetRec") {
       const tvs = pump.nextN(expr.declarations.length);
@@ -125,18 +128,24 @@ export const inferExpression = (
         nc,
       );
       nc.add(new TTuple(tvs), declarationType);
+      const types: Array<Type> = [];
+
       const subst = nc.solve();
       const solvedTypeEnv = env.apply(subst);
       const solvedEnv = expr.declarations.reduce(
-        (acc, declaration, idx) =>
-          acc.extend(
+        (acc, declaration, idx) => {
+          const type: Type = tvs[idx].apply(subst);
+          types.push(type);
+          
+          return acc.extend(
             declaration.name,
-            solvedTypeEnv.generalise(tvs[idx].apply(subst)),
-          ),
+            solvedTypeEnv.generalise(type),
+          );
+        },
         solvedTypeEnv,
       );
 
-      return [typeUnit, solvedEnv];
+      return [new TTuple(types), solvedEnv];
     }
     if (expr.type === "LBool") {
       return [typeBool, env];

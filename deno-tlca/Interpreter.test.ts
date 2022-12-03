@@ -1,6 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
-import { execute } from "./Interpreter.ts";
+import { emptyEnv, execute, executeProgram, expressionToNestedString, NestedString, nestedStringToString, valueToString } from "./Interpreter.ts";
+import { parse } from "./Parser.ts";
 import { TArr } from "./Typing.ts";
 
 Deno.test("App 1", () => {
@@ -22,7 +23,7 @@ Deno.test("Lam", () => {
 
 Deno.test("Let", () => {
   assertExecute("let add a b = a + b and incr = add 1 ; incr 10", [
-    "null: ()",
+    ["add = function: Int -> Int -> Int", "incr = function: Int -> Int"],
     "11: Int",
   ]);
 });
@@ -30,20 +31,20 @@ Deno.test("Let", () => {
 Deno.test("LetRec", () => {
   assertExecute(
     "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) ; fact",
-    ["null: ()", "function: Int -> Int"],
+    [["fact = function: Int -> Int"], "function: Int -> Int"],
   );
   assertExecute(
     "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) ; fact 5",
-    ["null: ()", "120: Int"],
+    [["fact = function: Int -> Int"], "120: Int"],
   );
 
   assertExecute(
     "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isEven 5",
-    ["null: ()", "false: Bool"],
+    [["isOdd = function: Int -> Bool", "isEven = function: Int -> Bool"], "false: Bool"],
   );
   assertExecute(
     "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isOdd 5",
-    ["null: ()", "true: Bool"],
+    [["isOdd = function: Int -> Bool", "isEven = function: Int -> Bool"], "true: Bool"],
   );
 });
 
@@ -67,19 +68,18 @@ Deno.test("Op", () => {
 });
 
 Deno.test("Var", () => {
-  assertExecute("let x = 1 ; x", ["null: ()", "1: Int"]);
-  assertExecute("let x = True ; x", ["null: ()", "true: Bool"]);
-  assertExecute("let x = \\a -> a ; x", ["null: ()", "function: V2 -> V2"]);
+  assertExecute("let x = 1 ; x", [["x = 1: Int"], "1: Int"]);
+  assertExecute("let x = True ; x", [["x = true: Bool"], "true: Bool"]);
+  assertExecute("let x = \\a -> a ; x", [["x = function: V1 -> V1"], "function: V2 -> V2"]);
 });
 
-const assertExecute = (expression: string, expected: Array<string>) => {
-  const result = execute(expression)[0].map(([value, type]) => {
-    if (type instanceof TArr) {
-      return `function: ${type}`;
-    } else {
-      return `${value}: ${type}`;
-    }
-  });
+const assertExecute = (expression: string, expected: NestedString) => {
+  const ast = parse(expression);
+  const [result, _] = executeProgram(ast, emptyEnv);
 
-  assertEquals(result, expected);
+  ast.forEach((e, i) => {
+    const [value, type] = result[i];
+
+    assertEquals(expressionToNestedString(value, type, e), expected[i]);
+  });
 };

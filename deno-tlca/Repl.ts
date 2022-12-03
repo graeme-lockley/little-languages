@@ -1,5 +1,10 @@
-import { execute, mkEnv } from "./Interpreter.ts";
-import { emptyTypeEnv, TArr } from "./Typing.ts";
+import {
+  emptyEnv,
+  executeProgram,
+  expressionToNestedString,
+  nestedStringToString,
+} from "./Interpreter.ts";
+import { parse } from "./Parser.ts";
 
 const readline = (): string | null => {
   let result = "";
@@ -19,7 +24,7 @@ const readline = (): string | null => {
   }
 };
 
-let env = mkEnv({}, emptyTypeEnv);
+let env = emptyEnv;
 
 while (true) {
   const line = readline();
@@ -28,15 +33,14 @@ while (true) {
     break;
   }
 
-  const [result, newEnv] = execute(line, env);
-  console.log(
-    result.map(([value, type]) => {
-      if (type instanceof TArr) {
-        return `- function: ${type}`;
-      } else {
-        return `- ${value}: ${type}`;
-      }
-    }).join("\n"),
-  );
+  const ast = parse(line);
+  const [result, newEnv] = executeProgram(ast, env);
+
+  ast.forEach((e, i) => {
+    const [value, type] = result[i];
+
+    console.log(nestedStringToString(expressionToNestedString(value, type, e)));
+  });
+
   env = newEnv;
 }
