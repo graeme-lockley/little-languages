@@ -1,18 +1,8 @@
 // deno-lint-ignore-file no-explicit-any
-import { inferProgram } from "./Infer.ts";
+import { Constraints } from "./Constraints.ts";
+import { inferExpression } from "./Infer.ts";
 import { Expression, Op, parse, Program } from "./Parser.ts";
-import { emptyTypeEnv, Type } from "./Typing.ts";
-
-const solve = (p: Program): Type => {
-  const [constraints, type] = inferProgram(
-    emptyTypeEnv,
-    p,
-  );
-
-  const subst = constraints.solve();
-
-  return type.apply(subst);
-};
+import { createFresh, emptyTypeEnv, Type } from "./Typing.ts";
 
 const binaryOps = new Map<number, (v1: any, v2: any) => any>([
   [Op.Equals, (a, b) => a === b],
@@ -73,21 +63,33 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
 const executeProgram = (
   program: Program,
   env: any,
-): any => {
-  let r: any = null;
+): Array<[any, Type]> => {
+  const result: Array<[any, Type]> = [];
+  let typeEnv = emptyTypeEnv;
+  const pump = createFresh();
 
   program.forEach((e) => {
+    const [constraints, type, newTypeEnv] = inferExpression(
+      typeEnv,
+      e,
+      new Constraints(),
+      pump,
+    );
+    const subst = constraints.solve();
+    const newType = type.apply(subst);
+
     const [v, newEnv] = evaluate(e, env);
 
-    r = v;
+    result.push([v, newType]);
+    typeEnv = newTypeEnv;
     env = newEnv;
   });
 
-  return r;
+  return result;
 };
 
-export const execute = (t: string): [any, Type] => {
+export const execute = (t: string): Array<[any, Type]> => {
   const ast = parse(t);
 
-  return [executeProgram(ast, {}), solve(ast)];
+  return executeProgram(ast, {});
 };

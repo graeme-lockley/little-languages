@@ -27,17 +27,16 @@ export const inferProgram = (
   program: Program,
   constraints: Constraints = new Constraints(),
   pump: Pump = createFresh(),
-): [Constraints, Type, TypeEnv] => {
-  let t: Type = typeUnit;
-
+): [Constraints, Array<Type>, TypeEnv] => {
+  const types: Array<Type> = [];
   program.forEach((e) => {
     const [, tp, newEnv] = inferExpression(env, e, constraints, pump);
 
-    t = tp;
+    types.push(tp);
     env = newEnv;
   });
 
-  return [constraints, t, env];
+  return [constraints, types, env];
 };
 
 export const inferExpression = (

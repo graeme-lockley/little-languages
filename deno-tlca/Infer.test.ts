@@ -12,8 +12,8 @@ import {
   typeInt,
 } from "./Typing.ts";
 
-const assertTypeEquals = (t: Type, expected: string) => {
-  assertEquals(t.toString(), expected);
+const assertTypeEquals = (ts: Array<Type>, expected: Array<string>) => {
+  assertEquals(ts.map((t) => t.toString()), expected);
 };
 
 const assertConstraintsEquals = (
@@ -34,7 +34,7 @@ Deno.test("infer Apply", () => {
   assertConstraintsEquals(constraints, [
     "V1 -> V1 ~ Int -> V2",
   ]);
-  assertTypeEquals(type, "V2");
+  assertTypeEquals(type, ["V2"]);
 });
 
 Deno.test("infer If", () => {
@@ -50,7 +50,7 @@ Deno.test("infer If", () => {
     "V1 ~ Bool",
     "Int ~ V2",
   ]);
-  assertTypeEquals(type, "Int");
+  assertTypeEquals(type, ["Int"]);
 });
 
 Deno.test("infer LBool", () => {
@@ -60,7 +60,7 @@ Deno.test("infer LBool", () => {
   );
 
   assertConstraintsEquals(constraints, []);
-  assertTypeEquals(type, "Bool");
+  assertTypeEquals(type, ["Bool"]);
 });
 
 Deno.test("infer Lam", () => {
@@ -72,7 +72,7 @@ Deno.test("infer Lam", () => {
   assertConstraintsEquals(constraints, [
     "V1 ~ Int -> V2",
   ]);
-  assertTypeEquals(type, "V1 -> V2");
+  assertTypeEquals(type, ["V1 -> V2"]);
 });
 
 Deno.test("infer Let", () => {
@@ -82,7 +82,7 @@ Deno.test("infer Let", () => {
   );
 
   assertConstraintsEquals(constraints, []);
-  assertTypeEquals(type, "Int");
+  assertTypeEquals(type, ["()", "Int"]);
 });
 
 Deno.test("infer LInt", () => {
@@ -92,7 +92,7 @@ Deno.test("infer LInt", () => {
   );
 
   assertEquals(constraints.constraints.length, 0);
-  assertTypeEquals(type, "Int");
+  assertTypeEquals(type, ["Int"]);
 });
 
 Deno.test("infer Op", () => {
@@ -107,7 +107,7 @@ Deno.test("infer Op", () => {
     assertConstraintsEquals(constraints, [
       `V1 -> V2 -> V3 ~ Int -> Int -> ${resultType}`,
     ]);
-    assertTypeEquals(type, "V3");
+    assertTypeEquals(type, ["V3"]);
   };
 
   scenario("a + b", typeInt);
@@ -127,5 +127,5 @@ Deno.test("infer Var", () => {
   );
 
   assertConstraintsEquals(constraints, []);
-  assertTypeEquals(type, "V1 -> V1");
+  assertTypeEquals(type, ["V1 -> V1"]);
 });
