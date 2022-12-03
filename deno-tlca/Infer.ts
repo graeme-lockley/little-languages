@@ -11,7 +11,6 @@ import {
   TypeEnv,
   typeError,
   typeInt,
-  typeUnit,
 } from "./Typing.ts";
 
 const ops = new Map([
@@ -136,7 +135,7 @@ export const inferExpression = (
         (acc, declaration, idx) => {
           const type: Type = tvs[idx].apply(subst);
           types.push(type);
-          
+
           return acc.extend(
             declaration.name,
             solvedTypeEnv.generalise(type),

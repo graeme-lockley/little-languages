@@ -1,8 +1,12 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
-import { emptyEnv, execute, executeProgram, expressionToNestedString, NestedString, nestedStringToString, valueToString } from "./Interpreter.ts";
+import {
+  emptyEnv,
+  executeProgram,
+  expressionToNestedString,
+  NestedString,
+} from "./Interpreter.ts";
 import { parse } from "./Parser.ts";
-import { TArr } from "./Typing.ts";
 
 Deno.test("App 1", () => {
   assertExecute("(\\n -> n + 1) 1", ["2: Int"]);
@@ -40,11 +44,17 @@ Deno.test("LetRec", () => {
 
   assertExecute(
     "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isEven 5",
-    [["isOdd = function: Int -> Bool", "isEven = function: Int -> Bool"], "false: Bool"],
+    [
+      ["isOdd = function: Int -> Bool", "isEven = function: Int -> Bool"],
+      "false: Bool",
+    ],
   );
   assertExecute(
     "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isOdd 5",
-    [["isOdd = function: Int -> Bool", "isEven = function: Int -> Bool"], "true: Bool"],
+    [
+      ["isOdd = function: Int -> Bool", "isEven = function: Int -> Bool"],
+      "true: Bool",
+    ],
   );
 });
 
@@ -70,7 +80,10 @@ Deno.test("Op", () => {
 Deno.test("Var", () => {
   assertExecute("let x = 1 ; x", [["x = 1: Int"], "1: Int"]);
   assertExecute("let x = True ; x", [["x = true: Bool"], "true: Bool"]);
-  assertExecute("let x = \\a -> a ; x", [["x = function: V1 -> V1"], "function: V2 -> V2"]);
+  assertExecute("let x = \\a -> a ; x", [
+    ["x = function: V1 -> V1"],
+    "function: V2 -> V2",
+  ]);
 });
 
 const assertExecute = (expression: string, expected: NestedString) => {

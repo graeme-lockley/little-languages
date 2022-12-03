@@ -38,12 +38,18 @@ Deno.test("solve \\f -> \\g -> \\x -> f (g x)", () => {
 Deno.test("solve let rec? compose = \\f -> \\g -> \\x -> f (g x) ; compose", () => {
   assertType(
     "let compose = \\f -> \\g -> \\x -> f (g x) ; compose",
-    ["((V4 -> V5) -> (V3 -> V4) -> V3 -> V5)", "(V6 -> V7) -> (V8 -> V6) -> V8 -> V7"],
+    [
+      "((V4 -> V5) -> (V3 -> V4) -> V3 -> V5)",
+      "(V6 -> V7) -> (V8 -> V6) -> V8 -> V7",
+    ],
   );
 
   assertType(
     "let rec compose = \\f -> \\g -> \\x -> f (g x) ; compose",
-    ["((V6 -> V7) -> (V5 -> V6) -> V5 -> V7)", "(V9 -> V10) -> (V11 -> V9) -> V11 -> V10"],
+    [
+      "((V6 -> V7) -> (V5 -> V6) -> V5 -> V7)",
+      "(V9 -> V10) -> (V11 -> V9) -> V11 -> V10",
+    ],
   );
 });
 

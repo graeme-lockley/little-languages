@@ -136,7 +136,9 @@ export const expressionToNestedString = (
   e: Expression,
 ): NestedString => {
   if ((e.type === "Let" || e.type === "LetRec") && type instanceof TTuple) {
-    return e.declarations.map((d, i) => `${d.name} = ${valueToString(value[i], type.types[i])}: ${type.types[i]}`);
+    return e.declarations.map((d, i) =>
+      `${d.name} = ${valueToString(value[i], type.types[i])}: ${type.types[i]}`
+    );
   } else {
     return `${valueToString(value, type)}: ${type}`;
   }
