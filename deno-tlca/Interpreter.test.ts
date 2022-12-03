@@ -73,7 +73,7 @@ Deno.test("Var", () => {
 });
 
 const assertExecute = (expression: string, expected: Array<string>) => {
-  const result = execute(expression).map(([value, type]) => {
+  const result = execute(expression)[0].map(([value, type]) => {
     if (type instanceof TArr) {
       return `function: ${type}`;
     } else {

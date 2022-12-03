@@ -2,7 +2,7 @@
 import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
 import { Expression, Op, parse, Program } from "./Parser.ts";
-import { createFresh, emptyTypeEnv, Type } from "./Typing.ts";
+import { createFresh, emptyTypeEnv, Type, TypeEnv } from "./Typing.ts";
 
 const binaryOps = new Map<number, (v1: any, v2: any) => any>([
   [Op.Equals, (a, b) => a === b],
@@ -60,17 +60,26 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
   return [null, env];
 };
 
+export type Env = [any, TypeEnv];
+
+export const mkEnv = (
+  runtime: any,
+  typeEnv: TypeEnv,
+): Env => [runtime, typeEnv];
+
+export const runtime = (env: Env): any => env[0];
+export const typeEnv = (env: Env): TypeEnv => env[1];
+
 const executeProgram = (
   program: Program,
-  env: any,
-): Array<[any, Type]> => {
-  const result: Array<[any, Type]> = [];
-  let typeEnv = emptyTypeEnv;
+  env: Env,
+): [Array<[any, Type]>, Env] => {
+  const results: Array<[any, Type]> = [];
   const pump = createFresh();
 
   program.forEach((e) => {
     const [constraints, type, newTypeEnv] = inferExpression(
-      typeEnv,
+      typeEnv(env),
       e,
       new Constraints(),
       pump,
@@ -78,18 +87,20 @@ const executeProgram = (
     const subst = constraints.solve();
     const newType = type.apply(subst);
 
-    const [v, newEnv] = evaluate(e, env);
+    const [v, newRuntime] = evaluate(e, runtime(env));
 
-    result.push([v, newType]);
-    typeEnv = newTypeEnv;
-    env = newEnv;
+    results.push([v, newType]);
+    env = mkEnv(newRuntime, newTypeEnv);
   });
 
-  return result;
+  return [results, env];
 };
 
-export const execute = (t: string): Array<[any, Type]> => {
+export const execute = (
+  t: string,
+  env: Env = [{}, emptyTypeEnv],
+): [Array<[any, Type]>, Env] => {
   const ast = parse(t);
 
-  return executeProgram(ast, {});
+  return executeProgram(ast, env);
 };
