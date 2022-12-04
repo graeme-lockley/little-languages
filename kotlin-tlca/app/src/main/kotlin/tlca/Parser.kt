@@ -13,9 +13,9 @@ data class AppExpression(val e1: Expression, val e2: Expression) : Expression()
 
 data class IfExpression(val e1: Expression, val e2: Expression, val e3: Expression) : Expression()
 
-data class LetExpression(val decls: List<Declaration>) : Expression()
+data class LetExpression(val decls: List<Declaration>, val expr: Expression?) : Expression()
 
-data class LetRecExpression(val decls: List<Declaration>) : Expression()
+data class LetRecExpression(val decls: List<Declaration>, val expr: Expression?) : Expression()
 
 data class Declaration(val n: String, val e: Expression)
 
@@ -71,8 +71,8 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
     ): Expression {
         val declarations = listOf(a3) + a4.map { it.b }
 
-        return if (a2 == null) LetExpression(declarations)
-        else LetRecExpression(declarations)
+        return if (a2 == null) LetExpression(declarations, a5?.b)
+        else LetRecExpression(declarations, a5?.b)
     }
 
     override fun visitFactor7(a1: Token, a2: Token, a3: Expression, a4: Token, a5: Expression, a6: Token, a7: Expression): Expression =

@@ -33,6 +33,10 @@ class InterpreterTest {
                 ), NestedString.Item("11: Int")
             )
         )
+        assertExecute(
+            "let add a b = a + b and incr = add 1 in incr 10",
+            "11: Int"
+        )
     }
 
     @Test
@@ -59,6 +63,14 @@ class InterpreterTest {
                 NestedString.Item("120: Int")
             )
         )
+        assertExecute(
+            "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact",
+            "function: Int -> Int"
+        )
+        assertExecute(
+            "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact 5",
+            "120: Int"
+        )
 
         assertExecute(
             "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isEven 5",
@@ -72,7 +84,6 @@ class InterpreterTest {
                 NestedString.Item("false: Bool")
             )
         )
-
         assertExecute(
             "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) ; isOdd 5",
             listOf(
@@ -84,6 +95,14 @@ class InterpreterTest {
                 ),
                 NestedString.Item("true: Bool")
             )
+        )
+        assertExecute(
+            "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) in isEven 5",
+            "false: Bool"
+        )
+        assertExecute(
+            "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) in isOdd 5",
+            "true: Bool"
         )
     }
 
@@ -114,6 +133,10 @@ class InterpreterTest {
         assertExecute("let x = 1 ; x", listOf(NestedString.Item("x = 1: Int"), NestedString.Item("1: Int")))
         assertExecute("let x = True ; x", listOf(NestedString.Item("x = true: Bool"), NestedString.Item("true: Bool")))
         assertExecute("let x = \\a -> a ; x", listOf(NestedString.Item("x = function: V1 -> V1"), NestedString.Item("function: V2 -> V2")))
+
+        assertExecute("let x = 1 in x", "1: Int")
+        assertExecute("let x = True in x", "true: Bool")
+        assertExecute("let x = \\a -> a in x", "function: V2 -> V2")
     }
 }
 

@@ -64,8 +64,8 @@ private fun evaluate(ast: Expression, env: Map<String, Any>): EvaluateResult =
         is LamExpression ->
             EvaluateResult({ x: Any -> evaluate(ast.e, env + Pair(ast.n, x)).value }, env)
 
-        is LetExpression -> evaluateDeclarations(ast.decls, env)
-        is LetRecExpression -> evaluateDeclarations(ast.decls, env)
+        is LetExpression -> evaluateDeclarations(ast.decls, ast.expr, env)
+        is LetRecExpression -> evaluateDeclarations(ast.decls, ast.expr, env)
         is LIntExpression -> EvaluateResult(ast.v, env)
         is LBoolExpression -> EvaluateResult(ast.v, env)
         is OpExpression -> EvaluateResult(binaryOps[ast.op]!!(evaluate(ast.e1, env).value, evaluate(ast.e2, env).value), env)
@@ -73,7 +73,7 @@ private fun evaluate(ast: Expression, env: Map<String, Any>): EvaluateResult =
         is LTupleExpression -> EvaluateResult(ast.es.map { evaluate(it, env).value }, env)
     }
 
-private fun evaluateDeclarations(decls: List<Declaration>, env: RuntimeEnv): EvaluateResult {
+private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, env: RuntimeEnv): EvaluateResult {
     val newEnv = env.toMutableMap()
     val values = mutableListOf<Value>()
 
@@ -84,7 +84,10 @@ private fun evaluateDeclarations(decls: List<Declaration>, env: RuntimeEnv): Eva
         newEnv[decl.n] = value
     }
 
-    return EvaluateResult(values, newEnv)
+    return when (expr) {
+        null -> EvaluateResult(values, newEnv)
+        else -> EvaluateResult(evaluate(expr, newEnv).value, env)
+    }
 }
 
 fun valueToString(value: Value, type: Type): String =

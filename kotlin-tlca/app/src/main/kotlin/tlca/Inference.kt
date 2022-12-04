@@ -6,7 +6,7 @@ fun infer(typeEnv: TypeEnv, es: List<Expression>, constraints: Constraints, pump
     val types = mutableListOf<Type>()
     var resultTypeEnv = typeEnv
 
-    for(e in es) {
+    for (e in es) {
         val inferResult = infer(resultTypeEnv, e, constraints, pump)
         types.add(inferResult.type)
         resultTypeEnv = inferResult.typeEnv
@@ -82,7 +82,10 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
                     newTypeEnv = newTypeEnv.extend(decl.n, sc)
                 }
 
-                InferenceResult(TTuple(types), newTypeEnv)
+                if (e.expr == null)
+                    InferenceResult(TTuple(types), newTypeEnv)
+                else
+                    InferenceResult(infer(newTypeEnv, e.expr).type, typeEnv)
             }
 
             is LetRecExpression -> {
@@ -100,7 +103,10 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
                 val newTypeEnv = solvedTypeEnv +
                         e.decls.zip(solvedTypes).map { (decl, tv) -> Pair(decl.n, solvedTypeEnv.generalise(tv)) }
 
-                InferenceResult(TTuple(solvedTypes), newTypeEnv)
+                if (e.expr == null)
+                    InferenceResult(TTuple(solvedTypes), newTypeEnv)
+                else
+                    InferenceResult(infer(newTypeEnv, e.expr).type, typeEnv)
             }
 
             is OpExpression -> {
