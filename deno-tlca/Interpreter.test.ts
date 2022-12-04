@@ -82,12 +82,12 @@ Deno.test("LBool", () => {
 
 Deno.test("LInt", () => {
   assertExecute("123", ["123: Int"]);
-});  
+});
 
 Deno.test("LString", () => {
-  assertExecute("\"hello\"", ["\"hello\": String"]);
-  assertExecute("\"\\\"hello\\\"\"", ["\"\\\"hello\\\"\": String"]);
-});  
+  assertExecute('"hello"', ['"hello": String']);
+  assertExecute('"\\"hello\\""', ['"\\"hello\\"": String']);
+});
 
 Deno.test("LUnit", () => {
   assertExecute("()", ["(): ()"]);

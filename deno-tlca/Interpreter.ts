@@ -135,7 +135,7 @@ export const valueToString = (v: any, type: Type): string => {
     return "()";
   }
   if (type === typeString) {
-    return `"${v.replaceAll("\"", "\\\"")}"`;
+    return `"${v.replaceAll('"', '\\"')}"`;
   }
   if (type instanceof TArr) {
     return "function";

@@ -98,7 +98,7 @@ Deno.test("infer LInt", () => {
 Deno.test("infer LString", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
-    parse("\"hello\""),
+    parse('"hello"'),
   );
 
   assertEquals(constraints.constraints.length, 0);

@@ -99,7 +99,7 @@ export type VarExpression = {
 };
 
 export const transformLiteralString = (s: string): string =>
-  s.substring(1, s.length - 1).replaceAll("\\\"", "\"")
+  s.substring(1, s.length - 1).replaceAll('\\"', '"');
 
 export const parse = (input: string): Program =>
   parseProgram(input, visitor).either((l: SyntaxError): Program => {
