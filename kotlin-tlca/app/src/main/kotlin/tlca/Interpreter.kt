@@ -2,6 +2,8 @@ package tlca
 
 data class Environment(val runtimeEnv: RuntimeEnv, val typeEnv: TypeEnv)
 
+val emptyEnvironment = Environment(emptyMap(), emptyTypeEnv)
+
 typealias Value = Any
 
 typealias RuntimeEnv = Map<String, Value>
@@ -10,10 +12,10 @@ data class TypedValue(val value: Value, val type: Type)
 
 data class ExecuteResult(val values: List<TypedValue>, val env: Environment)
 
-fun execute(ast: List<Expression>): ExecuteResult {
+fun execute(ast: List<Expression>, defaultEnv: Environment = emptyEnvironment): ExecuteResult {
     val pump = Pump()
-    var env = Environment(emptyMap(), emptyTypeEnv)
     val values = mutableListOf<TypedValue>()
+    var env = defaultEnv
 
     for (e in ast) {
         val inferResult = infer(env.typeEnv, e, Constraints(), pump)
