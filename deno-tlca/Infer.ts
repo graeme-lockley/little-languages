@@ -11,7 +11,7 @@ import {
   TypeEnv,
   typeError,
   typeInt,
-typeUnit,
+  typeUnit,
 } from "./Typing.ts";
 
 const ops = new Map([
@@ -165,7 +165,7 @@ export const inferExpression = (
       return [new TTuple(expr.values.map((v) => infer(env, v)[0])), env];
     }
     if (expr.type === "LUnit") {
-      return [typeUnit, env]
+      return [typeUnit, env];
     }
     if (expr.type === "Op") {
       const [tl] = infer(env, expr.left);
