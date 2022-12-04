@@ -1,0 +1,6 @@
+isOdd = function: Int -> Bool
+isEven = function: Int -> Bool
+true: Bool
+false: Bool
+false: Bool
+true: Bool

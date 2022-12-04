@@ -24,23 +24,39 @@ const readline = (): string | null => {
   }
 };
 
-let env = emptyEnv;
+if (Deno.args.length === 0) {
+  let env = emptyEnv;
 
-while (true) {
-  const line = readline();
+  while (true) {
+    const line = readline();
 
-  if (line == null) {
-    break;
+    if (line == null) {
+      break;
+    }
+
+    const ast = parse(line);
+    const [result, newEnv] = executeProgram(ast, env);
+
+    ast.forEach((e, i) => {
+      const [value, type] = result[i];
+
+      console.log(
+        nestedStringToString(expressionToNestedString(value, type, e)),
+      );
+    });
+
+    env = newEnv;
   }
-
-  const ast = parse(line);
-  const [result, newEnv] = executeProgram(ast, env);
+} else if (Deno.args.length === 1) {
+  const file = Deno.readTextFileSync(Deno.args[0]);
+  const ast = parse(file);
+  const [result, _] = executeProgram(ast, emptyEnv);
 
   ast.forEach((e, i) => {
     const [value, type] = result[i];
 
     console.log(nestedStringToString(expressionToNestedString(value, type, e)));
   });
-
-  env = newEnv;
+} else {
+  console.error("Invalid arguments");
 }

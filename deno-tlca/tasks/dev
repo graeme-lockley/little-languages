@@ -21,6 +21,25 @@ build_parser() {
     )
 }
 
+scenario_tests() {
+    echo "---| scenario tests"
+
+    for FILE in "$PROJECT_HOME"/../tlca/scenarios/*.inp; do
+        echo "- scenario test: $FILE"
+        deno run --allow-read --unsafely-ignore-certificate-errors \
+            Repl.ts "$FILE" > t.txt || exit 1
+
+        if ! diff -q "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
+            echo "scenario test failed: $FILE"
+            diff "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt
+            rm t.txt
+            exit 1
+        fi
+
+        rm t.txt
+    done
+}
+
 unit_tests() {
     echo "---| unit tests"
     cd "$PROJECT_HOME" || exit 1
@@ -38,6 +57,8 @@ case "$1" in
     echo "    Builds the parser from specs"
     echo "  run"
     echo "    Run all tasks"
+    echo "  scenario"
+    echo "    Run all scenario tests"
     echo "  unit"
     echo "    Run all unit tests"
     ;;
@@ -45,10 +66,15 @@ case "$1" in
 run)
     build_parser
     unit_tests
+    scenario_tests
     ;;
 
 parser)
     build_parser
+    ;;
+
+scenario)
+    scenario_tests
     ;;
 
 unit)

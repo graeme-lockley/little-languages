@@ -1,24 +1,40 @@
 package tlca
 
-fun main() {
-    var env = emptyEnvironment
-    while (true) {
-        val input = readline().trim()
+import java.io.File
 
-        if (input == ".quit") {
-            println("bye")
-            break
+fun main(args: Array<String>) {
+    if (args.isEmpty()) {
+        var env = emptyEnvironment
+        while (true) {
+            val input = readline().trim()
+
+            if (input == ".quit") {
+                println("bye")
+                break
+            }
+
+            val ast = parse(input)
+            val (values, newEnv) = execute(ast, env)
+            env = newEnv
+
+            ast.forEachIndexed { index, expression ->
+                val (value, type) = values[index]
+
+                println(expressionToNestedString(value, type, expression).toString())
+            }
         }
-
+    } else if (args.size == 1) {
+        val input = File(args[0]).readText()
         val ast = parse(input)
-        val (values, newEnv) = execute(ast, env)
-        env = newEnv
+        val (values, _) = execute(ast, emptyEnvironment)
 
         ast.forEachIndexed { index, expression ->
             val (value, type) = values[index]
 
             println(expressionToNestedString(value, type, expression).toString())
         }
+    } else {
+        println("Usage: tlca [file-name]")
     }
 }
 

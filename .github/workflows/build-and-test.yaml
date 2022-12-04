@@ -105,6 +105,11 @@ jobs:
           cd ./deno-tlca
           deno test
 
+      - name: Scenario tests
+        run: |
+          cd ./deno-tlca
+          ./tasks/dev scenario
+
   'tlca-kotlin':
     runs-on: ubuntu-latest
 
@@ -130,8 +135,19 @@ jobs:
           cd ./kotlin-tlca
           ./tasks/dev parser
 
-      - name: Build
+      - name: Unit tests
         run: |
           cd ./kotlin-tlca
           ./tasks/dev unit
+
+      - name: Build JAR
+        run: |
+          cd ./kotlin-tlca
+          ./tasks/dev jar
+
+      - name: Scenario Tests
+        run: |
+          cd ./kotlin-tlca
+          ./tasks/dev scenario
+
 
