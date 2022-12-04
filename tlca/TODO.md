@@ -4,11 +4,11 @@ The following items relate to the work on TLCA.
 
 ## REPL
 
-- [ ] deno: Support running a passed file
-- [ ] kotlin: Support running a passed file
-- [ ] TLCA: Add standard input and output test scenarios
-- [ ] deno: Execute standard tests are part of pipeline using a task
-- [ ] kotlin: Execute standard tests are part of pipeline using a task
+- [X] deno: Support running a passed file
+- [X] kotlin: Support running a passed file
+- [X] TLCA: Add standard input and output test scenarios
+- [X] deno: Execute standard tests are part of pipeline using a task
+- [X] kotlin: Execute standard tests are part of pipeline using a task
 
 ## Literals
 
