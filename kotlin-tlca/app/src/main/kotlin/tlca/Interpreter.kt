@@ -96,9 +96,10 @@ fun valueToString(value: Value, type: Type): String =
         else -> value.toString()
     }
 
-fun expressionToNestedString(value: Value, type: Type, e: Expression): NestedString =
-    if (e is LetExpression && type is TTuple)
-        NestedString.Sequence(e.decls.mapIndexed { i, d ->
+fun expressionToNestedString(value: Value, type: Type, e: Expression): NestedString {
+    @Suppress("UNCHECKED_CAST")
+    fun declarationsToNestedString(decls: List<Declaration>, type: TTuple): NestedString =
+        NestedString.Sequence(decls.mapIndexed { i, d ->
             NestedString.Item(
                 "${d.n} = ${
                     valueToString(
@@ -108,19 +109,13 @@ fun expressionToNestedString(value: Value, type: Type, e: Expression): NestedStr
                 }: ${type.types[i]}"
             )
         })
-    else if (e is LetRecExpression && type is TTuple)
-        NestedString.Sequence(e.decls.mapIndexed { i, d ->
-            NestedString.Item(
-                "${d.n} = ${
-                    valueToString(
-                        (value as List<Value>)[i],
-                        type.types[i]
-                    )
-                }: ${type.types[i]}"
-            )
-        })
-    else
-        NestedString.Item("${valueToString(value, type)}: $type")
+
+    return when {
+        e is LetExpression && type is TTuple -> declarationsToNestedString(e.decls, type)
+        e is LetRecExpression && type is TTuple -> declarationsToNestedString(e.decls, type)
+        else -> NestedString.Item("${valueToString(value, type)}: $type")
+    }
+}
 
 open class NestedString private constructor() {
     class Sequence(private val s: List<NestedString>) : NestedString() {
