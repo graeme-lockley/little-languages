@@ -12,9 +12,9 @@ The following items relate to the work on TLCA.
 
 ## Literals
 
-- [ ] TLCA: Add literal unit value to grammar
-- [ ] deno: Implement literal unit value
-- [ ] kotlin: Implement literal unit value
+- [X] TLCA: Add literal unit value to grammar
+- [X] deno: Implement literal unit value
+- [X] kotlin: Implement literal unit value
 - [ ] TLCA: Add literal string value to grammar
 - [ ] deno: Implement literal string value
 - [ ] kotlin: Implement literal string value
