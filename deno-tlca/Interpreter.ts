@@ -64,6 +64,9 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
   if (expr.type === "LTuple") {
     return [expr.values.map((v) => evaluate(v, env)[0]), env];
   }
+  if (expr.type === "LUnit") {
+    return [null, env];
+  }
   if (expr.type === "Op") {
     const left = evaluate(expr.left, env)[0];
     const right = evaluate(expr.right, env)[0];
@@ -125,7 +128,7 @@ export const execute = (
 
 export const valueToString = (v: any, type: Type): string => {
   if (type === typeUnit) {
-    return "null";
+    return "()";
   }
   if (type instanceof TArr) {
     return "function";

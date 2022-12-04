@@ -67,6 +67,9 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
             is LTupleExpression ->
                 InferenceResult(TTuple(e.es.map { infer(typeEnv, it).type }), typeEnv)
 
+            LUnitExpression ->
+                InferenceResult(typeUnit, typeEnv)
+
             is LetExpression -> {
                 var newTypeEnv = typeEnv
                 val types = mutableListOf<Type>()

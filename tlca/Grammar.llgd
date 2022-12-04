@@ -31,7 +31,7 @@ AdditiveOps
     ;
 
 Factor
-    : "(" Expression ")"
+    : "(" [Expression] ")"
     | LiteralInt
     | "True"
     | "False"

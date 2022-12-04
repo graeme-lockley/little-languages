@@ -118,6 +118,11 @@ class InterpreterTest {
     }
 
     @Test
+    fun executeLUnit() {
+        assertExecute("()", "(): ()")
+    }
+
+    @Test
     fun executeOp() {
         assertExecute("1 == 2", "false: Bool")
         assertExecute("2 == 2", "true: Bool")

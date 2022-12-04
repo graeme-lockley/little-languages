@@ -6,9 +6,9 @@ val emptyEnvironment = Environment(emptyMap(), emptyTypeEnv)
 
 typealias Value = Any
 
-typealias RuntimeEnv = Map<String, Value>
+typealias RuntimeEnv = Map<String, Value?>
 
-data class TypedValue(val value: Value, val type: Type)
+data class TypedValue(val value: Value?, val type: Type)
 
 data class ExecuteResult(val values: List<TypedValue>, val env: Environment)
 
@@ -33,21 +33,21 @@ fun execute(ast: List<Expression>, defaultEnv: Environment = emptyEnvironment): 
     return ExecuteResult(values, env)
 }
 
-private val binaryOps: Map<Op, (Any, Any) -> Any> = mapOf(
-    Pair(Op.Plus) { a: Any, b: Any -> (a as Int) + (b as Int) },
-    Pair(Op.Minus) { a: Any, b: Any -> (a as Int) - (b as Int) },
-    Pair(Op.Times) { a: Any, b: Any -> (a as Int) * (b as Int) },
-    Pair(Op.Divide) { a: Any, b: Any -> (a as Int) / (b as Int) },
-    Pair(Op.Equals) { a: Any, b: Any -> a == b }
+private val binaryOps: Map<Op, (Any?, Any?) -> Any> = mapOf(
+    Pair(Op.Plus) { a: Any?, b: Any? -> (a as Int) + (b as Int) },
+    Pair(Op.Minus) { a: Any?, b: Any? -> (a as Int) - (b as Int) },
+    Pair(Op.Times) { a: Any?, b: Any? -> (a as Int) * (b as Int) },
+    Pair(Op.Divide) { a: Any?, b: Any? -> (a as Int) / (b as Int) },
+    Pair(Op.Equals) { a: Any?, b: Any? -> a == b }
 )
 
-private data class EvaluateResult(val value: Any, val env: RuntimeEnv)
+private data class EvaluateResult(val value: Any?, val env: RuntimeEnv)
 
 @Suppress("UNCHECKED_CAST")
-private fun evaluate(ast: Expression, env: Map<String, Any>): EvaluateResult =
+private fun evaluate(ast: Expression, env: RuntimeEnv): EvaluateResult =
     when (ast) {
         is AppExpression -> {
-            val function = evaluate(ast.e1, env).value as (Any) -> Any
+            val function = evaluate(ast.e1, env).value as (Any?) -> Any
 
             EvaluateResult(function(evaluate(ast.e2, env).value), env)
         }
@@ -68,14 +68,15 @@ private fun evaluate(ast: Expression, env: Map<String, Any>): EvaluateResult =
         is LetRecExpression -> evaluateDeclarations(ast.decls, ast.expr, env)
         is LIntExpression -> EvaluateResult(ast.v, env)
         is LBoolExpression -> EvaluateResult(ast.v, env)
+        LUnitExpression -> EvaluateResult(null, env)
         is OpExpression -> EvaluateResult(binaryOps[ast.op]!!(evaluate(ast.e1, env).value, evaluate(ast.e2, env).value), env)
-        is VarExpression -> EvaluateResult(env[ast.name]!!, env)
+        is VarExpression -> EvaluateResult(env[ast.name], env)
         is LTupleExpression -> EvaluateResult(ast.es.map { evaluate(it, env).value }, env)
     }
 
 private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, env: RuntimeEnv): EvaluateResult {
     val newEnv = env.toMutableMap()
-    val values = mutableListOf<Value>()
+    val values = mutableListOf<Value?>()
 
     for (decl in decls) {
         val value = evaluate(decl.e, newEnv).value
@@ -90,21 +91,21 @@ private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, en
     }
 }
 
-fun valueToString(value: Value, type: Type): String =
+fun valueToString(value: Value?, type: Type): String =
     when (type) {
-        typeUnit -> "null"
+        typeUnit -> "()"
         is TArr -> "function"
         else -> value.toString()
     }
 
-fun expressionToNestedString(value: Value, type: Type, e: Expression): NestedString {
+fun expressionToNestedString(value: Value?, type: Type, e: Expression): NestedString {
     @Suppress("UNCHECKED_CAST")
     fun declarationsToNestedString(decls: List<Declaration>, type: TTuple): NestedString =
         NestedString.Sequence(decls.mapIndexed { i, d ->
             NestedString.Item(
                 "${d.n} = ${
                     valueToString(
-                        (value as List<Value>)[i],
+                        (value as List<Value?>)[i],
                         type.types[i]
                     )
                 }: ${type.types[i]}"

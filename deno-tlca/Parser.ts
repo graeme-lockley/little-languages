@@ -12,6 +12,7 @@ export type Expression =
   | LBoolExpression
   | LIntExpression
   | LTupleExpression
+  | LUnitExpression
   | OpExpression
   | VarExpression;
 
@@ -65,6 +66,10 @@ export type LIntExpression = {
 export type LTupleExpression = {
   type: "LTuple";
   values: Array<Expression>;
+};
+
+export type LUnitExpression = {
+  type: "LUnit";
 };
 
 export type OpExpression = {
@@ -157,7 +162,7 @@ const visitor: Visitor<
   visitAdditiveOps1: (a: Token): string => a[2],
   visitAdditiveOps2: (a: Token): string => a[2],
 
-  visitFactor1: (_a1: Token, a2: Expression, _a3: Token): Expression => a2,
+  visitFactor1: (_a1: Token, a2: Expression | undefined, _a3: Token): Expression => a2 === undefined ? { type: "LUnit" } : a2,
 
   visitFactor2: (a: Token): Expression => ({
     type: "LInt",

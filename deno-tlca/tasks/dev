@@ -26,8 +26,8 @@ scenario_tests() {
 
     for FILE in "$PROJECT_HOME"/../tlca/scenarios/*.inp; do
         echo "- scenario test: $FILE"
-        deno run --allow-read --unsafely-ignore-certificate-errors \
-            Repl.ts "$FILE" > t.txt || exit 1
+        # deno run --allow-read --unsafely-ignore-certificate-errors Repl.ts "$FILE" > t.txt || exit 1
+        deno run --allow-read Repl.ts "$FILE" > t.txt || exit 1
 
         if ! diff -q "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
             echo "scenario test failed: $FILE"

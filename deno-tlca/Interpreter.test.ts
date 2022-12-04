@@ -84,6 +84,10 @@ Deno.test("LBool", () => {
   assertExecute("False", ["false: Bool"]);
 });
 
+Deno.test("LUnit", () => {
+  assertExecute("()", ["(): ()"]);
+});
+
 Deno.test("Op", () => {
   assertExecute("1 == 2", ["false: Bool"]);
   assertExecute("2 == 2", ["true: Bool"]);

@@ -27,6 +27,8 @@ data class LIntExpression(val v: Int) : Expression()
 
 data class LTupleExpression(val es: List<Expression>) : Expression()
 
+object LUnitExpression : Expression()
+
 data class OpExpression(val e1: Expression, val e2: Expression, val op: Op) : Expression()
 
 enum class Op { Equals, Plus, Minus, Times, Divide }
@@ -55,7 +57,7 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
 
     override fun visitAdditiveOps2(a: Token): Op = Op.Minus
 
-    override fun visitFactor1(a1: Token, a2: Expression, a3: Token): Expression = a2
+    override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression = a2 ?: LUnitExpression
 
     override fun visitFactor2(a: Token): Expression = LIntExpression(a.lexeme.toInt())
 

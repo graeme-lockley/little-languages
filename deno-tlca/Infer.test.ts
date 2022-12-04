@@ -95,6 +95,16 @@ Deno.test("infer LInt", () => {
   assertTypeEquals(type, ["Int"]);
 });
 
+Deno.test("infer LUnit", () => {
+  const [constraints, type] = inferProgram(
+    emptyTypeEnv,
+    parse("()"),
+  );
+
+  assertEquals(constraints.constraints.length, 0);
+  assertTypeEquals(type, ["()"]);
+});
+
 Deno.test("infer Op", () => {
   const scenario = (input: string, resultType: Type) => {
     const [constraints, type] = inferProgram(
