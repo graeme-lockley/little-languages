@@ -33,6 +33,7 @@ AdditiveOps
 Factor
     : "(" [Expression] ")"
     | LiteralInt
+    | LiteralString
     | "True"
     | "False"
     | "\" Identifier {Identifier} "->" Expression

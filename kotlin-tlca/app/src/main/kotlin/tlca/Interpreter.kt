@@ -66,8 +66,9 @@ private fun evaluate(ast: Expression, env: RuntimeEnv): EvaluateResult =
 
         is LetExpression -> evaluateDeclarations(ast.decls, ast.expr, env)
         is LetRecExpression -> evaluateDeclarations(ast.decls, ast.expr, env)
-        is LIntExpression -> EvaluateResult(ast.v, env)
         is LBoolExpression -> EvaluateResult(ast.v, env)
+        is LIntExpression -> EvaluateResult(ast.v, env)
+        is LStringExpression -> EvaluateResult(ast.v, env)
         LUnitExpression -> EvaluateResult(null, env)
         is OpExpression -> EvaluateResult(binaryOps[ast.op]!!(evaluate(ast.e1, env).value, evaluate(ast.e2, env).value), env)
         is VarExpression -> EvaluateResult(env[ast.name], env)
@@ -94,6 +95,7 @@ private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, en
 fun valueToString(value: Value?, type: Type): String =
     when (type) {
         typeUnit -> "()"
+        typeString -> "\"${(value as String).replace("\"", "\\\"")}\""
         is TArr -> "function"
         else -> value.toString()
     }

@@ -46,10 +46,11 @@ data class TArr(val domain: Type, val range: Type) : Type() {
         if (domain is TArr) "($domain) -> $range" else "$domain -> $range"
 }
 
-val typeError = TCon("Error")
-val typeUnit = TCon("()")
-val typeInt = TCon("Int")
 val typeBool = TCon("Bool")
+val typeError = TCon("Error")
+val typeInt = TCon("Int")
+val typeString = TCon("String")
+val typeUnit = TCon("()")
 
 data class Subst(private val items: Map<Var, Type>) {
     infix fun compose(s: Subst): Subst =

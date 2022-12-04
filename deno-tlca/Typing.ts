@@ -93,10 +93,11 @@ export class TTuple implements Type {
   }
 }
 
-export const typeError = new TCon("Error");
-export const typeUnit = new TCon("()");
-export const typeInt = new TCon("Int");
 export const typeBool = new TCon("Bool");
+export const typeError = new TCon("Error");
+export const typeInt = new TCon("Int");
+export const typeString = new TCon("String");
+export const typeUnit = new TCon("()");
 
 export class Subst {
   protected items: Map<Var, Type>;

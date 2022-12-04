@@ -25,6 +25,8 @@ data class LBoolExpression(val v: Boolean) : Expression()
 
 data class LIntExpression(val v: Int) : Expression()
 
+data class LStringExpression(val v: String) : Expression()
+
 data class LTupleExpression(val es: List<Expression>) : Expression()
 
 object LUnitExpression : Expression()
@@ -61,14 +63,16 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
 
     override fun visitFactor2(a: Token): Expression = LIntExpression(a.lexeme.toInt())
 
-    override fun visitFactor3(a: Token): Expression = LBoolExpression(true)
+    override fun visitFactor3(a: Token): Expression = LStringExpression(a.lexeme.drop(1).dropLast(1).replace("\\\"", "\""))
 
-    override fun visitFactor4(a: Token): Expression = LBoolExpression(false)
+    override fun visitFactor4(a: Token): Expression = LBoolExpression(true)
 
-    override fun visitFactor5(a1: Token, a2: Token, a3: List<Token>, a4: Token, a5: Expression): Expression =
+    override fun visitFactor5(a: Token): Expression = LBoolExpression(false)
+
+    override fun visitFactor6(a1: Token, a2: Token, a3: List<Token>, a4: Token, a5: Expression): Expression =
         composeLambda(listOf(a2.lexeme) + a3.map { it.lexeme }, a5)
 
-    override fun visitFactor6(
+    override fun visitFactor7(
         a1: Token, a2: Token?, a3: Declaration, a4: List<Tuple2<Token, Declaration>>, a5: Tuple2<Token, Expression>?
     ): Expression {
         val declarations = listOf(a3) + a4.map { it.b }
@@ -77,11 +81,11 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
         else LetRecExpression(declarations, a5?.b)
     }
 
-    override fun visitFactor7(a1: Token, a2: Token, a3: Expression, a4: Token, a5: Expression, a6: Token, a7: Expression): Expression =
+    override fun visitFactor8(a1: Token, a2: Token, a3: Expression, a4: Token, a5: Expression, a6: Token, a7: Expression): Expression =
         IfExpression(a3, a5, a7)
 
 
-    override fun visitFactor8(a: Token): Expression = VarExpression(a.lexeme)
+    override fun visitFactor9(a: Token): Expression = VarExpression(a.lexeme)
 
     override fun visitDeclaration(a1: Token, a2: List<Token>, a3: Token, a4: Expression): Declaration =
         Declaration(a1.lexeme, composeLambda(a2.map { it.lexeme }, a4))

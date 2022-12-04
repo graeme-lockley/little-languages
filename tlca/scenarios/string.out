@@ -1,0 +1,3 @@
+x = "hello": String
+m = "\"hello\"": String
+y = "hello world": String

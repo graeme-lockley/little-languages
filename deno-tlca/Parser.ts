@@ -11,6 +11,7 @@ export type Expression =
   | LetRecExpression
   | LBoolExpression
   | LIntExpression
+  | LStringExpression
   | LTupleExpression
   | LUnitExpression
   | OpExpression
@@ -63,6 +64,11 @@ export type LIntExpression = {
   value: number;
 };
 
+export type LStringExpression = {
+  type: "LString";
+  value: string;
+};
+
 export type LTupleExpression = {
   type: "LTuple";
   values: Array<Expression>;
@@ -91,6 +97,9 @@ export type VarExpression = {
   type: "Var";
   name: string;
 };
+
+export const transformLiteralString = (s: string): string =>
+  s.substring(1, s.length - 1).replaceAll("\\\"", "\"")
 
 export const parse = (input: string): Program =>
   parseProgram(input, visitor).either((l: SyntaxError): Program => {
@@ -173,17 +182,22 @@ const visitor: Visitor<
     value: parseInt(a[2]),
   }),
 
-  visitFactor3: (_a: Token): Expression => ({
-    type: "LBool",
-    value: true,
+  visitFactor3: (a: Token): Expression => ({
+    type: "LString",
+    value: transformLiteralString(a[2]),
   }),
 
   visitFactor4: (_a: Token): Expression => ({
     type: "LBool",
+    value: true,
+  }),
+
+  visitFactor5: (_a: Token): Expression => ({
+    type: "LBool",
     value: false,
   }),
 
-  visitFactor5: (
+  visitFactor6: (
     _a1: Token,
     a2: Token,
     a3: Array<Token>,
@@ -192,7 +206,7 @@ const visitor: Visitor<
   ): Expression =>
     composeLambda([a2].concat(a3).map((n: Token): string => n[2]), a5),
 
-  visitFactor6: (
+  visitFactor7: (
     _a1: Token,
     a2: Token | undefined,
     a3: Declaration,
@@ -204,7 +218,7 @@ const visitor: Visitor<
     expr: a5 === undefined ? undefined : a5[1],
   }),
 
-  visitFactor7: (
+  visitFactor8: (
     _a1: Token,
     _a2: Token,
     a3: Expression,
@@ -219,7 +233,7 @@ const visitor: Visitor<
     else: a7,
   }),
 
-  visitFactor8: (a: Token): Expression => ({
+  visitFactor9: (a: Token): Expression => ({
     type: "Var",
     name: a[2],
   }),

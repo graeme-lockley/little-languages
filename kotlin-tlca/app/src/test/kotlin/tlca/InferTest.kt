@@ -53,6 +53,11 @@ class InferTest {
     }
 
     @Test
+    fun inferLString() {
+        assertInference(emptyTypeEnv, "\"hello\"", emptyList(), listOf("String"))
+    }
+
+    @Test
     fun inferLet() {
         assertInference(
             emptyTypeEnv,

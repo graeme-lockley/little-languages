@@ -11,6 +11,7 @@ import {
   TypeEnv,
   typeError,
   typeInt,
+  typeString,
   typeUnit,
 } from "./Typing.ts";
 
@@ -160,6 +161,9 @@ export const inferExpression = (
     }
     if (expr.type === "LInt") {
       return [typeInt, env];
+    }
+    if (expr.type === "LString") {
+      return [typeString, env];
     }
     if (expr.type === "LTuple") {
       return [new TTuple(expr.values.map((v) => infer(env, v)[0])), env];

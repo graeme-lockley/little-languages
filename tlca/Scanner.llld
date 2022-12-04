@@ -1,6 +1,7 @@
 tokens
-    LiteralInt = ['-'] digits;
     Identifier = id {digit | id};
+    LiteralInt = ['-'] digits;
+    LiteralString = '"' {!('"' + cr) | "\" '"'}  '"';
 
 comments
    "--" {!cr};

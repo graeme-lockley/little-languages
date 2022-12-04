@@ -9,6 +9,7 @@ import {
   TTuple,
   Type,
   TypeEnv,
+  typeString,
   typeUnit,
 } from "./Typing.ts";
 
@@ -59,6 +60,9 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
     return [expr.value, env];
   }
   if (expr.type === "LInt") {
+    return [expr.value, env];
+  }
+  if (expr.type === "LString") {
     return [expr.value, env];
   }
   if (expr.type === "LTuple") {
@@ -129,6 +133,9 @@ export const execute = (
 export const valueToString = (v: any, type: Type): string => {
   if (type === typeUnit) {
     return "()";
+  }
+  if (type === typeString) {
+    return `"${v.replaceAll("\"", "\\\"")}"`;
   }
   if (type instanceof TArr) {
     return "function";

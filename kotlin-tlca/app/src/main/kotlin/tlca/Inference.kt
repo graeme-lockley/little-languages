@@ -64,6 +64,9 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
             is LIntExpression ->
                 InferenceResult(typeInt, typeEnv)
 
+            is LStringExpression ->
+                InferenceResult(typeString, typeEnv)
+
             is LTupleExpression ->
                 InferenceResult(TTuple(e.es.map { infer(typeEnv, it).type }), typeEnv)
 

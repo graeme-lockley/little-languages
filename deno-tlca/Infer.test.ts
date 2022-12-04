@@ -95,6 +95,16 @@ Deno.test("infer LInt", () => {
   assertTypeEquals(type, ["Int"]);
 });
 
+Deno.test("infer LString", () => {
+  const [constraints, type] = inferProgram(
+    emptyTypeEnv,
+    parse("\"hello\""),
+  );
+
+  assertEquals(constraints.constraints.length, 0);
+  assertTypeEquals(type, ["String"]);
+});
+
 Deno.test("infer LUnit", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
