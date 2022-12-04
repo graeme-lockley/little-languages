@@ -32,12 +32,11 @@ AdditiveOps
 
 Factor
     : "(" Expression ")"
-    | "{" Expression {";" Expression} "}"
     | LiteralInt
     | "True"
     | "False"
     | "\" Identifier {Identifier} "->" Expression
-    | "let" ["rec"] Declaration {"and" Declaration}
+    | "let" ["rec"] Declaration {"and" Declaration} ["in" Expression]
     | "if" "(" Expression ")" Expression "else" Expression
     | Identifier
     ;

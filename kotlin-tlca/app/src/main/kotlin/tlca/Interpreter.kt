@@ -52,8 +52,6 @@ private fun evaluate(ast: Expression, env: Map<String, Any>): EvaluateResult =
             EvaluateResult(function(evaluate(ast.e2, env).value), env)
         }
 
-        is BlockExpression -> TODO()
-
         is IfExpression ->
             EvaluateResult(
                 if (evaluate(ast.e1, env).value as Boolean)

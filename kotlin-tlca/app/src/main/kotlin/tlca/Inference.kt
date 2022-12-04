@@ -40,8 +40,6 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
                 InferenceResult(tv, typeEnv)
             }
 
-            is BlockExpression -> TODO()
-
             is IfExpression -> {
                 val t1 = infer(typeEnv, e.e1).type
                 val t2 = infer(typeEnv, e.e2).type

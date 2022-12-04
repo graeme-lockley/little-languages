@@ -5,7 +5,6 @@ export type Program = Array<Expression>;
 
 export type Expression =
   | AppExpression
-  | BlockExpression
   | IfExpression
   | LamExpression
   | LetExpression
@@ -20,11 +19,6 @@ export type AppExpression = {
   type: "App";
   e1: Expression;
   e2: Expression;
-};
-
-export type BlockExpression = {
-  type: "Block";
-  es: Array<Expression>;
 };
 
 export type IfExpression = {
@@ -163,32 +157,22 @@ const visitor: Visitor<
 
   visitFactor1: (_a1: Token, a2: Expression, _a3: Token): Expression => a2,
 
-  visitFactor2: (
-    _a1: Token,
-    a2: Expression,
-    a3: Array<[Token, Expression]>,
-    _a4: Token,
-  ): Expression => ({
-    type: "Block",
-    es: [a2].concat(a3.map(([, e]) => e)),
-  }),
-
-  visitFactor3: (a: Token): Expression => ({
+  visitFactor2: (a: Token): Expression => ({
     type: "LInt",
     value: parseInt(a[2]),
   }),
 
-  visitFactor4: (_a: Token): Expression => ({
+  visitFactor3: (_a: Token): Expression => ({
     type: "LBool",
     value: true,
   }),
 
-  visitFactor5: (_a: Token): Expression => ({
+  visitFactor4: (_a: Token): Expression => ({
     type: "LBool",
     value: false,
   }),
 
-  visitFactor6: (
+  visitFactor5: (
     _a1: Token,
     a2: Token,
     a3: Array<Token>,
@@ -197,17 +181,18 @@ const visitor: Visitor<
   ): Expression =>
     composeLambda([a2].concat(a3).map((n: Token): string => n[2]), a5),
 
-  visitFactor7: (
+  visitFactor6: (
     _a1: Token,
     a2: Token | undefined,
     a3: Declaration,
     a4: Array<[Token, Declaration]>,
+    _a5: [Token, Expression] | undefined
   ): Expression => ({
     type: a2 === undefined ? "Let" : "LetRec",
     declarations: [a3].concat(a4.map((a) => a[1])),
   }),
 
-  visitFactor8: (
+  visitFactor7: (
     _a1: Token,
     _a2: Token,
     a3: Expression,
@@ -222,7 +207,7 @@ const visitor: Visitor<
     else: a7,
   }),
 
-  visitFactor9: (a: Token): Expression => ({
+  visitFactor8: (a: Token): Expression => ({
     type: "Var",
     name: a[2],
   }),
