@@ -103,7 +103,11 @@ export const inferExpression = (
         newEnv = newEnv.extend(declaration.name, sc);
       }
 
-      return [new TTuple(types), newEnv];
+      if (expr.expr === undefined) {
+        return [new TTuple(types), newEnv];
+      } else {
+        return [infer(newEnv, expr.expr)[0], env];
+      }
     }
     if (expr.type === "LetRec") {
       const tvs = pump.nextN(expr.declarations.length);
@@ -144,7 +148,11 @@ export const inferExpression = (
         solvedTypeEnv,
       );
 
-      return [new TTuple(types), solvedEnv];
+      if (expr.expr === undefined) {
+        return [new TTuple(types), solvedEnv];
+      } else {
+        return [infer(solvedEnv, expr.expr)[0], env];
+      }
     }
     if (expr.type === "LBool") {
       return [typeBool, env];

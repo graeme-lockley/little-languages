@@ -30,6 +30,7 @@ Deno.test("Let", () => {
     ["add = function: Int -> Int -> Int", "incr = function: Int -> Int"],
     "11: Int",
   ]);
+  assertExecute("let add a b = a + b and incr = add 1 in incr 10", ["11: Int"]);
 });
 
 Deno.test("LetRec", () => {
@@ -40,6 +41,14 @@ Deno.test("LetRec", () => {
   assertExecute(
     "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) ; fact 5",
     [["fact = function: Int -> Int"], "120: Int"],
+  );
+  assertExecute(
+    "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact",
+    ["function: Int -> Int"],
+  );
+  assertExecute(
+    "let rec fact n = if (n == 0) 1 else n * (fact (n - 1)) in fact 5",
+    ["120: Int"],
   );
 
   assertExecute(
@@ -55,6 +64,14 @@ Deno.test("LetRec", () => {
       ["isOdd = function: Int -> Bool", "isEven = function: Int -> Bool"],
       "true: Bool",
     ],
+  );
+  assertExecute(
+    "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) in isEven 5",
+    ["false: Bool"],
+  );
+  assertExecute(
+    "let rec isOdd n = if (n == 0) False else isEven (n - 1) and isEven n = if (n == 0) True else isOdd (n - 1) in isOdd 5",
+    ["true: Bool"],
   );
 });
 
@@ -84,6 +101,10 @@ Deno.test("Var", () => {
     ["x = function: V1 -> V1"],
     "function: V2 -> V2",
   ]);
+
+  assertExecute("let x = 1 in x", ["1: Int"]);
+  assertExecute("let x = True in x", ["true: Bool"]);
+  assertExecute("let x = \\a -> a in x", ["function: V2 -> V2"]);
 });
 
 const assertExecute = (expression: string, expected: NestedString) => {

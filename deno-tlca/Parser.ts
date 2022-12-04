@@ -31,11 +31,13 @@ export type IfExpression = {
 export type LetExpression = {
   type: "Let";
   declarations: Array<Declaration>;
+  expr: Expression | undefined;
 };
 
 export type LetRecExpression = {
   type: "LetRec";
   declarations: Array<Declaration>;
+  expr: Expression | undefined;
 };
 
 export type Declaration = {
@@ -186,10 +188,11 @@ const visitor: Visitor<
     a2: Token | undefined,
     a3: Declaration,
     a4: Array<[Token, Declaration]>,
-    _a5: [Token, Expression] | undefined
+    a5: [Token, Expression] | undefined,
   ): Expression => ({
     type: a2 === undefined ? "Let" : "LetRec",
     declarations: [a3].concat(a4.map((a) => a[1])),
+    expr: a5 === undefined ? undefined : a5[1],
   }),
 
   visitFactor7: (

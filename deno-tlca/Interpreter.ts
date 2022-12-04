@@ -48,7 +48,12 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
       newEnv[d.name] = value;
       values.push(value);
     });
-    return [values, newEnv];
+
+    if (expr.expr === undefined) {
+      return [values, newEnv];
+    } else {
+      return [evaluate(expr.expr, newEnv)[0], env];
+    }
   }
   if (expr.type === "LBool") {
     return [expr.value, env];
