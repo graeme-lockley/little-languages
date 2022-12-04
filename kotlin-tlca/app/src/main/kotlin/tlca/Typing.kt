@@ -47,6 +47,7 @@ data class TArr(val domain: Type, val range: Type) : Type() {
 }
 
 val typeError = TCon("Error")
+val typeUnit = TCon("()")
 val typeInt = TCon("Int")
 val typeBool = TCon("Bool")
 

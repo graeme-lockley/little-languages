@@ -6,96 +6,75 @@ import kotlin.test.assertEquals
 class InferTest {
     @Test
     fun inferApply() {
-        val (constraints, type) = infer(
+        assertInference(
             emptyTypeEnv
                     + Pair("a", Scheme(setOf("T"), TArr(TVar("T"), TVar("T"))))
                     + Pair("b", Scheme(emptySet(), typeInt)),
-            parse("a b")
+            "a b",
+            listOf("V1 -> V1 ~ Int -> V2"),
+            listOf("V2")
         )
-
-        assertConstraints(
-            constraints, listOf(
-                "V1 -> V1 ~ Int -> V2"
-            )
-        )
-        assertEquals(TVar("V2"), type)
     }
 
     @Test
     fun inferIf() {
-        val (constraints, type) = infer(
+        assertInference(
             emptyTypeEnv
                     + Pair("a", Scheme(setOf("S"), TVar("S")))
                     + Pair("b", Scheme(emptySet(), typeInt))
                     + Pair("c", Scheme(setOf("S"), TVar("S"))),
-            parse("if (a) b else c")
-        )
-
-        assertConstraints(
-            constraints, listOf(
+            "if (a) b else c",
+            listOf(
                 "V1 ~ Bool",
                 "Int ~ V2"
-            )
+            ),
+            listOf("Int")
         )
-        assertEquals(typeInt, type)
     }
 
     @Test
     fun inferLam() {
-        val (constraints, type) = infer(
+        assertInference(
             emptyTypeEnv,
-            parse("\\x -> x 10")
+            "\\x -> x 10",
+            listOf("V1 ~ Int -> V2"),
+            listOf("V1 -> V2")
         )
-
-        assertConstraints(
-            constraints, listOf(
-                "V1 ~ Int -> V2"
-            )
-        )
-        assertEquals("V1 -> V2", type.toString())
     }
 
     @Test
     fun inferLBool() {
-        val (constraints, type) = infer(emptyTypeEnv, parse("True"))
-
-        assertConstraints(constraints, emptyList())
-        assertEquals(typeBool, type)
+        assertInference(emptyTypeEnv, "True", emptyList(), listOf("Bool"))
     }
 
     @Test
     fun inferLInt() {
-        val (constraints, type) = infer(emptyTypeEnv, parse("123"))
-
-        assertConstraints(constraints, emptyList())
-        assertEquals(typeInt, type)
+        assertInference(emptyTypeEnv, "123", emptyList(), listOf("Int"))
     }
 
     @Test
     fun inferLet() {
-        val (constraints, type) = infer(emptyTypeEnv, parse("let x = 10; y = x + 1 in y"))
-
-        assertConstraints(constraints, emptyList())
-        assertEquals(typeInt, type)
+        assertInference(
+            emptyTypeEnv,
+            "let x = 10 and y = x + 1 ; y",
+            emptyList(),
+            listOf("(Int * Int)", "Int")
+        )
     }
 
     @Test
     fun inferOp() {
         fun scenario(input: String, resultType: Type) {
-            val (constraints, type) = infer(
+            assertInference(
                 emptyTypeEnv
                         + Pair("a", Scheme(setOf("T"), TVar("T")))
                         + Pair("b", Scheme(setOf("T"), TVar("T"))),
-                parse(input)
-            )
-
-            assertConstraints(
-                constraints, listOf(
+                input,
+                listOf(
                     "V1 -> V2 -> V3 ~ Int -> Int -> $resultType"
-                )
+                ),
+                listOf("V3")
             )
-
-            assertEquals(TVar("V3"), type)
         }
 
         scenario("a + b", typeInt)
@@ -107,16 +86,22 @@ class InferTest {
 
     @Test
     fun inferVar() {
-        val (constraints, type) = infer(
-            emptyTypeEnv
-                    + Pair("a", Scheme(setOf("T"), TArr(TVar("T"), TVar("T")))), parse("a")
+        assertInference(
+            emptyTypeEnv + Pair("a", Scheme(setOf("T"), TArr(TVar("T"), TVar("T")))),
+            "a",
+            emptyList(),
+            listOf("V1 -> V1")
         )
+    }
 
-        assertEquals(constraints, Constraints())
-        assertEquals(TArr(TVar("V1"), TVar("V1")), type)
+    private fun assertInference(typeEnv: TypeEnv, input: String, expectedConstraints: List<String>, expectedTypes: List<String>) {
+        val inferResult = infer(typeEnv, parse(input), Constraints(), Pump())
+
+        assertConstraints(inferResult.constraints, expectedConstraints)
+        assertEquals(expectedTypes, inferResult.types.map { it.toString() })
     }
 
     private fun assertConstraints(constraints: Constraints, expected: List<String>) {
-        assertEquals(constraints.toString(), expected.joinToString(", "))
+        assertEquals(expected.joinToString(", "), constraints.toString())
     }
 }

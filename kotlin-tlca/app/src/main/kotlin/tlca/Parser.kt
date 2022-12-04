@@ -11,11 +11,13 @@ sealed class Expression
 
 data class AppExpression(val e1: Expression, val e2: Expression) : Expression()
 
+data class BlockExpression(val es: List<Expression>) : Expression()
+
 data class IfExpression(val e1: Expression, val e2: Expression, val e3: Expression) : Expression()
 
-data class LetExpression(val decls: List<Declaration>, val e: Expression) : Expression()
+data class LetExpression(val decls: List<Declaration>) : Expression()
 
-data class LetRecExpression(val decls: List<Declaration>, val e: Expression) : Expression()
+data class LetRecExpression(val decls: List<Declaration>) : Expression()
 
 data class Declaration(val n: String, val e: Expression)
 
@@ -33,8 +35,9 @@ enum class Op { Equals, Plus, Minus, Times, Divide }
 
 data class VarExpression(val name: String) : Expression()
 
-class ParserVisitor : Visitor<Expression, Expression, Expression, Expression, Op, Expression, Op, Expression, Declaration> {
-    override fun visitProgram(a: Expression): Expression = a
+class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expression, Op, Expression, Op, Expression, Declaration> {
+    override fun visitProgram(a1: Expression, a2: List<Tuple2<Token, Expression>>): List<Expression> =
+        listOf(a1) + a2.map { it.b }
 
     override fun visitExpression(a1: Expression, a2: List<Expression>): Expression = a2.fold(a1) { acc, e -> AppExpression(acc, e) }
 
@@ -56,29 +59,32 @@ class ParserVisitor : Visitor<Expression, Expression, Expression, Expression, Op
 
     override fun visitFactor1(a1: Token, a2: Expression, a3: Token): Expression = a2
 
-    override fun visitFactor2(a: Token): Expression = LIntExpression(a.lexeme.toInt())
+    override fun visitFactor2(a1: Token, a2: Expression, a3: List<Tuple2<Token, Expression>>, a4: Token): Expression =
+        BlockExpression(listOf(a2) + a3.map { it.b })
 
-    override fun visitFactor3(a: Token): Expression = LBoolExpression(true)
+    override fun visitFactor3(a: Token): Expression = LIntExpression(a.lexeme.toInt())
 
-    override fun visitFactor4(a: Token): Expression = LBoolExpression(false)
+    override fun visitFactor4(a: Token): Expression = LBoolExpression(true)
 
-    override fun visitFactor5(a1: Token, a2: Token, a3: List<Token>, a4: Token, a5: Expression): Expression =
+    override fun visitFactor5(a: Token): Expression = LBoolExpression(false)
+
+    override fun visitFactor6(a1: Token, a2: Token, a3: List<Token>, a4: Token, a5: Expression): Expression =
         composeLambda(listOf(a2.lexeme) + a3.map { it.lexeme }, a5)
 
-    override fun visitFactor6(
-        a1: Token, a2: Token?, a3: Declaration, a4: List<Tuple2<Token, Declaration>>, a5: Token, a6: Expression
+    override fun visitFactor7(
+        a1: Token, a2: Token?, a3: Declaration, a4: List<Tuple2<Token, Declaration>>
     ): Expression {
         val declarations = listOf(a3) + a4.map { it.b }
 
-        return if (a2 == null) LetExpression(declarations, a6)
-        else LetRecExpression(declarations, a6)
+        return if (a2 == null) LetExpression(declarations)
+        else LetRecExpression(declarations)
     }
 
-    override fun visitFactor7(a1: Token, a2: Token, a3: Expression, a4: Token, a5: Expression, a6: Token, a7: Expression): Expression =
+    override fun visitFactor8(a1: Token, a2: Token, a3: Expression, a4: Token, a5: Expression, a6: Token, a7: Expression): Expression =
         IfExpression(a3, a5, a7)
 
 
-    override fun visitFactor8(a: Token): Expression = VarExpression(a.lexeme)
+    override fun visitFactor9(a: Token): Expression = VarExpression(a.lexeme)
 
     override fun visitDeclaration(a1: Token, a2: List<Token>, a3: Token, a4: Expression): Declaration =
         Declaration(a1.lexeme, composeLambda(a2.map { it.lexeme }, a4))
@@ -86,9 +92,9 @@ class ParserVisitor : Visitor<Expression, Expression, Expression, Expression, Op
     private fun composeLambda(names: List<String>, e: Expression): Expression = names.foldRight(e) { name, acc -> LamExpression(name, acc) }
 }
 
-fun parse(scanner: Scanner): Expression =
+fun parse(scanner: Scanner): List<Expression> =
     Parser(scanner, ParserVisitor()).program()
 
-fun parse(input: String): Expression =
+fun parse(input: String): List<Expression> =
     parse(Scanner(StringReader(input)))
 

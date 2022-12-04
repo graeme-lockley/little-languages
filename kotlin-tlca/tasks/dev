@@ -14,7 +14,7 @@ build_parser() {
             --verbose \
             --directory=./app/src/main/kotlin \
             --package=tlca.parser \
-            "$PROJECT_HOME"/../stlc/Grammar.llgd || exit 1
+            "$PROJECT_HOME"/../tlca/Grammar.llgd || exit 1
     )
 }
 
