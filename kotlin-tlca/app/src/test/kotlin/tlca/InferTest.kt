@@ -44,17 +44,22 @@ class InferTest {
 
     @Test
     fun inferLBool() {
-        assertInference(emptyTypeEnv, "True", emptyList(), listOf("Bool"))
+        assertInference( "True", "Bool")
     }
 
     @Test
     fun inferLInt() {
-        assertInference(emptyTypeEnv, "123", emptyList(), listOf("Int"))
+        assertInference("123", "Int")
     }
 
     @Test
     fun inferLString() {
-        assertInference(emptyTypeEnv, "\"hello\"", emptyList(), listOf("String"))
+        assertInference("\"hello\"","String")
+    }
+
+    @Test
+    fun inferLTuple() {
+        assertInference("(1, \"hello\", (), True)", "(Int * String * () * Bool)")
     }
 
     @Test
@@ -104,6 +109,10 @@ class InferTest {
 
         assertConstraints(inferResult.constraints, expectedConstraints)
         assertEquals(expectedTypes, inferResult.types.map { it.toString() })
+    }
+
+    private fun assertInference(input: String, expectedType: String) {
+        assertInference(emptyTypeEnv, input, emptyList(), listOf(expectedType))
     }
 
     private fun assertConstraints(constraints: Constraints, expected: List<String>) {

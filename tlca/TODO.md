@@ -26,9 +26,9 @@ The following items relate to the work on TLCA.
     - string_compare
 - [X] deno: Implement builtin string functions
 - [X] kotlin: Implement builtin string functions
-- [ ] TLCA: Add literal tuples to grammar
-- [ ] deno: Implement literal tuple value
-- [ ] kotlin: Implement literal tuple value
+- [X] TLCA: Add literal tuples to grammar
+- [X] deno: Implement literal tuple value
+- [X] kotlin: Implement literal tuple value
 - [ ] TLCA: Add tuple pattern matching to grammar
 - [ ] deno: Implement tuple pattern matching
 - [ ] kotlin: Implement tuple pattern matching

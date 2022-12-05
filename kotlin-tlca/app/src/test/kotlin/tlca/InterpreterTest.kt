@@ -118,6 +118,17 @@ class InterpreterTest {
     }
 
     @Test
+    fun executeLString() {
+        assertExecute("\"hello\"", "\"hello\": String")
+        assertExecute("\"\\\"hello\\\"\"", "\"\\\"hello\\\"\": String")
+    }
+
+    @Test
+    fun executeLTuple() {
+        assertExecute("(1, (), \"Hello\", True)", "(1, (), \"Hello\", true): (Int * () * String * Bool)")
+    }
+
+    @Test
     fun executeLUnit() {
         assertExecute("()", "(): ()")
     }

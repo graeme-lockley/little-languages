@@ -173,9 +173,14 @@ const visitor: Visitor<
 
   visitFactor1: (
     _a1: Token,
-    a2: Expression | undefined,
+    a2: [Expression, Array<[Token, Expression]>] | undefined,
     _a3: Token,
-  ): Expression => a2 === undefined ? { type: "LUnit" } : a2,
+  ): Expression =>
+    a2 === undefined
+      ? { type: "LUnit" }
+      : a2[1].length === 0
+      ? a2[0]
+      : { type: "LTuple", values: [a2[0]].concat(a2[1].map(([, e]) => e)) },
 
   visitFactor2: (a: Token): Expression => ({
     type: "LInt",

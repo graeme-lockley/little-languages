@@ -89,6 +89,12 @@ Deno.test("LString", () => {
   assertExecute('"\\"hello\\""', ['"\\"hello\\"": String']);
 });
 
+Deno.test("LTuple", () => {
+  assertExecute('(1, "hello", (), True)', [
+    '(1, "hello", (), true): (Int * String * () * Bool)',
+  ]);
+});
+
 Deno.test("LUnit", () => {
   assertExecute("()", ["(): ()"]);
 });

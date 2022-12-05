@@ -178,6 +178,11 @@ export const valueToString = (v: any, type: Type): string => {
   if (type instanceof TArr) {
     return "function";
   }
+  if (type instanceof TTuple) {
+    return `(${
+      v.map((v: any, i: number) => valueToString(v, type.types[i])).join(", ")
+    })`;
+  }
   return `${v}`;
 };
 

@@ -53,16 +53,6 @@ Deno.test("infer If", () => {
   assertTypeEquals(type, ["Int"]);
 });
 
-Deno.test("infer LBool", () => {
-  const [constraints, type] = inferProgram(
-    emptyTypeEnv,
-    parse("True"),
-  );
-
-  assertConstraintsEquals(constraints, []);
-  assertTypeEquals(type, ["Bool"]);
-});
-
 Deno.test("infer Lam", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
@@ -85,6 +75,16 @@ Deno.test("infer Let", () => {
   assertTypeEquals(type, ["(Int * Int)", "Int"]);
 });
 
+Deno.test("infer LBool", () => {
+  const [constraints, type] = inferProgram(
+    emptyTypeEnv,
+    parse("True"),
+  );
+
+  assertConstraintsEquals(constraints, []);
+  assertTypeEquals(type, ["Bool"]);
+});
+
 Deno.test("infer LInt", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
@@ -103,6 +103,16 @@ Deno.test("infer LString", () => {
 
   assertEquals(constraints.constraints.length, 0);
   assertTypeEquals(type, ["String"]);
+});
+
+Deno.test("infer LTuple", () => {
+  const [constraints, type] = inferProgram(
+    emptyTypeEnv,
+    parse('(1, "hello", True)'),
+  );
+
+  assertEquals(constraints.constraints.length, 0);
+  assertTypeEquals(type, ["(Int * String * Bool)"]);
 });
 
 Deno.test("infer LUnit", () => {

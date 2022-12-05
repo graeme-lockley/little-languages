@@ -59,7 +59,12 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
 
     override fun visitAdditiveOps2(a: Token): Op = Op.Minus
 
-    override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression = a2 ?: LUnitExpression
+    override fun visitFactor1(a1: Token, a2: Tuple2<Expression, List<Tuple2<Token, Expression>>>?, a3: Token): Expression =
+        when {
+            a2 == null -> LUnitExpression
+            a2.b.isEmpty() -> a2.a
+            else -> LTupleExpression(listOf(a2.a) + a2.b.map { it.b })
+        }
 
     override fun visitFactor2(a: Token): Expression = LIntExpression(a.lexeme.toInt())
 

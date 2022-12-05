@@ -119,6 +119,12 @@ fun valueToString(value: Value?, type: Type): String =
     when (type) {
         typeUnit -> "()"
         typeString -> "\"${(value as String).replace("\"", "\\\"")}\""
+        is TTuple -> {
+            val values = value as List<Value?>
+            val types = type.types
+
+            values.zip(types).joinToString(", ", "(", ")") { (v, t) -> valueToString(v, t) }
+        }
         is TArr -> "function"
         else -> value.toString()
     }
