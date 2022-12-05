@@ -12,5 +12,5 @@ whitespace
 fragments
   digit = '0'-'9';
   digits = digit {digit};
-  id = 'A'-'Z' + 'a'-'z';
+  id = 'A'-'Z' + 'a'-'z' + '_';
   cr = chr(10);

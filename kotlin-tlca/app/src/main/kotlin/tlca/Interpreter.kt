@@ -4,6 +4,29 @@ data class Environment(val runtimeEnv: RuntimeEnv, val typeEnv: TypeEnv)
 
 val emptyEnvironment = Environment(emptyMap(), emptyTypeEnv)
 
+val defaultEnvironment = Environment(
+    mapOf(
+        "string_length" to { s: String -> s.length },
+        "string_concat" to { s1: String -> { s2: String -> s1 + s2 } },
+        "string_substring" to { s: String -> { start: Int -> { end: Int -> stringSubstring(s, start, end) } } },
+        "string_equal" to { s1: String -> { s2: String -> s1 == s2 } },
+        "string_compare" to { s1: String -> { s2: String -> if (s1 < s2) -1 else if (s1 == s2) 0 else 1 } },
+    ), emptyTypeEnv
+        .extend("string_length", Scheme(setOf(), TArr(typeString, typeInt)))
+        .extend("string_concat", Scheme(setOf(), TArr(typeString, TArr(typeString, typeString))))
+        .extend("string_substring", Scheme(setOf(), TArr(typeString, TArr(typeInt, TArr(typeInt, typeString)))))
+        .extend("string_equal", Scheme(setOf(), TArr(typeString, TArr(typeString, typeBool))))
+        .extend("string_compare", Scheme(setOf(), TArr(typeString, TArr(typeString, typeInt))))
+)
+
+fun stringSubstring(str: String, start: Int, end: Int): String {
+    if (start > end) return ""
+    val length = str.length
+    val s = if (start < 0) 0 else if (start > length) length else start
+    val e = if (end < 0) 0 else if (end > length) length else end
+    return str.substring(s, e)
+}
+
 typealias Value = Any
 
 typealias RuntimeEnv = Map<String, Value?>

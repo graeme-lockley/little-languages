@@ -1,5 +1,5 @@
 import {
-  emptyEnv,
+  defaultEnv,
   executeProgram,
   expressionToNestedString,
   nestedStringToString,
@@ -25,7 +25,7 @@ const readline = (): string | null => {
 };
 
 if (Deno.args.length === 0) {
-  let env = emptyEnv;
+  let env = defaultEnv;
 
   while (true) {
     const line = readline();
@@ -50,7 +50,7 @@ if (Deno.args.length === 0) {
 } else if (Deno.args.length === 1) {
   const file = Deno.readTextFileSync(Deno.args[0]);
   const ast = parse(file);
-  const [result, _] = executeProgram(ast, emptyEnv);
+  const [result, _] = executeProgram(ast, defaultEnv);
 
   ast.forEach((e, i) => {
     const [value, type] = result[i];

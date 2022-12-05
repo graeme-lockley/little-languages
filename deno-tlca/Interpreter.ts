@@ -5,10 +5,13 @@ import { Expression, Op, parse, Program } from "./Parser.ts";
 import {
   createFresh,
   emptyTypeEnv,
+  Scheme,
   TArr,
   TTuple,
   Type,
+  typeBool,
   TypeEnv,
+  typeInt,
   typeString,
   typeUnit,
 } from "./Typing.ts";
@@ -91,6 +94,41 @@ const mkEnv = (
 ): Env => [runtime, typeEnv];
 
 export const emptyEnv = mkEnv({}, emptyTypeEnv);
+
+export const defaultEnv = mkEnv(
+  {
+    string_length: (s: string) => [s.length],
+    string_concat: (s1: string) => [(s2: string) => [s1 + s2]],
+    string_substring: (
+      s: string,
+    ) => [(start: number) => [(end: number) => [s.slice(start, end)]]],
+    string_equal: (s1: string) => [(s2: string) => [s1 === s2]],
+    string_compare: (
+      s1: string,
+    ) => [(s2: string) => [s1 < s2 ? -1 : s1 === s2 ? 0 : 1]],
+  },
+  emptyTypeEnv
+    .extend("string_length", new Scheme([], new TArr(typeString, typeInt)))
+    .extend(
+      "string_concat",
+      new Scheme([], new TArr(typeString, new TArr(typeString, typeString))),
+    )
+    .extend(
+      "string_substring",
+      new Scheme(
+        [],
+        new TArr(typeString, new TArr(typeInt, new TArr(typeInt, typeString))),
+      ),
+    )
+    .extend(
+      "string_equal",
+      new Scheme([], new TArr(typeString, new TArr(typeString, typeBool))),
+    )
+    .extend(
+      "string_compare",
+      new Scheme([], new TArr(typeString, new TArr(typeString, typeInt))),
+    ),
+);
 
 export const runtime = (env: Env): any => env[0];
 export const typeEnv = (env: Env): TypeEnv => env[1];

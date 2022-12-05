@@ -18,14 +18,14 @@ The following items relate to the work on TLCA.
 - [X] TLCA: Add literal string value to grammar
 - [X] deno: Implement literal string value
 - [X] kotlin: Implement literal string value
-- [ ] TLCA: define builtin string functions
+- [X] TLCA: define builtin string functions
     - string_length
     - string_concat
     - sub_string
     - string_equal
     - string_compare
-- [ ] deno: Implement builtin string functions
-- [ ] kotlin: Implement builtin string functions
+- [X] deno: Implement builtin string functions
+- [X] kotlin: Implement builtin string functions
 - [ ] TLCA: Add literal tuples to grammar
 - [ ] deno: Implement literal tuple value
 - [ ] kotlin: Implement literal tuple value

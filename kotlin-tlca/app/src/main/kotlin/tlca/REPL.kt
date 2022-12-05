@@ -4,7 +4,7 @@ import java.io.File
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        var env = emptyEnvironment
+        var env = defaultEnvironment
         while (true) {
             val input = readline().trim()
 
@@ -26,7 +26,7 @@ fun main(args: Array<String>) {
     } else if (args.size == 1) {
         val input = File(args[0]).readText()
         val ast = parse(input)
-        val (values, _) = execute(ast, emptyEnvironment)
+        val (values, _) = execute(ast, defaultEnvironment)
 
         ast.forEachIndexed { index, expression ->
             val (value, type) = values[index]
