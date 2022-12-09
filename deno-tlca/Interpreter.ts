@@ -119,7 +119,7 @@ const matchPattern = (pattern: Pattern, value: any, env: any): any => {
   if (pattern.type === "PUnit") {
     return value === null ? env : null;
   }
-  if (pattern.type === "PWildCard") {
+  if (pattern.type === "PWildcard") {
     return env;
   }
   return null;

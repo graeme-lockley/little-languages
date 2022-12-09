@@ -240,7 +240,7 @@ export const inferPattern = (
     const tv = pump.next();
     return [tv, env.extend(pattern.name, new Scheme([], tv))];
   }
-  if (pattern.type === "PWildCard") {
+  if (pattern.type === "PWildcard") {
     return [pump.next(), env];
   }
 

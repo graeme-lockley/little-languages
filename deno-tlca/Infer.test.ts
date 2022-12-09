@@ -205,7 +205,7 @@ Deno.test("infer PVar pattern", () => {
 
 Deno.test("infer PWildCard pattern", () => {
   assertInferPattern(
-    { type: "PWildCard" },
+    { type: "PWildcard" },
     [],
     "V1",
   );

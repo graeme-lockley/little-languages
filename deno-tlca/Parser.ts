@@ -149,7 +149,7 @@ export type VarPattern = {
 };
 
 export type WildCardPattern = {
-  type: "PWildCard";
+  type: "PWildcard";
 };
 
 export const transformLiteralString = (s: string): string =>
@@ -360,7 +360,7 @@ const visitor: Visitor<
   }),
 
   visitPattern6: (a: Token): Pattern =>
-    a[2] === "_" ? { type: "PWildCard" } : {
+    a[2] === "_" ? { type: "PWildcard" } : {
       type: "PVar",
       name: a[2],
     },
