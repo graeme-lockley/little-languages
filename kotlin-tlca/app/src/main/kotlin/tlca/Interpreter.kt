@@ -46,7 +46,11 @@ fun execute(ast: List<Expression>, defaultEnv: Environment = emptyEnvironment): 
         val subst = inferResult.constraints.solve()
         val type = inferResult.type.apply(subst)
 
-        val evaluateResult = evaluate(e, env.runtimeEnv)
+        val evaluateResult: EvaluateResult = when (e) {
+            is LetExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
+            is LetRecExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
+            else -> EvaluateResult(evaluate(e, env.runtimeEnv), env.runtimeEnv)
+        }
 
         values.add(TypedValue(evaluateResult.value, type))
 
@@ -67,40 +71,37 @@ private val binaryOps: Map<Op, (Any?, Any?) -> Any> = mapOf(
 private data class EvaluateResult(val value: Any?, val env: RuntimeEnv)
 
 @Suppress("UNCHECKED_CAST")
-private fun evaluate(ast: Expression, env: RuntimeEnv): EvaluateResult =
+private fun evaluate(ast: Expression, env: RuntimeEnv): Value? =
     when (ast) {
         is AppExpression -> {
-            val function = evaluate(ast.e1, env).value as (Any?) -> Any
+            val function = evaluate(ast.e1, env) as (Any?) -> Any
 
-            EvaluateResult(function(evaluate(ast.e2, env).value), env)
+            function(evaluate(ast.e2, env))
         }
 
         is IfExpression ->
-            EvaluateResult(
-                if (evaluate(ast.e1, env).value as Boolean)
-                    evaluate(ast.e2, env).value
-                else
-                    evaluate(ast.e3, env).value,
-                env
-            )
+            if (evaluate(ast.e1, env) as Boolean)
+                evaluate(ast.e2, env)
+            else
+                evaluate(ast.e3, env)
 
         is LamExpression ->
-            EvaluateResult({ x: Any -> evaluate(ast.e, env + Pair(ast.n, x)).value }, env)
+            { x: Any -> evaluate(ast.e, env + Pair(ast.n, x)) }
 
-        is LetExpression -> evaluateDeclarations(ast.decls, ast.expr, env)
-        is LetRecExpression -> evaluateDeclarations(ast.decls, ast.expr, env)
-        is LBoolExpression -> EvaluateResult(ast.v, env)
-        is LIntExpression -> EvaluateResult(ast.v, env)
-        is LStringExpression -> EvaluateResult(ast.v, env)
-        is LTupleExpression -> EvaluateResult(ast.es.map { evaluate(it, env).value }, env)
-        LUnitExpression -> EvaluateResult(null, env)
+        is LetExpression -> evaluateDeclarations(ast.decls, ast.expr, env).value
+        is LetRecExpression -> evaluateDeclarations(ast.decls, ast.expr, env).value
+        is LBoolExpression -> ast.v
+        is LIntExpression -> ast.v
+        is LStringExpression -> ast.v
+        is LTupleExpression -> ast.es.map { evaluate(it, env) }
+        LUnitExpression -> null
         is MatchExpression -> matchExpression(ast, env)
-        is OpExpression -> EvaluateResult(binaryOps[ast.op]!!(evaluate(ast.e1, env).value, evaluate(ast.e2, env).value), env)
-        is VarExpression -> EvaluateResult(env[ast.name], env)
+        is OpExpression -> binaryOps[ast.op]!!(evaluate(ast.e1, env), evaluate(ast.e2, env))
+        is VarExpression -> env[ast.name]
     }
 
-private fun matchExpression(e: MatchExpression, env: RuntimeEnv): EvaluateResult {
-    val value = evaluate(e.e, env).value
+private fun matchExpression(e: MatchExpression, env: RuntimeEnv): Value? {
+    val value = evaluate(e.e, env)
 
     for (c in e.cases) {
         val newEnv = matchPattern(c.pattern, value, env)
@@ -127,8 +128,7 @@ private fun matchPattern(pattern: Pattern, value: Any?, env: RuntimeEnv): Runtim
             }
             newEnv
         }
-
-        PUnitPattern -> env
+        PUnitPattern -> if (value == null) env else null
         PWildcardPattern -> env
     }
 
@@ -137,7 +137,7 @@ private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, en
     val values = mutableListOf<Value?>()
 
     for (decl in decls) {
-        val value = evaluate(decl.e, newEnv).value
+        val value = evaluate(decl.e, newEnv)
 
         values.add(value)
         newEnv[decl.n] = value
@@ -145,7 +145,7 @@ private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, en
 
     return when (expr) {
         null -> EvaluateResult(values, newEnv)
-        else -> EvaluateResult(evaluate(expr, newEnv).value, env)
+        else -> EvaluateResult(evaluate(expr, newEnv), env)
     }
 }
 
@@ -165,7 +165,6 @@ fun valueToString(value: Value?, type: Type): String =
     }
 
 fun expressionToNestedString(value: Value?, type: Type, e: Expression): NestedString {
-    @Suppress("UNCHECKED_CAST")
     fun declarationsToNestedString(decls: List<Declaration>, type: TTuple): NestedString =
         NestedString.Sequence(decls.mapIndexed { i, d ->
             NestedString.Item(
