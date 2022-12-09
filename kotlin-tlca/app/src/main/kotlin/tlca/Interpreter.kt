@@ -92,10 +92,44 @@ private fun evaluate(ast: Expression, env: RuntimeEnv): EvaluateResult =
         is LBoolExpression -> EvaluateResult(ast.v, env)
         is LIntExpression -> EvaluateResult(ast.v, env)
         is LStringExpression -> EvaluateResult(ast.v, env)
+        is LTupleExpression -> EvaluateResult(ast.es.map { evaluate(it, env).value }, env)
         LUnitExpression -> EvaluateResult(null, env)
+        is MatchExpression -> matchExpression(ast, env)
         is OpExpression -> EvaluateResult(binaryOps[ast.op]!!(evaluate(ast.e1, env).value, evaluate(ast.e2, env).value), env)
         is VarExpression -> EvaluateResult(env[ast.name], env)
-        is LTupleExpression -> EvaluateResult(ast.es.map { evaluate(it, env).value }, env)
+    }
+
+private fun matchExpression(e: MatchExpression, env: RuntimeEnv): EvaluateResult {
+    val value = evaluate(e.e, env).value
+
+    for (c in e.cases) {
+        val newEnv = matchPattern(c.pattern, value, env)
+        if (newEnv != null) {
+            return evaluate(c.expr, newEnv)
+        }
+    }
+
+    throw Exception("No match")
+}
+
+private fun matchPattern(pattern: Pattern, value: Any?, env: RuntimeEnv): RuntimeEnv? =
+    when (pattern) {
+        is PBoolPattern -> if (pattern.v == value) env else null
+        is PIntPattern -> if (pattern.v == value) env else null
+        is PStringPattern -> if (pattern.v == value) env else null
+        is PVarPattern -> env + Pair(pattern.name, value)
+        is PTuplePattern -> {
+            var newEnv: RuntimeEnv? = env
+            for ((p, v) in pattern.values.zip(value as List<Any?>)) {
+                if (newEnv != null) {
+                    newEnv = matchPattern(p, v, newEnv)
+                }
+            }
+            newEnv
+        }
+
+        PUnitPattern -> env
+        PWildcardPattern -> env
     }
 
 private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, env: RuntimeEnv): EvaluateResult {
@@ -125,6 +159,7 @@ fun valueToString(value: Value?, type: Type): String =
 
             values.zip(types).joinToString(", ", "(", ")") { (v, t) -> valueToString(v, t) }
         }
+
         is TArr -> "function"
         else -> value.toString()
     }

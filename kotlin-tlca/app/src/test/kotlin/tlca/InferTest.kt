@@ -44,7 +44,7 @@ class InferTest {
 
     @Test
     fun inferLBool() {
-        assertInference( "True", "Bool")
+        assertInference("True", "Bool")
     }
 
     @Test
@@ -54,7 +54,7 @@ class InferTest {
 
     @Test
     fun inferLString() {
-        assertInference("\"hello\"","String")
+        assertInference("\"hello\"", "String")
     }
 
     @Test
@@ -69,6 +69,20 @@ class InferTest {
             "let x = 10 and y = x + 1 ; y",
             emptyList(),
             listOf("(Int * Int)", "Int")
+        )
+    }
+
+    @Test
+    fun inferMatch() {
+        assertInference(
+            emptyTypeEnv,
+            "match (1, 2) with (x, y) -> x + y",
+            listOf(
+                "V2 -> V3 -> V4 ~ Int -> Int -> Int",
+                "(V2 * V3) ~ (Int * Int)",
+                "V4 ~ V1",
+            ),
+            listOf("V1")
         )
     }
 
@@ -104,6 +118,50 @@ class InferTest {
         )
     }
 
+    @Test
+    fun inferBoolPattern() {
+        assertInferPattern(PBoolPattern(true), emptyList(), "Bool")
+    }
+
+    @Test
+    fun inferIntPattern() {
+        assertInferPattern(PIntPattern(123), emptyList(), "Int")
+    }
+
+    @Test
+    fun inferStringPattern() {
+        assertInferPattern(PStringPattern("Hello"), emptyList(), "String")
+    }
+
+    @Test
+    fun inferTuplePattern() {
+        assertInferPattern(
+            PTuplePattern(
+                listOf(
+                    PBoolPattern(true),
+                    PIntPattern(123),
+                    PStringPattern("Hello"),
+                    PUnitPattern,
+                )
+            ), emptyList(), "(Bool * Int * String * ())"
+        )
+    }
+
+    @Test
+    fun inferUnitPattern() {
+        assertInferPattern(PUnitPattern, emptyList(), "()")
+    }
+
+    @Test
+    fun inferVarPattern() {
+        assertInferPattern(PVarPattern("x"), emptyList(), "V1", emptyTypeEnv.extend("x", Scheme(emptySet(), TVar("V1"))))
+    }
+
+    @Test
+    fun inferWildcardPattern() {
+        assertInferPattern(PWildcardPattern, emptyList(), "V1", emptyTypeEnv)
+    }
+
     private fun assertInference(typeEnv: TypeEnv, input: String, expectedConstraints: List<String>, expectedTypes: List<String>) {
         val inferResult = infer(typeEnv, parse(input), Constraints(), Pump())
 
@@ -117,5 +175,20 @@ class InferTest {
 
     private fun assertConstraints(constraints: Constraints, expected: List<String>) {
         assertEquals(expected.joinToString(", "), constraints.toString())
+    }
+
+    private fun assertInferPattern(
+        pattern: Pattern,
+        expectedConstraints: List<String> = emptyList(),
+        expectedType: String,
+        expectedTypeEnv: TypeEnv = emptyTypeEnv
+    ) {
+        val constraints = Constraints()
+
+        val (type, typeEnv) = inferPattern(emptyTypeEnv, pattern, constraints, Pump())
+
+        assertConstraints(constraints, expectedConstraints)
+        assertEquals(type.toString(), expectedType)
+        assertEquals(typeEnv, expectedTypeEnv)
     }
 }

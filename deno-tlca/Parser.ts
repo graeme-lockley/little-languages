@@ -14,6 +14,7 @@ export type Expression =
   | LStringExpression
   | LTupleExpression
   | LUnitExpression
+  | MatchExpression
   | OpExpression
   | VarExpression;
 
@@ -78,6 +79,12 @@ export type LUnitExpression = {
   type: "LUnit";
 };
 
+export type MatchExpression = {
+  type: "Match";
+  expr: Expression;
+  cases: Array<MatchCase>;
+};
+
 export type OpExpression = {
   type: "Op";
   left: Expression;
@@ -98,6 +105,53 @@ export type VarExpression = {
   name: string;
 };
 
+export type MatchCase = {
+  pattern: Pattern;
+  expr: Expression;
+};
+
+export type Pattern =
+  | LBoolPattern
+  | LIntPattern
+  | LStringPattern
+  | LTuplePattern
+  | LUnitPattern
+  | VarPattern
+  | WildCardPattern;
+
+export type LBoolPattern = {
+  type: "PBool";
+  value: boolean;
+};
+
+export type LIntPattern = {
+  type: "PInt";
+  value: number;
+};
+
+export type LStringPattern = {
+  type: "PString";
+  value: string;
+};
+
+export type LTuplePattern = {
+  type: "PTuple";
+  values: Array<Pattern>;
+};
+
+export type LUnitPattern = {
+  type: "PUnit";
+};
+
+export type VarPattern = {
+  type: "PVar";
+  name: string;
+};
+
+export type WildCardPattern = {
+  type: "PWildCard";
+};
+
 export const transformLiteralString = (s: string): string =>
   s.substring(1, s.length - 1).replaceAll('\\"', '"');
 
@@ -115,7 +169,9 @@ const visitor: Visitor<
   Expression,
   string,
   Expression,
-  Declaration
+  Declaration,
+  MatchCase,
+  Pattern
 > = {
   visitProgram: (
     a1: Expression,
@@ -243,6 +299,19 @@ const visitor: Visitor<
     name: a[2],
   }),
 
+  visitFactor10: (
+    _a1: Token,
+    a2: Expression,
+    _a3: Token,
+    _a4: Token | undefined,
+    a5: MatchCase,
+    a6: Array<[Token, MatchCase]>,
+  ): Expression => ({
+    type: "Match",
+    expr: a2,
+    cases: [a5].concat(a6.map((a) => a[1])),
+  }),
+
   visitDeclaration: (
     a1: Token,
     a2: Array<Token>,
@@ -253,6 +322,48 @@ const visitor: Visitor<
     name: a1[2],
     expr: composeLambda(a2.map((n) => n[2]), a4),
   }),
+
+  visitCase: (a1: Pattern, _a2: Token, a3: Expression): MatchCase => ({
+    pattern: a1,
+    expr: a3,
+  }),
+
+  visitPattern1: (
+    _a1: Token,
+    a2: [Pattern, Array<[Token, Pattern]>] | undefined,
+    _a3: Token,
+  ): Pattern =>
+    a2 === undefined
+      ? { type: "PUnit" }
+      : a2[1].length === 0
+      ? a2[0]
+      : { type: "PTuple", values: [a2[0]].concat(a2[1].map(([, e]) => e)) },
+
+  visitPattern2: (a: Token): Pattern => ({
+    type: "PInt",
+    value: parseInt(a[2]),
+  }),
+
+  visitPattern3: (a: Token): Pattern => ({
+    type: "PString",
+    value: transformLiteralString(a[2]),
+  }),
+
+  visitPattern4: (_a: Token): Pattern => ({
+    type: "PBool",
+    value: true,
+  }),
+
+  visitPattern5: (_a: Token): Pattern => ({
+    type: "PBool",
+    value: false,
+  }),
+
+  visitPattern6: (a: Token): Pattern =>
+    a[2] === "_" ? { type: "PWildCard" } : {
+      type: "PVar",
+      name: a[2],
+    },
 };
 
 const composeLambda = (names: Array<string>, expr: Expression): Expression =>

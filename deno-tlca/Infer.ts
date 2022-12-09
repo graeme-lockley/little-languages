@@ -1,4 +1,4 @@
-import { Expression, Op, Program } from "./Parser.ts";
+import { Expression, Op, Pattern, Program } from "./Parser.ts";
 import { Constraints } from "./Constraints.ts";
 import {
   createFresh,
@@ -171,6 +171,19 @@ export const inferExpression = (
     if (expr.type === "LUnit") {
       return [typeUnit, env];
     }
+    if (expr.type === "Match") {
+      const [t] = infer(env, expr.expr);
+      const tv = pump.next();
+
+      for (const { pattern, expr: pexpr } of expr.cases) {
+        const [tp, newEnv] = inferPattern(env, pattern, constraints, pump);
+        const [te] = infer(newEnv, pexpr);
+        constraints.add(tp, t);
+        constraints.add(te, tv);
+      }
+
+      return [tv, env];
+    }
     if (expr.type === "Op") {
       const [tl] = infer(env, expr.left);
       const [tr] = infer(env, expr.right);
@@ -193,4 +206,43 @@ export const inferExpression = (
   };
 
   return [constraints, ...infer(env, expression)];
+};
+
+export const inferPattern = (
+  env: TypeEnv,
+  pattern: Pattern,
+  constraints: Constraints = new Constraints(),
+  pump: Pump = createFresh(),
+): [Type, TypeEnv] => {
+  if (pattern.type === "PBool") {
+    return [typeBool, env];
+  }
+  if (pattern.type === "PInt") {
+    return [typeInt, env];
+  }
+  if (pattern.type === "PString") {
+    return [typeString, env];
+  }
+  if (pattern.type === "PTuple") {
+    const values: Array<Type> = [];
+    let newEnv = env;
+    for (const p of pattern.values) {
+      const [t, e] = inferPattern(newEnv, p, constraints, pump);
+      values.push(t);
+      newEnv = e;
+    }
+    return [new TTuple(values), newEnv];
+  }
+  if (pattern.type === "PUnit") {
+    return [typeUnit, env];
+  }
+  if (pattern.type === "PVar") {
+    const tv = pump.next();
+    return [tv, env.extend(pattern.name, new Scheme([], tv))];
+  }
+  if (pattern.type === "PWildCard") {
+    return [pump.next(), env];
+  }
+
+  return [typeError, env];
 };

@@ -1,7 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 import { Constraints } from "./Constraints.ts";
-import { inferProgram } from "./Infer.ts";
-import { parse } from "./Parser.ts";
+import { inferPattern, inferProgram } from "./Infer.ts";
+import { parse, Pattern } from "./Parser.ts";
 import {
   emptyTypeEnv,
   Scheme,
@@ -9,6 +9,7 @@ import {
   TVar,
   Type,
   typeBool,
+  TypeEnv,
   typeInt,
 } from "./Typing.ts";
 
@@ -125,6 +126,91 @@ Deno.test("infer LUnit", () => {
   assertTypeEquals(type, ["()"]);
 });
 
+Deno.test("infer Match", () => {
+  const [constraints, type] = inferProgram(
+    emptyTypeEnv,
+    parse("match (1, 2) with (x, y) -> x + y"),
+  );
+
+  assertConstraintsEquals(constraints, [
+    "V2 -> V3 -> V4 ~ Int -> Int -> Int",
+    "(V2 * V3) ~ (Int * Int)",
+    "V4 ~ V1",
+  ]);
+  assertTypeEquals(type, ["V1"]);
+});
+
+Deno.test("infer PBool pattern", () => {
+  assertInferPattern(
+    { type: "PBool", value: true },
+    [],
+    "Bool",
+  );
+
+  assertInferPattern(
+    { type: "PBool", value: false },
+    [],
+    "Bool",
+  );
+});
+
+Deno.test("infer PInt pattern", () => {
+  assertInferPattern(
+    { type: "PInt", value: 123 },
+    [],
+    "Int",
+  );
+});
+
+Deno.test("infer PString pattern", () => {
+  assertInferPattern(
+    { type: "PString", value: "hello" },
+    [],
+    "String",
+  );
+});
+
+Deno.test("infer PTuple pattern", () => {
+  assertInferPattern(
+    {
+      type: "PTuple",
+      values: [
+        { type: "PBool", value: true },
+        { type: "PInt", value: 123 },
+        { type: "PString", value: "hello" },
+        { type: "PUnit" },
+      ],
+    },
+    [],
+    "(Bool * Int * String * ())",
+  );
+});
+
+Deno.test("infer PUnit pattern", () => {
+  assertInferPattern(
+    { type: "PUnit" },
+    [],
+    "()",
+  );
+});
+
+Deno.test("infer PVar pattern", () => {
+  assertInferPattern(
+    { type: "PVar", name: "x" },
+    [],
+    "V1",
+    emptyTypeEnv.extend("x", new Scheme([], new TVar("V1"))),
+  );
+});
+
+Deno.test("infer PWildCard pattern", () => {
+  assertInferPattern(
+    { type: "PWildCard" },
+    [],
+    "V1",
+  );
+});
+
 Deno.test("infer Op", () => {
   const scenario = (input: string, resultType: Type) => {
     const [constraints, type] = inferProgram(
@@ -159,3 +245,18 @@ Deno.test("infer Var", () => {
   assertConstraintsEquals(constraints, []);
   assertTypeEquals(type, ["V1 -> V1"]);
 });
+
+const assertInferPattern = (
+  input: Pattern,
+  expectedConstraints: Array<string>,
+  expectedType: string,
+  expectedTypeEnv: TypeEnv = emptyTypeEnv,
+) => {
+  const constraints = new Constraints();
+
+  const [type, typeEnv] = inferPattern(emptyTypeEnv, input, constraints);
+
+  assertConstraintsEquals(constraints, expectedConstraints);
+  assertEquals(type.toString(), expectedType);
+  assertEquals(typeEnv, expectedTypeEnv);
+};

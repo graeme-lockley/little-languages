@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
-import { Expression, Op, parse, Program } from "./Parser.ts";
+import { Expression, Op, parse, Pattern, Program } from "./Parser.ts";
 import {
   createFresh,
   emptyTypeEnv,
@@ -74,6 +74,17 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
   if (expr.type === "LUnit") {
     return [null, env];
   }
+  if (expr.type === "Match") {
+    const e = evaluate(expr.expr, env)[0];
+
+    for (const c of expr.cases) {
+      const newEnv = matchPattern(c.pattern, e, env);
+      if (newEnv !== null) {
+        return [evaluate(c.expr, newEnv)[0], env];
+      }
+    }
+    throw new Error("Match failed");
+  }
   if (expr.type === "Op") {
     const left = evaluate(expr.left, env)[0];
     const right = evaluate(expr.right, env)[0];
@@ -84,6 +95,40 @@ const evaluate = (expr: Expression, env: any): [any, any] => {
   }
 
   return [null, env];
+};
+
+const matchPattern = (pattern: Pattern, value: any, env: any): any => {
+  if (pattern.type === "PBool") {
+    return pattern.value === value ? env : null;
+  }
+  if (pattern.type === "PInt") {
+    return pattern.value === value ? env : null;
+  }
+  if (pattern.type === "PString") {
+    return pattern.value === value ? env : null;
+  }
+  if (pattern.type === "PVar") {
+    const newEnv = { ...env };
+    newEnv[pattern.name] = value;
+    return newEnv;
+  }
+  if (pattern.type === "PTuple") {
+    let newEnv = env;
+    for (let i = 0; i < pattern.values.length; i++) {
+      newEnv = matchPattern(pattern.values[i], value[i], newEnv);
+      if (newEnv === null) {
+        return null;
+      }
+    }
+    return newEnv;
+  }
+  if (pattern.type === "PUnit") {
+    return value === null ? env : null;
+  }
+  if (pattern.type === "PWildCard") {
+    return env;
+  }
+  return null;
 };
 
 export type Env = [any, TypeEnv];

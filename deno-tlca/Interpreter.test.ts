@@ -99,6 +99,23 @@ Deno.test("LUnit", () => {
   assertExecute("()", ["(): ()"]);
 });
 
+Deno.test("Match", () => {
+  assertExecute("match True with x -> x", ["true: Bool"]);
+  assertExecute("match False with x -> x", ["false: Bool"]);
+  assertExecute("match () with x -> x", ["(): ()"]);
+  assertExecute('match "hello" with x -> x', ['"hello": String']);
+  assertExecute("match (1, 2) with (x, y) -> x + y", ["3: Int"]);
+
+  assertExecute(
+    "match (1, (False, 99)) with (_, (False, x)) -> x | (x, (True, _)) -> x",
+    ["99: Int"],
+  );
+  assertExecute(
+    "match (1, (True, 99)) with (_, (False, x)) -> x | (x, (True, _)) -> x",
+    ["1: Int"],
+  );
+});
+
 Deno.test("Op", () => {
   assertExecute("1 == 2", ["false: Bool"]);
   assertExecute("2 == 2", ["true: Bool"]);

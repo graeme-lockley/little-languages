@@ -40,8 +40,22 @@ Factor
     | "let" ["rec"] Declaration {"and" Declaration} ["in" Expression]
     | "if" "(" Expression ")" Expression "else" Expression
     | Identifier
+    | "match" Expression "with" ["|"] Case {"|" Case}
     ;
 
 Declaration
     : Identifier {Identifier} "=" Expression
+    ;
+
+Case
+    : Pattern "->" Expression
+    ;
+
+Pattern
+    : "(" [Pattern {"," Pattern}] ")"
+    | LiteralInt
+    | LiteralString
+    | "True"
+    | "False"
+    | Identifier
     ;

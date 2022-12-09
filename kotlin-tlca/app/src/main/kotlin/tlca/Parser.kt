@@ -31,13 +31,33 @@ data class LTupleExpression(val es: List<Expression>) : Expression()
 
 object LUnitExpression : Expression()
 
+data class MatchExpression(val e: Expression, val cases: List<MatchCase>) : Expression()
+
+data class MatchCase(val pattern: Pattern, val expr: Expression)
+
 data class OpExpression(val e1: Expression, val e2: Expression, val op: Op) : Expression()
 
 enum class Op { Equals, Plus, Minus, Times, Divide }
 
 data class VarExpression(val name: String) : Expression()
 
-class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expression, Op, Expression, Op, Expression, Declaration> {
+sealed class Pattern
+
+data class PBoolPattern(val v: Boolean) : Pattern()
+
+data class PIntPattern(val v: Int) : Pattern()
+
+data class PStringPattern(val v: String) : Pattern()
+
+data class PTuplePattern(val values: List<Pattern>) : Pattern()
+
+object PUnitPattern : Pattern()
+
+data class PVarPattern(val name: String) : Pattern()
+
+object PWildcardPattern : Pattern()
+
+class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expression, Op, Expression, Op, Expression, Declaration, MatchCase, Pattern> {
     override fun visitProgram(a1: Expression, a2: List<Tuple2<Token, Expression>>): List<Expression> =
         listOf(a1) + a2.map { it.b }
 
@@ -91,6 +111,29 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
 
 
     override fun visitFactor9(a: Token): Expression = VarExpression(a.lexeme)
+
+    override fun visitFactor10(a1: Token, a2: Expression, a3: Token, a4: Token?, a5: MatchCase, a6: List<Tuple2<Token, MatchCase>>): Expression =
+        MatchExpression(a2, listOf(a5) + a6.map { it.b })
+
+    override fun visitCase(a1: Pattern, a2: Token, a3: Expression): MatchCase = MatchCase(a1, a3)
+
+    override fun visitPattern1(a1: Token, a2: Tuple2<Pattern, List<Tuple2<Token, Pattern>>>?, a3: Token): Pattern =
+        when {
+            a2 == null -> PUnitPattern
+            a2.b.isEmpty() -> a2.a
+            else -> PTuplePattern(listOf(a2.a) + a2.b.map { it.b })
+        }
+
+    override fun visitPattern2(a: Token): Pattern = PIntPattern(a.lexeme.toInt())
+
+    override fun visitPattern3(a: Token): Pattern = PStringPattern(a.lexeme.drop(1).dropLast(1).replace("\\\"", "\""))
+
+    override fun visitPattern4(a: Token): Pattern = PBoolPattern(true)
+
+    override fun visitPattern5(a: Token): Pattern = PBoolPattern(false)
+
+    override fun visitPattern6(a: Token): Pattern =
+        if (a.lexeme == "_") PWildcardPattern else PVarPattern(a.lexeme)
 
     override fun visitDeclaration(a1: Token, a2: List<Token>, a3: Token, a4: Expression): Declaration =
         Declaration(a1.lexeme, composeLambda(a2.map { it.lexeme }, a4))

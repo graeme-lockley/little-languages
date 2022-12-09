@@ -25,7 +25,7 @@ fun infer(typeEnv: TypeEnv, e: Expression, constraints: Constraints, pump: Pump)
     return InferExpressionResult(state.constraints, inferenceResult.type, inferenceResult.typeEnv)
 }
 
-private data class InferenceResult(val type: Type, val typeEnv: TypeEnv)
+data class InferenceResult(val type: Type, val typeEnv: TypeEnv)
 
 private class Inference(val constraints: Constraints = Constraints(), val pump: Pump = Pump()) {
     fun infer(typeEnv: TypeEnv, e: Expression): InferenceResult =
@@ -115,6 +115,21 @@ private class Inference(val constraints: Constraints = Constraints(), val pump: 
                     InferenceResult(infer(newTypeEnv, e.expr).type, typeEnv)
             }
 
+            is MatchExpression -> {
+                val t = infer(typeEnv, e.e).type
+                val tv = pump.next()
+
+                for(matchCase in e.cases) {
+                    val (tp, newEnv) = inferPattern(typeEnv, matchCase.pattern, constraints, pump)
+                    val te = infer(newEnv, matchCase.expr, constraints, pump).type
+
+                    constraints.add(tp, t)
+                    constraints.add(te, tv)
+                }
+
+                InferenceResult(tv, typeEnv)
+            }
+
             is OpExpression -> {
                 val t1 = infer(typeEnv, e.e1).type
                 val t2 = infer(typeEnv, e.e2).type
@@ -156,3 +171,26 @@ val ops = mapOf<Op, Type>(
 )
 
 data class UnknownNameException(val name: String, val typeEnv: TypeEnv) : Exception()
+
+fun inferPattern(env: TypeEnv, pattern: Pattern, constraints: Constraints = Constraints(), pump: Pump = Pump()): InferenceResult =
+    when(pattern) {
+        is PBoolPattern -> InferenceResult(typeBool, env)
+        is PIntPattern -> InferenceResult(typeInt, env)
+        is PStringPattern -> InferenceResult(typeString, env)
+        is PTuplePattern -> {
+            val types = mutableListOf<Type>()
+            var newEnv = env
+            for (p in pattern.values) {
+                val (t, e) = inferPattern(newEnv, p, constraints, pump)
+                types.add(t)
+                newEnv = e
+            }
+            InferenceResult(TTuple(types), newEnv)
+        }
+        is PUnitPattern -> InferenceResult(typeUnit, env)
+        is PVarPattern -> {
+            val tv = pump.next()
+            InferenceResult(tv, env.extend(pattern.name, Scheme(setOf(), tv)))
+        }
+        is PWildcardPattern -> InferenceResult(pump.next(), env)
+    }

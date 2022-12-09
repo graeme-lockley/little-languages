@@ -35,6 +35,18 @@ Deno.test("solve \\f -> \\g -> \\x -> f (g x)", () => {
   );
 });
 
+Deno.test("solve match (1, 2) with (x, y) -> x + y", () => {
+  assertType(
+    "match (1, 2) with (x, y) -> x + y",
+    ["Int"],
+  );
+
+  assertType(
+    "let x = (1, (False, 99)) ; match x with (_, (False, x)) -> x | (x, (True, _)) -> x",
+    ["((Int * (Bool * Int)))", "Int"],
+  );
+});
+
 Deno.test("solve let rec? compose = \\f -> \\g -> \\x -> f (g x) ; compose", () => {
   assertType(
     "let compose = \\f -> \\g -> \\x -> f (g x) ; compose",
