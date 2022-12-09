@@ -1,7 +1,15 @@
 // deno-lint-ignore-file no-explicit-any
 import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
-import { Expression, Op, parse, Pattern, Program } from "./Parser.ts";
+import {
+  Expression,
+  LetExpression,
+  LetRecExpression,
+  Op,
+  parse,
+  Pattern,
+  Program,
+} from "./Parser.ts";
 import {
   createFresh,
   emptyTypeEnv,
@@ -24,77 +32,63 @@ const binaryOps = new Map<number, (v1: any, v2: any) => any>([
   [Op.Divide, (a, b) => (a / b) | 0],
 ]);
 
-const evaluate = (expr: Expression, env: any): [any, any] => {
+const evaluate = (expr: Expression, env: any): any => {
   if (expr.type === "App") {
-    const operator = evaluate(expr.e1, env)[0];
-    const operand = evaluate(expr.e2, env)[0];
-    const result = operator(operand)[0];
-
-    return [result, env];
+    const operator = evaluate(expr.e1, env);
+    const operand = evaluate(expr.e2, env);
+    return operator(operand);
   }
   if (expr.type === "If") {
-    return evaluate(expr.guard, env)[0]
-      ? [evaluate(expr.then, env)[0], env]
-      : [evaluate(expr.else, env)[0], env];
+    return evaluate(expr.guard, env)
+      ? evaluate(expr.then, env)
+      : evaluate(expr.else, env);
   }
   if (expr.type === "Lam") {
-    return [(x: any): [any, any] => {
+    return (x: any): [any, any] => {
       const newEnv = { ...env };
       newEnv[expr.name] = x;
-      return [evaluate(expr.expr, newEnv)[0], env];
-    }, env];
+      return evaluate(expr.expr, newEnv);
+    };
   }
   if (expr.type === "Let" || expr.type === "LetRec") {
-    const newEnv = { ...env };
-    const values: Array<any> = [];
-    expr.declarations.forEach((d) => {
-      const value = evaluate(d.expr, newEnv)[0];
-      newEnv[d.name] = value;
-      values.push(value);
-    });
-
-    if (expr.expr === undefined) {
-      return [values, newEnv];
-    } else {
-      return [evaluate(expr.expr, newEnv)[0], env];
-    }
+    return executeDeclaration(expr, env)[0];
   }
   if (expr.type === "LBool") {
-    return [expr.value, env];
+    return expr.value;
   }
   if (expr.type === "LInt") {
-    return [expr.value, env];
+    return expr.value;
   }
   if (expr.type === "LString") {
-    return [expr.value, env];
+    return expr.value;
   }
   if (expr.type === "LTuple") {
-    return [expr.values.map((v) => evaluate(v, env)[0]), env];
+    return expr.values.map((v) => evaluate(v, env));
   }
   if (expr.type === "LUnit") {
-    return [null, env];
+    return null;
   }
   if (expr.type === "Match") {
-    const e = evaluate(expr.expr, env)[0];
+    const e = evaluate(expr.expr, env);
 
     for (const c of expr.cases) {
       const newEnv = matchPattern(c.pattern, e, env);
       if (newEnv !== null) {
-        return [evaluate(c.expr, newEnv)[0], env];
+        return evaluate(c.expr, newEnv);
       }
     }
     throw new Error("Match failed");
   }
   if (expr.type === "Op") {
-    const left = evaluate(expr.left, env)[0];
-    const right = evaluate(expr.right, env)[0];
-    return [binaryOps.get(expr.op)!(left, right), env];
+    const left = evaluate(expr.left, env);
+    const right = evaluate(expr.right, env);
+    return binaryOps.get(expr.op)!(left, right);
   }
   if (expr.type === "Var") {
-    return [env[expr.name], env];
+    return env[expr.name];
   }
 
-  return [null, env];
+  return null;
 };
 
 const matchPattern = (pattern: Pattern, value: any, env: any): any => {
@@ -142,15 +136,13 @@ export const emptyEnv = mkEnv({}, emptyTypeEnv);
 
 export const defaultEnv = mkEnv(
   {
-    string_length: (s: string) => [s.length],
-    string_concat: (s1: string) => [(s2: string) => [s1 + s2]],
-    string_substring: (
-      s: string,
-    ) => [(start: number) => [(end: number) => [s.slice(start, end)]]],
-    string_equal: (s1: string) => [(s2: string) => [s1 === s2]],
-    string_compare: (
-      s1: string,
-    ) => [(s2: string) => [s1 < s2 ? -1 : s1 === s2 ? 0 : 1]],
+    string_length: (s: string) => s.length,
+    string_concat: (s1: string) => (s2: string) => s1 + s2,
+    string_substring: (s: string) => (start: number) => (end: number) =>
+      s.slice(start, end),
+    string_equal: (s1: string) => (s2: string) => s1 === s2,
+    string_compare: (s1: string) => (s2: string) =>
+      s1 < s2 ? -1 : s1 === s2 ? 0 : 1,
   },
   emptyTypeEnv
     .extend("string_length", new Scheme([], new TArr(typeString, typeInt)))
@@ -178,6 +170,32 @@ export const defaultEnv = mkEnv(
 export const runtime = (env: Env): any => env[0];
 export const typeEnv = (env: Env): TypeEnv => env[1];
 
+const executeDeclaration = (
+  expr: LetExpression | LetRecExpression,
+  env: any,
+): [any, any] => {
+  const newEnv = { ...env };
+  const values: Array<any> = [];
+  expr.declarations.forEach((d) => {
+    const value = evaluate(d.expr, newEnv);
+    newEnv[d.name] = value;
+    values.push(value);
+  });
+
+  if (expr.expr === undefined) {
+    return [values, newEnv];
+  } else {
+    return [evaluate(expr.expr, newEnv), env];
+  }
+};
+
+const executeExpression = (expr: Expression, env: any): [any, any] => {
+  if (expr.type === "Let" || expr.type === "LetRec") {
+    return executeDeclaration(expr, env);
+  }
+  return [evaluate(expr, env), env];
+};
+
 export const executeProgram = (
   program: Program,
   env: Env,
@@ -195,7 +213,7 @@ export const executeProgram = (
     const subst = constraints.solve();
     const newType = type.apply(subst);
 
-    const [v, newRuntime] = evaluate(e, runtime(env));
+    const [v, newRuntime] = executeExpression(e, runtime(env));
 
     results.push([v, newType]);
     env = mkEnv(newRuntime, newTypeEnv);
