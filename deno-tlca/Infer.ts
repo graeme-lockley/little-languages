@@ -85,7 +85,10 @@ export const inferExpression = (
     }
     if (expr.type === "Lam") {
       const tv = pump.next();
-      const [t] = infer(env.extend(expr.name, new Scheme([], tv)), expr.expr);
+      const [t] = infer(
+        env.extend(expr.name, new Scheme(new Set(), tv)),
+        expr.expr,
+      );
       return [new TArr(tv, t), env];
     }
     if (expr.type === "Let") {
@@ -119,7 +122,7 @@ export const inferExpression = (
       const tvs = pump.nextN(expr.declarations.length);
       const newEnv = expr.declarations.reduce(
         (acc, declaration, idx) =>
-          acc.extend(declaration.name, new Scheme([], tvs[idx])),
+          acc.extend(declaration.name, new Scheme(new Set(), tvs[idx])),
         env,
       );
 
@@ -242,7 +245,7 @@ export const inferPattern = (
   }
   if (pattern.type === "PVar") {
     const tv = pump.next();
-    return [tv, env.extend(pattern.name, new Scheme([], tv))];
+    return [tv, env.extend(pattern.name, new Scheme(new Set(), tv))];
   }
   if (pattern.type === "PWildcard") {
     return [pump.next(), env];

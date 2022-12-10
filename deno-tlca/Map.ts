@@ -7,7 +7,7 @@ export const clone = <S, T>(m: Map<S, T>): Map<S, T> =>
 export const map = <S, T, U>(m: Map<S, T>, f: (v: T) => U): Map<S, U> =>
   new Map([...m.entries()].map((v) => [v[0], f(v[1])]));
 
-export const removeKeys = <S, T>(m: Map<S, T>, keys: Array<S>): Map<S, T> => {
+export const removeKeys = <S, T>(m: Map<S, T>, keys: Set<S>): Map<S, T> => {
   const result = clone(m);
 
   for (const key of keys) {

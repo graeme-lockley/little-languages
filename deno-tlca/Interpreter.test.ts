@@ -139,6 +139,10 @@ Deno.test("Var", () => {
   assertExecute("let x = \\a -> a in x", ["function: V2 -> V2"]);
 });
 
+// Deno.test("!Data Declaration: Boolean", () => {
+//   assertExecute("data Boolean = BTrue | BFalse", ["Boolean = BTrue | BFalse"]);
+// })
+
 const assertExecute = (expression: string, expected: NestedString) => {
   const ast = parse(expression);
   const [result, _] = executeProgram(ast, emptyEnv);

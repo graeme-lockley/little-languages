@@ -47,6 +47,33 @@ export class TCon implements Type {
   }
 }
 
+export class TADT implements Type {
+  name: string;
+  parameters: Set<Var>;
+  constructors: Map<string, Array<Type>>;
+
+  constructor(
+    name: string,
+    parameters: Set<string>,
+    constructors: Map<string, Array<Type>>,
+  ) {
+    this.name = name;
+    this.parameters = parameters;
+    this.constructors = constructors;
+  }
+
+  apply(_s: Subst): Type {
+    return this;
+  }
+  ftv(): Set<Var> {
+    return this.parameters;
+  }
+
+  toString(): string {
+    return this.name;
+  }
+}
+
 export class TArr implements Type {
   domain: Type;
   range: Type;
@@ -120,7 +147,7 @@ export class Subst {
     return [...this.items.entries()];
   }
 
-  remove(names: Array<Var>): Subst {
+  remove(names: Set<Var>): Subst {
     return new Subst(Maps.removeKeys(this.items, names));
   }
 }
@@ -128,10 +155,10 @@ export class Subst {
 export const nullSubs = new Subst(new Map());
 
 export class Scheme {
-  names: Array<Var>;
+  names: Set<Var>;
   type: Type;
 
-  constructor(names: Array<Var>, type: Type) {
+  constructor(names: Set<Var>, type: Type) {
     this.names = names;
     this.type = type;
   }
@@ -145,7 +172,9 @@ export class Scheme {
   }
 
   instantiate(pump: Pump): Type {
-    const subst = new Subst(new Map(this.names.map((n) => [n, pump.next()])));
+    const subst = new Subst(
+      new Map([...this.names].map((n) => [n, pump.next()])),
+    );
 
     return this.type.apply(subst);
   }
@@ -179,7 +208,7 @@ export class TypeEnv {
   }
 
   generalise(t: Type): Scheme {
-    return new Scheme(Sets.toArray(Sets.difference(t.ftv(), this.ftv())), t);
+    return new Scheme(Sets.difference(t.ftv(), this.ftv()), t);
   }
 }
 

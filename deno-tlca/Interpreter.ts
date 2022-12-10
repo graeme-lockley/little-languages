@@ -54,25 +54,37 @@ export const defaultEnv = mkEnv(
       s1 < s2 ? -1 : s1 === s2 ? 0 : 1,
   },
   emptyTypeEnv
-    .extend("string_length", new Scheme([], new TArr(typeString, typeInt)))
+    .extend(
+      "string_length",
+      new Scheme(new Set(), new TArr(typeString, typeInt)),
+    )
     .extend(
       "string_concat",
-      new Scheme([], new TArr(typeString, new TArr(typeString, typeString))),
+      new Scheme(
+        new Set(),
+        new TArr(typeString, new TArr(typeString, typeString)),
+      ),
     )
     .extend(
       "string_substring",
       new Scheme(
-        [],
+        new Set(),
         new TArr(typeString, new TArr(typeInt, new TArr(typeInt, typeString))),
       ),
     )
     .extend(
       "string_equal",
-      new Scheme([], new TArr(typeString, new TArr(typeString, typeBool))),
+      new Scheme(
+        new Set(),
+        new TArr(typeString, new TArr(typeString, typeBool)),
+      ),
     )
     .extend(
       "string_compare",
-      new Scheme([], new TArr(typeString, new TArr(typeString, typeInt))),
+      new Scheme(
+        new Set(),
+        new TArr(typeString, new TArr(typeString, typeInt)),
+      ),
     ),
 );
 
