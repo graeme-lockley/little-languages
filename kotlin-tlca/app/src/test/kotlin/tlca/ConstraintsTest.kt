@@ -140,7 +140,7 @@ class ConstraintsTest {
     private fun assertType(expected: List<String>, expression: String) {
         val (constraints, types) = infer(
             emptyTypeEnv,
-            parse(expression),
+            parse(expression) as List<Expression>,
             Constraints(),
             Pump()
         )

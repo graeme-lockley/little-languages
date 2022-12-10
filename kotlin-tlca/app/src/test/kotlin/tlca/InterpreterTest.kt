@@ -178,10 +178,10 @@ private fun assertExecute(input: String, expected: List<NestedString>) {
     val ast = parse(input)
     val (values) = execute(ast)
 
-    ast.forEachIndexed { index, expression ->
+    ast.forEachIndexed { index, element ->
         val (value, type) = values[index]
 
-        assertEquals(expected[index].toString(), expressionToNestedString(value, type, expression).toString())
+        assertEquals(expected[index].toString(), elementToNestedString(value, type, element).toString())
     }
 }
 

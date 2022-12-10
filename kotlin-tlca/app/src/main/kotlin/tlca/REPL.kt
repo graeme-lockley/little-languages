@@ -17,10 +17,14 @@ fun main(args: Array<String>) {
             val (values, newEnv) = execute(ast, env)
             env = newEnv
 
-            ast.forEachIndexed { index, expression ->
-                val (value, type) = values[index]
+            ast.forEachIndexed { index, element ->
+                if (element is Expression) {
+                    val (value, type) = values[index]
 
-                println(expressionToNestedString(value, type, expression).toString())
+                    println(elementToNestedString(value, type, element).toString())
+                } else {
+                    TODO()
+                }
             }
         }
     } else if (args.size == 1) {
@@ -28,10 +32,14 @@ fun main(args: Array<String>) {
         val ast = parse(input)
         val (values, _) = execute(ast, defaultEnvironment)
 
-        ast.forEachIndexed { index, expression ->
-            val (value, type) = values[index]
+        ast.forEachIndexed { index, element ->
+            if (element is Expression) {
+                val (value, type) = values[index]
 
-            println(expressionToNestedString(value, type, expression).toString())
+                println(elementToNestedString(value, type, element).toString())
+            } else {
+                TODO()
+            }
         }
     } else {
         println("Usage: tlca [file-name]")

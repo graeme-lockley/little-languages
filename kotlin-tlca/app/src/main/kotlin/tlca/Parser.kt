@@ -7,7 +7,9 @@ import tlca.parser.Token
 import tlca.parser.Visitor
 import java.io.StringReader
 
-sealed class Expression
+sealed class Element
+
+sealed class Expression : Element()
 
 data class AppExpression(val e1: Expression, val e2: Expression) : Expression()
 
@@ -57,8 +59,44 @@ data class PVarPattern(val name: String) : Pattern()
 
 object PWildcardPattern : Pattern()
 
-class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expression, Op, Expression, Op, Expression, Declaration, MatchCase, Pattern> {
-    override fun visitProgram(a1: Expression, a2: List<Tuple2<Token, Expression>>): List<Expression> =
+data class DataDeclaration(val decls: List<TypeDeclaration>) : Element()
+
+data class TypeDeclaration(val name: String, val parameters: List<String>, val constructors: List<ConstructorDeclaration>)
+
+data class ConstructorDeclaration(val name: String, val parameters: List<TypeTerm>)
+
+sealed class TypeTerm
+
+data class TypeVariable(val name: String) : TypeTerm()
+
+data class TypeConstructor(val name: String, val parameters: List<TypeTerm>) : TypeTerm()
+
+data class TypeFunction(val left: TypeTerm, val right: TypeTerm) : TypeTerm()
+
+data class TypeTuple(val parameters: List<TypeTerm>) : TypeTerm()
+
+object TypeUnit : TypeTerm()
+
+class ParserVisitor : Visitor<
+        List<Element>,
+        Element,
+        Expression,
+        Expression,
+        Expression,
+        Op,
+        Expression,
+        Op,
+        Expression,
+        Declaration,
+        MatchCase,
+        Pattern,
+        DataDeclaration,
+        TypeDeclaration,
+        ConstructorDeclaration,
+        TypeTerm,
+        TypeTerm,
+        TypeTerm> {
+    override fun visitProgram(a1: Element, a2: List<Tuple2<Token, Element>>): List<Element> =
         listOf(a1) + a2.map { it.b }
 
     override fun visitExpression(a1: Expression, a2: List<Expression>): Expression = a2.fold(a1) { acc, e -> AppExpression(acc, e) }
@@ -68,6 +106,10 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
 
     override fun visitMultiplicative(a1: Expression, a2: List<Tuple2<Op, Expression>>): Expression =
         a2.fold(a1) { acc, e -> OpExpression(acc, e.b, e.a) }
+
+    override fun visitElement1(a: Expression): Element = a
+
+    override fun visitElement2(a: DataDeclaration): Element = a
 
     override fun visitMultiplicativeOps1(a: Token): Op = Op.Times
 
@@ -135,15 +177,45 @@ class ParserVisitor : Visitor<List<Expression>, Expression, Expression, Expressi
     override fun visitPattern6(a: Token): Pattern =
         if (a.lexeme == "_") PWildcardPattern else PVarPattern(a.lexeme)
 
-    override fun visitDeclaration(a1: Token, a2: List<Token>, a3: Token, a4: Expression): Declaration =
+    override fun visitDataDeclaration(a1: Token, a2: TypeDeclaration, a3: List<Tuple2<Token, TypeDeclaration>>): DataDeclaration =
+        DataDeclaration(listOf(a2) + a3.map { it.b })
+
+    override fun visitTypeDeclaration(
+        a1: Token,
+        a2: List<Token>,
+        a3: Token,
+        a4: ConstructorDeclaration,
+        a5: List<Tuple2<Token, ConstructorDeclaration>>
+    ): TypeDeclaration = TypeDeclaration(a1.lexeme, a2.map { it.lexeme }, listOf(a4) + a5.map { it.b })
+
+
+    override fun visitConstructorDeclaration(a1: Token, a2: List<TypeTerm>): ConstructorDeclaration = ConstructorDeclaration(a1.lexeme, a2)
+
+    override fun visitType(a1: TypeTerm, a2: List<Tuple2<Token, TypeTerm>>): TypeTerm = composeFunctionType(a1, a2.map { it.b })
+
+    override fun visitADTType1(a1: Token, a2: List<TypeTerm>): TypeTerm = TypeConstructor(a1.lexeme, a2)
+
+    override fun visitADTType2(a: TypeTerm): TypeTerm = a
+
+    override fun visitTermType1(a: Token): TypeTerm = TypeVariable(a.lexeme)
+
+    override fun visitTermType2(a1: Token, a2: Tuple2<TypeTerm, List<Tuple2<Token, TypeTerm>>>?, a3: Token): TypeTerm = when {
+        a2 == null -> TypeUnit
+        a2.b.isEmpty() -> a2.a
+        else -> TypeTuple(listOf(a2.a) + a2.b.map { it.b })
+    }
+
+    override fun visitValueDeclaration(a1: Token, a2: List<Token>, a3: Token, a4: Expression): Declaration =
         Declaration(a1.lexeme, composeLambda(a2.map { it.lexeme }, a4))
 
     private fun composeLambda(names: List<String>, e: Expression): Expression = names.foldRight(e) { name, acc -> LamExpression(name, acc) }
+
+    private fun composeFunctionType(t: TypeTerm, ts: List<TypeTerm>): TypeTerm = ts.foldRight(t) { t1, acc -> TypeFunction(t1, acc) }
 }
 
-fun parse(scanner: Scanner): List<Expression> =
+fun parse(scanner: Scanner): List<Element> =
     Parser(scanner, ParserVisitor()).program()
 
-fun parse(input: String): List<Expression> =
+fun parse(input: String): List<Element> =
     parse(Scanner(StringReader(input)))
 

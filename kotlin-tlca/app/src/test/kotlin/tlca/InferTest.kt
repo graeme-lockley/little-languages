@@ -163,7 +163,7 @@ class InferTest {
     }
 
     private fun assertInference(typeEnv: TypeEnv, input: String, expectedConstraints: List<String>, expectedTypes: List<String>) {
-        val inferResult = infer(typeEnv, parse(input), Constraints(), Pump())
+        val inferResult = infer(typeEnv, parse(input) as List<Expression>, Constraints(), Pump())
 
         assertConstraints(inferResult.constraints, expectedConstraints)
         assertEquals(expectedTypes, inferResult.types.map { it.toString() })

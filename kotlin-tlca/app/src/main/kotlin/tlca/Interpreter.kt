@@ -35,26 +35,30 @@ data class TypedValue(val value: Value?, val type: Type)
 
 data class ExecuteResult(val values: List<TypedValue>, val env: Environment)
 
-fun execute(ast: List<Expression>, defaultEnv: Environment = emptyEnvironment): ExecuteResult {
+fun execute(ast: List<Element>, defaultEnv: Environment = emptyEnvironment): ExecuteResult {
     val pump = Pump()
     val values = mutableListOf<TypedValue>()
     var env = defaultEnv
 
     for (e in ast) {
-        val inferResult = infer(env.typeEnv, e, Constraints(), pump)
+        if (e is Expression) {
+            val inferResult = infer(env.typeEnv, e, Constraints(), pump)
 
-        val subst = inferResult.constraints.solve()
-        val type = inferResult.type.apply(subst)
+            val subst = inferResult.constraints.solve()
+            val type = inferResult.type.apply(subst)
 
-        val evaluateResult: EvaluateResult = when (e) {
-            is LetExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
-            is LetRecExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
-            else -> EvaluateResult(evaluate(e, env.runtimeEnv), env.runtimeEnv)
+            val evaluateResult: EvaluateResult = when (e) {
+                is LetExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
+                is LetRecExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
+                else -> EvaluateResult(evaluate(e, env.runtimeEnv), env.runtimeEnv)
+            }
+
+            values.add(TypedValue(evaluateResult.value, type))
+
+            env = Environment(evaluateResult.env, inferResult.typeEnv)
+        } else {
+            TODO()
         }
-
-        values.add(TypedValue(evaluateResult.value, type))
-
-        env = Environment(evaluateResult.env, inferResult.typeEnv)
     }
 
     return ExecuteResult(values, env)
@@ -164,7 +168,7 @@ fun valueToString(value: Value?, type: Type): String =
         else -> value.toString()
     }
 
-fun expressionToNestedString(value: Value?, type: Type, e: Expression): NestedString {
+fun elementToNestedString(value: Value?, type: Type, e: Element): NestedString {
     fun declarationsToNestedString(decls: List<Declaration>, type: TTuple): NestedString =
         NestedString.Sequence(decls.mapIndexed { i, d ->
             NestedString.Item(
