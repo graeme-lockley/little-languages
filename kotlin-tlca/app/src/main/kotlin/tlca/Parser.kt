@@ -219,3 +219,13 @@ fun parse(scanner: Scanner): List<Element> =
 fun parse(input: String): List<Element> =
     parse(Scanner(StringReader(input)))
 
+fun parseExpressions(input: String): List<Expression> {
+    val elements = parse(input)
+
+    return elements.map {
+        when (it) {
+            is Expression -> it
+            is DataDeclaration -> throw IllegalArgumentException("Data declaration found")
+        }
+    }
+}
