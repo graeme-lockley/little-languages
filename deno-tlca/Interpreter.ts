@@ -44,7 +44,7 @@ const evaluate = (expr: Expression, env: any): any => {
       : evaluate(expr.else, env);
   }
   if (expr.type === "Lam") {
-    return (x: any): [any, any] => {
+    return (x: any): any => {
       const newEnv = { ...env };
       newEnv[expr.name] = x;
       return evaluate(expr.expr, newEnv);
