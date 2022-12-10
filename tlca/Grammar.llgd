@@ -1,7 +1,12 @@
 uses "./Scanner.llld";
 
 Program
-    : Expression {";" Expression}
+    : Element {";" Element}
+    ;
+
+Element
+    : Expression
+    | DataDeclaration
     ;
 
 Expression
@@ -36,15 +41,15 @@ Factor
     | LiteralString
     | "True"
     | "False"
-    | "\" Identifier {Identifier} "->" Expression
-    | "let" ["rec"] Declaration {"and" Declaration} ["in" Expression]
+    | "\" LowerIdentifier {LowerIdentifier} "->" Expression
+    | "let" ["rec"] ValueDeclaration {"and" ValueDeclaration} ["in" Expression]
     | "if" "(" Expression ")" Expression "else" Expression
-    | Identifier
+    | LowerIdentifier
     | "match" Expression "with" ["|"] Case {"|" Case}
     ;
 
-Declaration
-    : Identifier {Identifier} "=" Expression
+ValueDeclaration
+    : LowerIdentifier {LowerIdentifier} "=" Expression
     ;
 
 Case
@@ -57,5 +62,31 @@ Pattern
     | LiteralString
     | "True"
     | "False"
-    | Identifier
+    | LowerIdentifier
+    ;
+
+DataDeclaration
+    : "data" TypeDeclaration {"and" TypeDeclaration}
+    ;
+
+TypeDeclaration
+    : UpperIdentifier {LowerIdentifier} "=" ConstructorDeclaration {"|" ConstructorDeclaration}
+    ;
+
+ConstructorDeclaration
+    : UpperIdentifier {Type}
+    ;
+
+Type
+    : ADTType {"->" ADTType}
+    ;
+
+ADTType
+    : UpperIdentifier {Type}
+    | TermType
+    ;
+
+TermType
+    : LowerIdentifier
+    | "(" [Type {"*" Type}] ")"
     ;

@@ -1,5 +1,6 @@
 tokens
-    Identifier = id {digit | id};
+    UpperIdentifier = upperID {digit | id};
+    LowerIdentifier = lowerID {digit | id};
     LiteralInt = ['-'] digits;
     LiteralString = '"' {!('"' + cr) | "\" '"'}  '"';
 
@@ -13,4 +14,6 @@ fragments
   digit = '0'-'9';
   digits = digit {digit};
   id = 'A'-'Z' + 'a'-'z' + '_';
+  upperID = 'A'-'Z';
+  lowerID = 'a'-'z' + '_';
   cr = chr(10);
