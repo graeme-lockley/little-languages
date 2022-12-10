@@ -31,6 +31,10 @@ export const inferProgram = (
 ): [Constraints, Array<Type>, TypeEnv] => {
   const types: Array<Type> = [];
   program.forEach((e) => {
+    if (e.type === "DataDeclaration") {
+      throw new Error("inferProgram: Data declarations not supported yet");
+    }
+
     const [, tp, newEnv] = inferExpression(env, e, constraints, pump);
 
     types.push(tp);

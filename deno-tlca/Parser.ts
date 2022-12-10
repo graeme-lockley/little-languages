@@ -1,7 +1,9 @@
 import { parseProgram, SyntaxError, Visitor } from "./parser/Parser.ts";
 import { Token } from "./parser/Scanner.ts";
 
-export type Program = Array<Expression>;
+export type Program = Array<Element>;
+
+export type Element = Expression | DataDeclaration;
 
 export type Expression =
   | AppExpression
@@ -152,16 +154,68 @@ export type WildCardPattern = {
   type: "PWildcard";
 };
 
+export type DataDeclaration = {
+  type: "DataDeclaration";
+  declarations: Array<TypeDeclaration>;
+};
+
+export type TypeDeclaration = {
+  type: "TypeDeclaration";
+  name: string;
+  parameters: Array<string>;
+  constructors: Array<ConstructorDeclaration>;
+};
+
+export type ConstructorDeclaration = {
+  type: "ConstructorDeclaration";
+  name: string;
+  parameters: Array<Type>;
+};
+
+export type Type =
+  | TypeVariable
+  | TypeConstructor
+  | TypeTuple
+  | TypeFunction
+  | TypeUnit;
+
+export type TypeVariable = {
+  type: "TypeVariable";
+  name: string;
+};
+
+export type TypeConstructor = {
+  type: "TypeConstructor";
+  name: string;
+  arguments: Array<Type>;
+};
+
+export type TypeTuple = {
+  type: "TypeTuple";
+  values: Array<Type>;
+};
+
+export type TypeFunction = {
+  type: "TypeFunction";
+  left: Type;
+  right: Type;
+};
+
+export type TypeUnit = {
+  type: "TypeUnit";
+};
+
 export const transformLiteralString = (s: string): string =>
   s.substring(1, s.length - 1).replaceAll('\\"', '"');
 
 export const parse = (input: string): Program =>
   parseProgram(input, visitor).either((l: SyntaxError): Program => {
     throw l;
-  }, (r: Array<Expression>): Program => r);
+  }, (r: Array<Element>): Program => r);
 
 const visitor: Visitor<
-  Array<Expression>,
+  Array<Element>,
+  Element,
   Expression,
   Expression,
   Expression,
@@ -171,12 +225,21 @@ const visitor: Visitor<
   Expression,
   Declaration,
   MatchCase,
-  Pattern
+  Pattern,
+  DataDeclaration,
+  TypeDeclaration,
+  ConstructorDeclaration,
+  Type,
+  Type,
+  Type
 > = {
   visitProgram: (
     a1: Expression,
     a2: Array<[Token, Expression]>,
   ): Array<Expression> => [a1].concat(a2.map(([, e]) => e)),
+
+  visitElement1: (a1: Expression): Element => a1,
+  visitElement2: (a1: DataDeclaration): Element => a1,
 
   visitExpression: (a1: Expression, a2: Array<Expression>): Expression =>
     a2.reduce((acc: Expression, e: Expression): Expression => ({
@@ -312,7 +375,7 @@ const visitor: Visitor<
     cases: [a5].concat(a6.map((a) => a[1])),
   }),
 
-  visitDeclaration: (
+  visitValueDeclaration: (
     a1: Token,
     a2: Array<Token>,
     _a3: Token,
@@ -364,6 +427,61 @@ const visitor: Visitor<
       type: "PVar",
       name: a[2],
     },
+
+  visitDataDeclaration: (
+    _a1: Token,
+    a2: TypeDeclaration,
+    a3: Array<[Token, TypeDeclaration]>,
+  ): DataDeclaration => ({
+    type: "DataDeclaration",
+    declarations: [a2].concat(a3.map((a) => a[1])),
+  }),
+
+  visitTypeDeclaration: (
+    a1: Token,
+    a2: Array<Token>,
+    _a3: Token,
+    a4: ConstructorDeclaration,
+    a5: Array<[Token, ConstructorDeclaration]>,
+  ): TypeDeclaration => ({
+    type: "TypeDeclaration",
+    name: a1[2],
+    parameters: a2.map((a) => a[2]),
+    constructors: [a4].concat(a5.map((a) => a[1])),
+  }),
+
+  visitConstructorDeclaration: (
+    a1: Token,
+    a2: Array<Type>,
+  ): ConstructorDeclaration => ({
+    type: "ConstructorDeclaration",
+    name: a1[2],
+    parameters: a2,
+  }),
+
+  visitType: (a1: Type, a2: Array<[Token, Type]>): Type =>
+    composeFunctionType([a1].concat(a2.map((a) => a[1]))),
+
+  visitADTType1: (a1: Token, a2: Array<Type>): Type => ({
+    type: "TypeConstructor",
+    name: a1[2],
+    arguments: a2,
+  }),
+  visitADTType2: (a: Type): Type => a,
+
+  visitTermType1: (a: Token): Type => ({
+    type: "TypeVariable",
+    name: a[2],
+  }),
+  visitTermType2: (
+    _a1: Token,
+    a2: [Type, Array<[Token, Type]>] | undefined,
+    _a3: Token,
+  ): Type =>
+    a2 === undefined ? { type: "TypeUnit" } : a2[1].length === 0 ? a2[0] : {
+      type: "TypeTuple",
+      values: [a2[0]].concat(a2[1].map(([, e]) => e)),
+    },
 };
 
 const composeLambda = (names: Array<string>, expr: Expression): Expression =>
@@ -373,4 +491,11 @@ const composeLambda = (names: Array<string>, expr: Expression): Expression =>
     expr: acc,
   }), expr);
 
-// console.log(JSON.stringify(parse("let compose f g x = f(g x) ; compose"), null, 2));
+const composeFunctionType = (types: Array<Type>): Type =>
+  types.slice(1).reduceRight((acc, type) => ({
+    type: "TypeFunction",
+    left: acc,
+    right: type,
+  }), types[0]);
+
+// console.log(JSON.stringify(parse("data List n = Nil | Cons n (List n) ; let compose f g x = f(g x) ; compose"), null, 2));

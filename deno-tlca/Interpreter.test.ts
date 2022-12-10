@@ -144,6 +144,10 @@ const assertExecute = (expression: string, expected: NestedString) => {
   const [result, _] = executeProgram(ast, emptyEnv);
 
   ast.forEach((e, i) => {
+    if (e.type === "DataDeclaration") {
+      throw new Error("assertExecute: Data declarations not supported yet");
+    }
+
     const [value, type] = result[i];
 
     assertEquals(expressionToNestedString(value, type, e), expected[i]);

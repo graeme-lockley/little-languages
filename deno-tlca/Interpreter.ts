@@ -204,6 +204,10 @@ export const executeProgram = (
   const pump = createFresh();
 
   program.forEach((e) => {
+    if (e.type === "DataDeclaration") {
+      throw new Error("executeProgram: Data declarations not supported yet");
+    }
+
     const [constraints, type, newTypeEnv] = inferExpression(
       typeEnv(env),
       e,
