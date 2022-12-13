@@ -30,40 +30,30 @@ export class TVar implements Type {
 
 export class TCon implements Type {
   name: string;
-
-  constructor(name: string) {
-    this.name = name;
-  }
-
-  apply(_s: Subst): Type {
-    return this;
-  }
-  ftv(): Set<Var> {
-    return new Set();
-  }
-
-  toString(): string {
-    return this.name;
-  }
-}
-
-export class TADT implements Type {
-  name: string;
   parameters: Set<Var>;
-  constructors: Map<string, Array<Type>>;
+  constructors: Array<[string, Array<Type>]>;
 
   constructor(
     name: string,
-    parameters: Set<string>,
-    constructors: Map<string, Array<Type>>,
+    parameters: Set<Var> = new Set(),
+    constructors: Array<[string, Array<Type>]> = [],
   ) {
     this.name = name;
     this.parameters = parameters;
     this.constructors = constructors;
   }
 
-  apply(_s: Subst): Type {
-    return this;
+  apply(s: Subst): Type {
+    if (this.parameters.size === 0 && this.constructors.length === 0) {
+      return this;
+    }
+
+    const newSubst = s.remove(this.parameters);
+    return new TCon(
+      this.name,
+      this.parameters,
+      this.constructors.map((c) => [c[0], c[1].map((t) => t.apply(newSubst))]),
+    );
   }
   ftv(): Set<Var> {
     return this.parameters;
