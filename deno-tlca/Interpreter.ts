@@ -1,4 +1,3 @@
-import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
 import {
   Expression,
@@ -10,7 +9,6 @@ import {
   Program,
 } from "./Parser.ts";
 import {
-  createFresh,
   emptyTypeEnv,
   Scheme,
   TArr,
@@ -227,19 +225,13 @@ export const executeProgram = (
   env: Env,
 ): [Array<[RuntimeValue, Type]>, Env] => {
   const results: Array<[RuntimeValue, Type]> = [];
-  const pump = createFresh();
 
   program.forEach((e) => {
     if (e.type === "DataDeclaration") {
       throw new Error("executeProgram: Data declarations not supported yet");
     }
 
-    const [constraints, type, newTypeEnv] = inferExpression(
-      typeEnv(env),
-      e,
-      new Constraints(),
-      pump,
-    );
+    const [constraints, type, newTypeEnv] = inferExpression(typeEnv(env), e);
     const subst = constraints.solve();
     const newType = type.apply(subst);
 

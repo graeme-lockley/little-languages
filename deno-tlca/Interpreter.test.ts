@@ -131,7 +131,7 @@ Deno.test("Var", () => {
   assertExecute("let x = True ; x", [["x = true: Bool"], "true: Bool"]);
   assertExecute("let x = \\a -> a ; x", [
     ["x = function: V1 -> V1"],
-    "function: V2 -> V2",
+    "function: V1 -> V1",
   ]);
 
   assertExecute("let x = 1 in x", ["1: Int"]);
