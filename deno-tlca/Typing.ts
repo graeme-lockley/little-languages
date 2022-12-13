@@ -171,14 +171,14 @@ export class Scheme {
 }
 
 export class TypeEnv {
-  protected items: Map<string, Scheme>;
+  protected values: Map<string, Scheme>;
 
-  constructor(items: Map<string, Scheme>) {
-    this.items = items;
+  constructor(values: Map<string, Scheme>) {
+    this.values = values;
   }
 
   extend(name: string, scheme: Scheme): TypeEnv {
-    const result = Maps.clone(this.items);
+    const result = Maps.clone(this.values);
 
     result.set(name, scheme);
 
@@ -186,15 +186,15 @@ export class TypeEnv {
   }
 
   apply(s: Subst): TypeEnv {
-    return new TypeEnv(Maps.map(this.items, (scheme) => scheme.apply(s)));
+    return new TypeEnv(Maps.map(this.values, (scheme) => scheme.apply(s)));
   }
 
   ftv(): Set<Var> {
-    return Sets.flatUnion([...this.items.values()].map((v) => v.ftv()));
+    return Sets.flatUnion([...this.values.values()].map((v) => v.ftv()));
   }
 
   scheme(name: string): Scheme | undefined {
-    return this.items.get(name);
+    return this.values.get(name);
   }
 
   generalise(t: Type): Scheme {
