@@ -1,5 +1,6 @@
 import { inferExpression } from "./Infer.ts";
 import {
+  DataDeclaration,
   Expression,
   LetExpression,
   LetRecExpression,
@@ -7,12 +8,16 @@ import {
   parse,
   Pattern,
   Program,
+  Type as TypeItem,
 } from "./Parser.ts";
 import {
+  ADT,
   emptyTypeEnv,
   Scheme,
   TArr,
+  TCon,
   TTuple,
+  TVar,
   Type,
   typeBool,
   TypeEnv,
@@ -83,7 +88,10 @@ export const defaultEnv = mkEnv(
         new Set(),
         new TArr(typeString, new TArr(typeString, typeInt)),
       ),
-    ),
+    )
+    .addData(new ADT("Int", new Set(), []))
+    .addData(new ADT("String", new Set(), []))
+    .addData(new ADT("Bool", new Set(), [])),
 );
 
 const binaryOps = new Map<
@@ -220,25 +228,90 @@ const executeExpression = (
     ? executeDeclaration(expr, runtimeEnv)
     : [evaluate(expr, runtimeEnv), runtimeEnv];
 
+const executeDataDeclaration = (
+  dd: DataDeclaration,
+  env: Env,
+): [Array<ADT>, Env] => {
+  const translate = (t: TypeItem): Type => {
+    if (t.type === "TypeConstructor") {
+      const tc = env[1].data(t.name);
+      if (tc === undefined) {
+        throw { type: "UnknownDataError", name: t.name };
+      }
+      if (t.arguments.length !== tc.parameters.size) {
+        throw {
+          type: "IncorrectTypeArguments",
+          name: t.name,
+          expected: tc.parameters.size,
+          actual: t.arguments.length,
+        };
+      }
+
+      return new TCon(tc.name, t.arguments.map(translate));
+    }
+    if (t.type === "TypeVariable") {
+      return new TVar(t.name);
+    }
+    if (t.type === "TypeFunction") {
+      return new TArr(translate(t.left), translate(t.right));
+    }
+    if (t.type === "TypeTuple") {
+      return new TTuple(t.values.map(translate));
+    }
+    if (t.type === "TypeUnit") {
+      return typeUnit;
+    }
+
+    throw { type: "UnknownTypeItemError", item: t };
+  };
+
+  const adts: Array<ADT> = [];
+
+  dd.declarations.forEach((d) => {
+    if (env[1].data(d.name) !== undefined) {
+      throw { type: "DuplicateDataDeclaration", name: d.name };
+    }
+
+    const adt = new ADT(d.name, new Set(d.parameters), []);
+
+    env = [env[0], env[1].addData(adt)];
+  });
+
+  dd.declarations.forEach((d) => {
+    const adt = new ADT(
+      d.name,
+      new Set(d.parameters),
+      d.constructors.map((c) => new TCon(c.name, c.parameters.map(translate))),
+    );
+
+    adts.push(adt);
+    env = [env[0], env[1].addData(adt)];
+  });
+
+  return [adts, env];
+};
+
 export const executeProgram = (
   program: Program,
   env: Env,
-): [Array<[RuntimeValue, Type]>, Env] => {
-  const results: Array<[RuntimeValue, Type]> = [];
+): [Array<[RuntimeValue, Type | undefined]>, Env] => {
+  const results: Array<[RuntimeValue, Type | undefined]> = [];
 
   program.forEach((e) => {
     if (e.type === "DataDeclaration") {
-      throw new Error("executeProgram: Data declarations not supported yet");
+      const [adts, newEnv] = executeDataDeclaration(e, env);
+      results.push([adts, undefined]);
+      env = newEnv;
+    } else {
+      const [constraints, type, newTypeEnv] = inferExpression(typeEnv(env), e);
+      const subst = constraints.solve();
+      const newType = type.apply(subst);
+
+      const [value, newRuntime] = executeExpression(e, runtime(env));
+
+      results.push([value, newType]);
+      env = mkEnv(newRuntime, newTypeEnv);
     }
-
-    const [constraints, type, newTypeEnv] = inferExpression(typeEnv(env), e);
-    const subst = constraints.solve();
-    const newType = type.apply(subst);
-
-    const [value, newRuntime] = executeExpression(e, runtime(env));
-
-    results.push([value, newType]);
-    env = mkEnv(newRuntime, newTypeEnv);
   });
 
   return [results, env];
@@ -247,7 +320,8 @@ export const executeProgram = (
 export const execute = (
   input: string,
   env: Env = emptyEnv,
-): [Array<[RuntimeValue, Type]>, Env] => executeProgram(parse(input), env);
+): [Array<[RuntimeValue, Type | undefined]>, Env] =>
+  executeProgram(parse(input), env);
 
 export const valueToString = (v: RuntimeValue, type: Type): string => {
   if (type === typeUnit) {

@@ -30,37 +30,38 @@ export class TVar implements Type {
 
 export class TCon implements Type {
   name: string;
-  parameters: Set<Var>;
-  constructors: Array<[string, Array<Type>]>;
+  args: Array<Type>;
 
   constructor(
     name: string,
-    parameters: Set<Var> = new Set(),
-    constructors: Array<[string, Array<Type>]> = [],
+    args: Array<Type> = [],
   ) {
     this.name = name;
-    this.parameters = parameters;
-    this.constructors = constructors;
+    this.args = args;
   }
 
   apply(s: Subst): Type {
-    if (this.parameters.size === 0 && this.constructors.length === 0) {
+    if (this.args.length === 0) {
       return this;
     }
 
-    const newSubst = s.remove(this.parameters);
     return new TCon(
       this.name,
-      this.parameters,
-      this.constructors.map((c) => [c[0], c[1].map((t) => t.apply(newSubst))]),
+      this.args.map((a) => a.apply(s)),
     );
   }
   ftv(): Set<Var> {
-    return this.parameters;
+    return Sets.flatUnion(this.args.map((t) => t.ftv()));
   }
 
   toString(): string {
-    return this.name;
+    return `${this.name}${this.args.length > 0 ? " " : ""}${
+      this.args.map((t) =>
+        (t instanceof TCon && t.args.length > 0 || t instanceof TArr)
+          ? `(${t.toString()})`
+          : t.toString()
+      ).join(" ")
+    }`;
   }
 }
 
@@ -170,11 +171,35 @@ export class Scheme {
   }
 }
 
+export class ADT {
+  name: string;
+  parameters: Set<string>;
+  constructors: Array<TCon>;
+
+  constructor(
+    name: string,
+    parameters: Set<string>,
+    constructors: Array<TCon>,
+  ) {
+    this.name = name;
+    this.parameters = parameters;
+    this.constructors = constructors;
+  }
+
+  toString(): string {
+    return `${this.name}${this.parameters.size > 0 ? " " : ""}${
+      [...this.parameters].join(" ")
+    } = ${this.constructors.map((c) => c.toString()).join(" | ")}`;
+  }
+}
+
 export class TypeEnv {
   protected values: Map<string, Scheme>;
+  protected adts: Map<string, ADT>;
 
-  constructor(values: Map<string, Scheme>) {
+  constructor(values: Map<string, Scheme>, adts: Map<string, ADT>) {
     this.values = values;
+    this.adts = adts;
   }
 
   extend(name: string, scheme: Scheme): TypeEnv {
@@ -182,11 +207,22 @@ export class TypeEnv {
 
     result.set(name, scheme);
 
-    return new TypeEnv(result);
+    return new TypeEnv(result, this.adts);
+  }
+
+  addData(adt: ADT): TypeEnv {
+    const result = Maps.clone(this.adts);
+
+    result.set(adt.name, adt);
+
+    return new TypeEnv(this.values, result);
   }
 
   apply(s: Subst): TypeEnv {
-    return new TypeEnv(Maps.map(this.values, (scheme) => scheme.apply(s)));
+    return new TypeEnv(
+      Maps.map(this.values, (scheme) => scheme.apply(s)),
+      this.adts,
+    );
   }
 
   ftv(): Set<Var> {
@@ -197,12 +233,16 @@ export class TypeEnv {
     return this.values.get(name);
   }
 
+  data(name: string): ADT | undefined {
+    return this.adts.get(name);
+  }
+
   generalise(t: Type): Scheme {
     return new Scheme(Sets.difference(t.ftv(), this.ftv()), t);
   }
 }
 
-export const emptyTypeEnv = new TypeEnv(new Map());
+export const emptyTypeEnv = new TypeEnv(new Map(), new Map());
 
 export type Pump = { next: () => TVar; nextN: (n: number) => Array<TVar> };
 

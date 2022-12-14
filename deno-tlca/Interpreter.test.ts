@@ -1,7 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
 import {
-  emptyEnv,
+  defaultEnv,
   executeProgram,
   expressionToNestedString,
   NestedString,
@@ -139,21 +139,30 @@ Deno.test("Var", () => {
   assertExecute("let x = \\a -> a in x", ["function: V2 -> V2"]);
 });
 
-// Deno.test("!Data Declaration: Boolean", () => {
-//   assertExecute("data Boolean = BTrue | BFalse", ["Boolean = BTrue | BFalse"]);
-// })
+Deno.test("Data Declaration - declaration", () => {
+  assertExecute("data Boolean = BTrue | BFalse", ["Boolean = BTrue | BFalse"]);
+  assertExecute("data List a = Cons a (List a) | Nil", [
+    "List a = Cons a (List a) | Nil",
+  ]);
+  assertExecute("data Funny a b = A a (a -> b) b | B a (a * b) b | C ()", [
+    "Funny a b = A a (a -> b) b | B a (a * b) b | C ()",
+  ]);
+  assertExecute("data Funny = A Int | B String | C Bool", [
+    "Funny = A Int | B String | C Bool",
+  ]);
+});
 
 const assertExecute = (expression: string, expected: NestedString) => {
   const ast = parse(expression);
-  const [result, _] = executeProgram(ast, emptyEnv);
+  const [result, _] = executeProgram(ast, defaultEnv);
 
   ast.forEach((e, i) => {
     if (e.type === "DataDeclaration") {
-      throw new Error("assertExecute: Data declarations not supported yet");
+      assertEquals(result[i][0].toString(), expected[i]);
+    } else {
+      const [value, type] = result[i];
+
+      assertEquals(expressionToNestedString(value, type!, e), expected[i]);
     }
-
-    const [value, type] = result[i];
-
-    assertEquals(expressionToNestedString(value, type, e), expected[i]);
   });
 };
