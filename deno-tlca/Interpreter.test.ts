@@ -1,12 +1,8 @@
 import { assertEquals } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
-import {
-  defaultEnv,
-  executeProgram,
-  expressionToNestedString,
-  NestedString,
-} from "./Interpreter.ts";
+import { defaultEnv, executeProgram } from "./Interpreter.ts";
 import { parse } from "./Parser.ts";
+import { expressionToNestedString, NestedString } from "./Values.ts";
 
 Deno.test("App 1", () => {
   assertExecute("(\\n -> n + 1) 1", ["2: Int"]);
@@ -150,6 +146,24 @@ Deno.test("Data Declaration - declaration", () => {
   assertExecute("data Funny = A Int | B String | C Bool", [
     "Funny = A Int | B String | C Bool",
   ]);
+});
+
+Deno.test("Data Declaration - execute", () => {
+  assertExecute("data Boolean = BTrue | BFalse ; BTrue", [
+    "Boolean = BTrue | BFalse",
+    "BTrue: Boolean",
+  ]);
+
+  assertExecute(
+    "data List a = Cons a (List a) | Nil; Nil; Cons; Cons 10; Cons 10 (Cons 20 (Cons 30 Nil))",
+    [
+      "List a = Cons a (List a) | Nil",
+      "Nil: List V1",
+      "function: V1 -> List V1 -> List V1",
+      "function: List Int -> List Int",
+      "Cons 10 (Cons 20 (Cons 30 Nil)): List Int",
+    ],
+  );
 });
 
 const assertExecute = (expression: string, expected: NestedString) => {

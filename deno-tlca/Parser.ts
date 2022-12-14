@@ -362,7 +362,12 @@ const visitor: Visitor<
     name: a[2],
   }),
 
-  visitFactor10: (
+  visitFactor10: (a: Token): Expression => ({
+    type: "Var",
+    name: a[2],
+  }),
+
+  visitFactor11: (
     _a1: Token,
     a2: Expression,
     _a3: Token,

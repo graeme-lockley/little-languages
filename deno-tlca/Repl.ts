@@ -1,10 +1,6 @@
-import {
-  defaultEnv,
-  executeProgram,
-  expressionToNestedString,
-  nestedStringToString,
-} from "./Interpreter.ts";
+import { defaultEnv, executeProgram } from "./Interpreter.ts";
 import { parse } from "./Parser.ts";
+import { expressionToNestedString, nestedStringToString } from "./Values.ts";
 
 const readline = (): string | null => {
   let result = "";
@@ -38,11 +34,15 @@ if (Deno.args.length === 0) {
     const [result, newEnv] = executeProgram(ast, env);
 
     ast.forEach((e, i) => {
-      const [value, type] = result[i];
+      if (e.type === "DataDeclaration") {
+        console.log(result[i][0].toString());
+      } else {
+        const [value, type] = result[i];
 
-      console.log(
-        nestedStringToString(expressionToNestedString(value, type, e)),
-      );
+        console.log(
+          nestedStringToString(expressionToNestedString(value, type!, e)),
+        );
+      }
     });
 
     env = newEnv;
@@ -53,9 +53,15 @@ if (Deno.args.length === 0) {
   const [result, _] = executeProgram(ast, defaultEnv);
 
   ast.forEach((e, i) => {
-    const [value, type] = result[i];
+    if (e.type === "DataDeclaration") {
+      console.log(result[i][0].toString());
+    } else {
+      const [value, type] = result[i];
 
-    console.log(nestedStringToString(expressionToNestedString(value, type, e)));
+      console.log(
+        nestedStringToString(expressionToNestedString(value, type!, e)),
+      );
+    }
   });
 } else {
   console.error("Invalid arguments");

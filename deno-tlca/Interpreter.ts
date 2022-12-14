@@ -25,9 +25,7 @@ import {
   typeString,
   typeUnit,
 } from "./Typing.ts";
-
-// deno-lint-ignore no-explicit-any
-type RuntimeValue = any;
+import { mkTuple, RuntimeValue, tupleComponent } from "./Values.ts";
 
 type RuntimeEnv = { [key: string]: RuntimeValue };
 
@@ -136,7 +134,7 @@ const evaluate = (expr: Expression, runtimeEnv: RuntimeEnv): RuntimeValue => {
     return expr.value;
   }
   if (expr.type === "LTuple") {
-    return expr.values.map((v) => evaluate(v, runtimeEnv));
+    return mkTuple(expr.values.map((v) => evaluate(v, runtimeEnv)));
   }
   if (expr.type === "LUnit") {
     return null;
@@ -186,7 +184,11 @@ const matchPattern = (
   if (pattern.type === "PTuple") {
     let newRuntimeEnv: RuntimeEnv | null = runtimeEnv;
     for (let i = 0; i < pattern.values.length; i++) {
-      newRuntimeEnv = matchPattern(pattern.values[i], value[i], newRuntimeEnv);
+      newRuntimeEnv = matchPattern(
+        pattern.values[i],
+        tupleComponent(value, i),
+        newRuntimeEnv,
+      );
       if (newRuntimeEnv === null) {
         return null;
       }
@@ -227,6 +229,41 @@ const executeExpression = (
   (expr.type === "Let" || expr.type === "LetRec")
     ? executeDeclaration(expr, runtimeEnv)
     : [evaluate(expr, runtimeEnv), runtimeEnv];
+
+const mkConstructorFunction = (name: string, arity: number): RuntimeValue => {
+  if (arity === 0) {
+    return [name];
+  }
+  if (arity === 1) {
+    return (x1: RuntimeValue) => [name, x1];
+  }
+  if (arity === 2) {
+    return (x1: RuntimeValue) => (x2: RuntimeValue) => [name, x1, x2];
+  }
+  if (arity === 3) {
+    return (x1: RuntimeValue) => (x2: RuntimeValue) => (x3: RuntimeValue) => [
+      name,
+      x1,
+      x2,
+      x3,
+    ];
+  }
+  if (arity === 4) {
+    return (x1: RuntimeValue) =>
+    (x2: RuntimeValue) =>
+    (x3: RuntimeValue) =>
+    (x4: RuntimeValue) => [name, x1, x2, x3, x4];
+  }
+  if (arity === 5) {
+    return (x1: RuntimeValue) =>
+    (x2: RuntimeValue) =>
+    (x3: RuntimeValue) =>
+    (x4: RuntimeValue) =>
+    (x5: RuntimeValue) => [name, x1, x2, x3, x4, x5];
+  }
+
+  throw { type: "TooManyConstructorArgumentsErrors", name, arity };
+};
 
 const executeDataDeclaration = (
   dd: DataDeclaration,
@@ -285,7 +322,28 @@ const executeDataDeclaration = (
     );
 
     adts.push(adt);
-    env = [env[0], env[1].addData(adt)];
+    const runtimeEnv = env[0];
+    let typeEnv = env[1].addData(adt);
+
+    adt.constructors.forEach((c) => {
+      typeEnv = typeEnv.extend(
+        c.name,
+        new Scheme(
+          adt.parameters,
+          c.args.reduceRight(
+            (acc: Type, t: Type) => new TArr(t, acc),
+            new TCon(
+              adt.name,
+              [...adt.parameters].map((p) => new TVar(p)),
+            ),
+          ),
+        ),
+      );
+
+      runtimeEnv[c.name] = mkConstructorFunction(c.name, c.args.length);
+    });
+
+    env = [runtimeEnv, typeEnv];
   });
 
   return [adts, env];
@@ -322,38 +380,3 @@ export const execute = (
   env: Env = emptyEnv,
 ): [Array<[RuntimeValue, Type | undefined]>, Env] =>
   executeProgram(parse(input), env);
-
-export const valueToString = (v: RuntimeValue, type: Type): string => {
-  if (type === typeUnit) {
-    return "()";
-  }
-  if (type === typeString) {
-    return `"${v.replaceAll('"', '\\"')}"`;
-  }
-  if (type instanceof TArr) {
-    return "function";
-  }
-  if (type instanceof TTuple) {
-    return `(${
-      v.map((v: RuntimeValue, i: number) => valueToString(v, type.types[i]))
-        .join(", ")
-    })`;
-  }
-  return `${v}`;
-};
-
-export type NestedString = string | Array<NestedString>;
-
-export const expressionToNestedString = (
-  value: RuntimeValue,
-  type: Type,
-  expr: Expression,
-): NestedString =>
-  ((expr.type === "Let" || expr.type === "LetRec") && type instanceof TTuple)
-    ? expr.declarations.map((d, i) =>
-      `${d.name} = ${valueToString(value[i], type.types[i])}: ${type.types[i]}`
-    )
-    : `${valueToString(value, type)}: ${type}`;
-
-export const nestedStringToString = (s: NestedString): string =>
-  Array.isArray(s) ? s.map(nestedStringToString).join("\n") : s;
