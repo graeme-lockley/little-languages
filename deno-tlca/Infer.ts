@@ -269,7 +269,9 @@ export const inferPattern = (
 
     const subst = adt.instantiate(pump);
 
-    const ts: TCon = new Scheme(adt.parameters, constructor).instantiate(pump) as TCon;
+    const ts: TCon = new Scheme(adt.parameters, constructor).instantiate(
+      pump,
+    ) as TCon;
     let newEnv = env;
     pattern.args.forEach((p, i) => {
       const [t, e] = inferPattern(newEnv, p, constraints, pump);
@@ -277,7 +279,10 @@ export const inferPattern = (
       newEnv = e;
     });
 
-    return [new TCon(adt.name, subst.entries().sort().map(x => x[1])), newEnv];
+    return [
+      new TCon(adt.name, subst.entries().sort().map((x) => x[1])),
+      newEnv,
+    ];
   }
 
   return [typeError, env];

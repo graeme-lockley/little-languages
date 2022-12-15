@@ -171,8 +171,8 @@ Deno.test("Data Declaration - match", () => {
     "data List a = Cons a (List a) | Nil; let rec range n = if (n == 0) Nil else (Cons n (range (n - 1))) ; match (range 10) with | Nil -> 0 | Cons v _ -> v",
     [
       "List a = Cons a (List a) | Nil",
-      [ "range = function: Int -> List Int" ],
-      "10: Int"
+      ["range = function: Int -> List Int"],
+      "10: Int",
     ],
   );
 });

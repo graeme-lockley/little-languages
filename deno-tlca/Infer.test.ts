@@ -14,7 +14,6 @@ import {
   TypeEnv,
   typeInt,
 } from "./Typing.ts";
-import { tupleComponents } from "./Values.ts";
 
 const assertTypeEquals = (ts: Array<Type>, expected: Array<string>) => {
   assertEquals(ts.map((t) => t.toString()), expected);
