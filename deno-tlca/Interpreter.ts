@@ -11,7 +11,7 @@ import {
   Type as TypeItem,
 } from "./Parser.ts";
 import {
-  ADT,
+  DataDefinition,
   emptyTypeEnv,
   Scheme,
   TArr,
@@ -87,9 +87,9 @@ export const defaultEnv = mkEnv(
         new TArr(typeString, new TArr(typeString, typeInt)),
       ),
     )
-    .addData(new ADT("Int", new Set(), []))
-    .addData(new ADT("String", new Set(), []))
-    .addData(new ADT("Bool", new Set(), [])),
+    .addData(new DataDefinition("Int", new Set(), []))
+    .addData(new DataDefinition("String", new Set(), []))
+    .addData(new DataDefinition("Bool", new Set(), [])),
 );
 
 const binaryOps = new Map<
@@ -286,7 +286,7 @@ const mkConstructorFunction = (name: string, arity: number): RuntimeValue => {
 const executeDataDeclaration = (
   dd: DataDeclaration,
   env: Env,
-): [Array<ADT>, Env] => {
+): [Array<DataDefinition>, Env] => {
   const translate = (t: TypeItem): Type => {
     if (t.type === "TypeConstructor") {
       const tc = env[1].data(t.name);
@@ -320,20 +320,20 @@ const executeDataDeclaration = (
     throw { type: "UnknownTypeItemError", item: t };
   };
 
-  const adts: Array<ADT> = [];
+  const adts: Array<DataDefinition> = [];
 
   dd.declarations.forEach((d) => {
     if (env[1].data(d.name) !== undefined) {
       throw { type: "DuplicateDataDeclaration", name: d.name };
     }
 
-    const adt = new ADT(d.name, new Set(d.parameters), []);
+    const adt = new DataDefinition(d.name, new Set(d.parameters), []);
 
     env = [env[0], env[1].addData(adt)];
   });
 
   dd.declarations.forEach((d) => {
-    const adt = new ADT(
+    const adt = new DataDefinition(
       d.name,
       new Set(d.parameters),
       d.constructors.map((c) => new TCon(c.name, c.parameters.map(translate))),

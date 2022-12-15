@@ -171,7 +171,7 @@ export class Scheme {
   }
 }
 
-export class ADT {
+export class DataDefinition {
   name: string;
   parameters: Set<string>;
   constructors: Array<TCon>;
@@ -201,9 +201,9 @@ export class ADT {
 
 export class TypeEnv {
   protected values: Map<string, Scheme>;
-  protected adts: Map<string, ADT>;
+  protected adts: Array<DataDefinition>;
 
-  constructor(values: Map<string, Scheme>, adts: Map<string, ADT>) {
+  constructor(values: Map<string, Scheme>, adts: Array<DataDefinition>) {
     this.values = values;
     this.adts = adts;
   }
@@ -216,16 +216,14 @@ export class TypeEnv {
     return new TypeEnv(result, this.adts);
   }
 
-  addData(adt: ADT): TypeEnv {
-    const result = Maps.clone(this.adts);
+  addData(adt: DataDefinition): TypeEnv {
+    const adts = [adt, ...this.adts.filter((a) => a.name !== adt.name)];
 
-    result.set(adt.name, adt);
-
-    return new TypeEnv(this.values, result);
+    return new TypeEnv(this.values, adts);
   }
 
-  findConstructor(name: string): [TCon, ADT] | undefined {
-    for (const adt of this.adts.values()) {
+  findConstructor(name: string): [TCon, DataDefinition] | undefined {
+    for (const adt of this.adts) {
       for (const constructor of adt.constructors) {
         if (constructor.name === name) {
           return [constructor, adt];
@@ -251,8 +249,8 @@ export class TypeEnv {
     return this.values.get(name);
   }
 
-  data(name: string): ADT | undefined {
-    return this.adts.get(name);
+  data(name: string): DataDefinition | undefined {
+    return this.adts.find((a) => a.name === name);
   }
 
   generalise(t: Type): Scheme {
@@ -260,7 +258,7 @@ export class TypeEnv {
   }
 }
 
-export const emptyTypeEnv = new TypeEnv(new Map(), new Map());
+export const emptyTypeEnv = new TypeEnv(new Map(), []);
 
 export type Pump = { next: () => TVar; nextN: (n: number) => Array<TVar> };
 

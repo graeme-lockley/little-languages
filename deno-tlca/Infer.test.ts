@@ -3,7 +3,7 @@ import { Constraints } from "./Constraints.ts";
 import { inferPattern, inferProgram } from "./Infer.ts";
 import { parse, Pattern } from "./Parser.ts";
 import {
-  ADT,
+  DataDefinition,
   emptyTypeEnv,
   Scheme,
   TArr,
@@ -161,7 +161,7 @@ Deno.test("infer PBool pattern", () => {
 
 Deno.test("infer PCons pattern", () => {
   const origEnv = emptyTypeEnv.addData(
-    new ADT("List", new Set("a"), [
+    new DataDefinition("List", new Set("a"), [
       new TCon("Nil", []),
       new TCon("Cons", [new TVar("a"), new TCon("List", [new TVar("a")])]),
     ]),
