@@ -1,6 +1,7 @@
 import { inferExpression } from "./Infer.ts";
 import {
   DataDeclaration,
+  Element,
   Expression,
   LetExpression,
   LetRecExpression,
@@ -369,6 +370,24 @@ const executeDataDeclaration = (
   return [adts, env];
 };
 
+const executeElement = (
+  e: Element,
+  env: Env,
+): [RuntimeValue, Type | undefined, Env] => {
+  if (e.type === "DataDeclaration") {
+    const [adts, newEnv] = executeDataDeclaration(e, env);
+    return [adts, undefined, newEnv];
+  } else {
+    const [constraints, type, newTypeEnv] = inferExpression(typeEnv(env), e);
+    const subst = constraints.solve();
+    const newType = type.apply(subst);
+
+    const [value, newRuntime] = executeExpression(e, runtime(env));
+
+    return [value, newType, [newRuntime, newTypeEnv]];
+  }
+};
+
 export const executeProgram = (
   program: Program,
   env: Env,
@@ -376,20 +395,9 @@ export const executeProgram = (
   const results: Array<[RuntimeValue, Type | undefined]> = [];
 
   program.forEach((e) => {
-    if (e.type === "DataDeclaration") {
-      const [adts, newEnv] = executeDataDeclaration(e, env);
-      results.push([adts, undefined]);
-      env = newEnv;
-    } else {
-      const [constraints, type, newTypeEnv] = inferExpression(typeEnv(env), e);
-      const subst = constraints.solve();
-      const newType = type.apply(subst);
-
-      const [value, newRuntime] = executeExpression(e, runtime(env));
-
-      results.push([value, newType]);
-      env = mkEnv(newRuntime, newTypeEnv);
-    }
+    const [value, type, newEnv] = executeElement(e, env);
+    results.push([value, type]);
+    env = newEnv;
   });
 
   return [results, env];
