@@ -1,4 +1,4 @@
-import { defaultEnv, executeProgram } from "./Interpreter.ts";
+import { defaultEnv, Env, executeProgram } from "./Interpreter.ts";
 import { parse } from "./Parser.ts";
 import { expressionToNestedString, nestedStringToString } from "./Values.ts";
 
@@ -20,37 +20,9 @@ const readline = (): string | null => {
   }
 };
 
-if (Deno.args.length === 0) {
-  let env = defaultEnv;
-
-  while (true) {
-    const line = readline();
-
-    if (line == null) {
-      break;
-    }
-
-    const ast = parse(line);
-    const [result, newEnv] = executeProgram(ast, env);
-
-    ast.forEach((e, i) => {
-      if (e.type === "DataDeclaration") {
-        console.log(result[i][0].toString());
-      } else {
-        const [value, type] = result[i];
-
-        console.log(
-          nestedStringToString(expressionToNestedString(value, type!, e)),
-        );
-      }
-    });
-
-    env = newEnv;
-  }
-} else if (Deno.args.length === 1) {
-  const file = Deno.readTextFileSync(Deno.args[0]);
-  const ast = parse(file);
-  const [result, _] = executeProgram(ast, defaultEnv);
+const execute = (line: string, env: Env): Env => {
+  const ast = parse(line);
+  const [result, newEnv] = executeProgram(ast, env);
 
   ast.forEach((e, i) => {
     if (e.type === "DataDeclaration") {
@@ -63,6 +35,24 @@ if (Deno.args.length === 0) {
       );
     }
   });
+
+  return newEnv;
+};
+
+if (Deno.args.length === 0) {
+  let env = defaultEnv;
+
+  while (true) {
+    const line = readline();
+
+    if (line == null) {
+      break;
+    }
+
+    env = execute(line, env);
+  }
+} else if (Deno.args.length === 1) {
+  execute(Deno.readTextFileSync(Deno.args[0]), defaultEnv);
 } else {
   console.error("Invalid arguments");
 }
