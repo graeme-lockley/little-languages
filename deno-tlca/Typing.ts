@@ -45,10 +45,7 @@ export class TCon implements Type {
       return this;
     }
 
-    return new TCon(
-      this.name,
-      this.args.map((a) => a.apply(s)),
-    );
+    return new TCon(this.name, applyArray(s, this.args));
   }
   ftv(): Set<Var> {
     return Sets.flatUnion(this.args.map((t) => t.ftv()));
@@ -99,7 +96,7 @@ export class TTuple implements Type {
   }
 
   apply(s: Subst): Type {
-    return new TTuple(this.types.map((t) => t.apply(s)));
+    return new TTuple(applyArray(s, this.types));
   }
 
   ftv(): Set<Var> {
@@ -171,15 +168,23 @@ export class Scheme {
   }
 }
 
+export const applyArray = (s: Subst, ts: Array<Type>): Array<Type> =>
+  ts.map((t) => t.apply(s));
+
+interface DataConstructor {
+  name: string;
+  args: Array<Type>;
+}
+
 export class DataDefinition {
   name: string;
-  parameters: Set<string>;
-  constructors: Array<TCon>;
+  parameters: Array<string>;
+  constructors: Array<DataConstructor>;
 
   constructor(
     name: string,
-    parameters: Set<string>,
-    constructors: Array<TCon>,
+    parameters: Array<string>,
+    constructors: Array<DataConstructor>,
   ) {
     this.name = name;
     this.parameters = parameters;
@@ -187,8 +192,8 @@ export class DataDefinition {
   }
 
   toString(): string {
-    return `${this.name}${this.parameters.size > 0 ? " " : ""}${
-      [...this.parameters].join(" ")
+    return `${this.name}${this.parameters.length > 0 ? " " : ""}${
+      this.parameters.join(" ")
     } = ${this.constructors.map((c) => c.toString()).join(" | ")}`;
   }
 
@@ -222,7 +227,9 @@ export class TypeEnv {
     return new TypeEnv(this.values, adts);
   }
 
-  findConstructor(name: string): [TCon, DataDefinition] | undefined {
+  findConstructor(
+    name: string,
+  ): [DataConstructor, DataDefinition] | undefined {
     for (const adt of this.adts) {
       for (const constructor of adt.constructors) {
         if (constructor.name === name) {

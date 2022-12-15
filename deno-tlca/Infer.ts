@@ -1,9 +1,11 @@
 import { Expression, Op, Pattern, Program } from "./Parser.ts";
 import { Constraints } from "./Constraints.ts";
 import {
+  applyArray,
   createFresh,
   Pump,
   Scheme,
+  Subst,
   TArr,
   TCon,
   TTuple,
@@ -267,23 +269,22 @@ export const inferPattern = (
       };
     }
 
-    const subst = adt.instantiate(pump);
+    const parameters = pump.nextN(adt.parameters.length);
+    const subst = new Subst(new Map(zip(adt.parameters, parameters)));
+    const constructorArgTypes = applyArray(subst, constructor.args);
 
-    const ts: TCon = new Scheme(adt.parameters, constructor).instantiate(
-      pump,
-    ) as TCon;
     let newEnv = env;
     pattern.args.forEach((p, i) => {
       const [t, e] = inferPattern(newEnv, p, constraints, pump);
-      constraints.add(t, ts.args[i]);
+      constraints.add(t, constructorArgTypes[i]);
       newEnv = e;
     });
 
-    return [
-      new TCon(adt.name, subst.entries().sort().map((x) => x[1])),
-      newEnv,
-    ];
+    return [new TCon(adt.name, parameters), newEnv];
   }
 
   return [typeError, env];
 };
+
+const zip = <A, B>(a: Array<A>, b: Array<B>): Array<[A, B]> =>
+  a.map((k, i) => [k, b[i]]);

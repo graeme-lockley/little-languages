@@ -161,7 +161,7 @@ Deno.test("infer PBool pattern", () => {
 
 Deno.test("infer PCons pattern", () => {
   const origEnv = emptyTypeEnv.addData(
-    new DataDefinition("List", new Set("a"), [
+    new DataDefinition("List", ["a"], [
       new TCon("Nil", []),
       new TCon("Cons", [new TVar("a"), new TCon("List", [new TVar("a")])]),
     ]),
@@ -182,11 +182,11 @@ Deno.test("infer PCons pattern", () => {
       name: "Cons",
       args: [{ type: "PVar", name: "x" }, { type: "PVar", name: "xs" }],
     },
-    ["V3 ~ V2", "V4 ~ List V2"],
+    ["V2 ~ V1", "V3 ~ List V1"],
     "List V1",
     origEnv
-      .extend("x", new Scheme(new Set(), new TVar("V3")))
-      .extend("xs", new Scheme(new Set(), new TVar("V4"))),
+      .extend("x", new Scheme(new Set(), new TVar("V2")))
+      .extend("xs", new Scheme(new Set(), new TVar("V3"))),
   );
 });
 

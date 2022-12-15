@@ -1,0 +1,5 @@
+Result c b = Error c | Okay b
+Option a = None | Some a
+List a = Cons a (List a) | Nil
+find = function: (V8 -> Bool) -> List V8 -> Result String V8
+Okay 2: Result String Int

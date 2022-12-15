@@ -87,9 +87,9 @@ export const defaultEnv = mkEnv(
         new TArr(typeString, new TArr(typeString, typeInt)),
       ),
     )
-    .addData(new DataDefinition("Int", new Set(), []))
-    .addData(new DataDefinition("String", new Set(), []))
-    .addData(new DataDefinition("Bool", new Set(), [])),
+    .addData(new DataDefinition("Int", [], []))
+    .addData(new DataDefinition("String", [], []))
+    .addData(new DataDefinition("Bool", [], [])),
 );
 
 const binaryOps = new Map<
@@ -293,11 +293,11 @@ const executeDataDeclaration = (
       if (tc === undefined) {
         throw { type: "UnknownDataError", name: t.name };
       }
-      if (t.arguments.length !== tc.parameters.size) {
+      if (t.arguments.length !== tc.parameters.length) {
         throw {
           type: "IncorrectTypeArguments",
           name: t.name,
-          expected: tc.parameters.size,
+          expected: tc.parameters.length,
           actual: t.arguments.length,
         };
       }
@@ -327,7 +327,7 @@ const executeDataDeclaration = (
       throw { type: "DuplicateDataDeclaration", name: d.name };
     }
 
-    const adt = new DataDefinition(d.name, new Set(d.parameters), []);
+    const adt = new DataDefinition(d.name, d.parameters, []);
 
     env = [env[0], env[1].addData(adt)];
   });
@@ -335,7 +335,7 @@ const executeDataDeclaration = (
   dd.declarations.forEach((d) => {
     const adt = new DataDefinition(
       d.name,
-      new Set(d.parameters),
+      d.parameters,
       d.constructors.map((c) => new TCon(c.name, c.parameters.map(translate))),
     );
 
@@ -343,17 +343,19 @@ const executeDataDeclaration = (
     const runtimeEnv = env[0];
     let typeEnv = env[1].addData(adt);
 
+    const parameters = new Set(adt.parameters);
+    const constructorResultType = new TCon(
+      adt.name,
+      adt.parameters.map((p) => new TVar(p)),
+    );
     adt.constructors.forEach((c) => {
       typeEnv = typeEnv.extend(
         c.name,
         new Scheme(
-          adt.parameters,
+          parameters,
           c.args.reduceRight(
             (acc: Type, t: Type) => new TArr(t, acc),
-            new TCon(
-              adt.name,
-              [...adt.parameters].map((p) => new TVar(p)),
-            ),
+            constructorResultType,
           ),
         ),
       );
