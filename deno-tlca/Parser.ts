@@ -113,6 +113,7 @@ export type MatchCase = {
 };
 
 export type Pattern =
+  | ConsPattern
   | LBoolPattern
   | LIntPattern
   | LStringPattern
@@ -120,6 +121,12 @@ export type Pattern =
   | LUnitPattern
   | VarPattern
   | WildCardPattern;
+
+export type ConsPattern = {
+  type: "PCons";
+  name: string;
+  args: Array<Pattern>;
+};
 
 export type LBoolPattern = {
   type: "PBool";
@@ -432,6 +439,12 @@ const visitor: Visitor<
       type: "PVar",
       name: a[2],
     },
+
+  visitPattern7: (a1: Token, a2: Array<Pattern>): Pattern => ({
+    type: "PCons",
+    name: a1[2],
+    args: a2,
+  }),
 
   visitDataDeclaration: (
     _a1: Token,

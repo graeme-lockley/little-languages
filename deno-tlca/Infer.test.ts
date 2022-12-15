@@ -3,15 +3,18 @@ import { Constraints } from "./Constraints.ts";
 import { inferPattern, inferProgram } from "./Infer.ts";
 import { parse, Pattern } from "./Parser.ts";
 import {
+  ADT,
   emptyTypeEnv,
   Scheme,
   TArr,
+  TCon,
   TVar,
   Type,
   typeBool,
   TypeEnv,
   typeInt,
 } from "./Typing.ts";
+import { tupleComponents } from "./Values.ts";
 
 const assertTypeEquals = (ts: Array<Type>, expected: Array<string>) => {
   assertEquals(ts.map((t) => t.toString()), expected);
@@ -157,6 +160,37 @@ Deno.test("infer PBool pattern", () => {
   );
 });
 
+Deno.test("infer PCons pattern", () => {
+  const origEnv = emptyTypeEnv.addData(
+    new ADT("List", new Set("a"), [
+      new TCon("Nil", []),
+      new TCon("Cons", [new TVar("a"), new TCon("List", [new TVar("a")])]),
+    ]),
+  );
+
+  assertInferPatternWithEnv(
+    origEnv,
+    { type: "PCons", name: "Nil", args: [] },
+    [],
+    "List V1",
+    origEnv,
+  );
+
+  assertInferPatternWithEnv(
+    origEnv,
+    {
+      type: "PCons",
+      name: "Cons",
+      args: [{ type: "PVar", name: "x" }, { type: "PVar", name: "xs" }],
+    },
+    ["V3 ~ V2", "V4 ~ List V2"],
+    "List V1",
+    origEnv
+      .extend("x", new Scheme(new Set(), new TVar("V3")))
+      .extend("xs", new Scheme(new Set(), new TVar("V4"))),
+  );
+});
+
 Deno.test("infer PInt pattern", () => {
   assertInferPattern(
     { type: "PInt", value: 123 },
@@ -249,7 +283,8 @@ Deno.test("infer Var", () => {
   assertTypeEquals(type, ["V1 -> V1"]);
 });
 
-const assertInferPattern = (
+const assertInferPatternWithEnv = (
+  defaultEnv: TypeEnv,
   input: Pattern,
   expectedConstraints: Array<string>,
   expectedType: string,
@@ -257,9 +292,23 @@ const assertInferPattern = (
 ) => {
   const constraints = new Constraints();
 
-  const [type, typeEnv] = inferPattern(emptyTypeEnv, input, constraints);
+  const [type, typeEnv] = inferPattern(defaultEnv, input, constraints);
 
   assertConstraintsEquals(constraints, expectedConstraints);
   assertEquals(type.toString(), expectedType);
   assertEquals(typeEnv, expectedTypeEnv);
 };
+
+const assertInferPattern = (
+  input: Pattern,
+  expectedConstraints: Array<string>,
+  expectedType: string,
+  expectedTypeEnv: TypeEnv = emptyTypeEnv,
+) =>
+  assertInferPatternWithEnv(
+    emptyTypeEnv,
+    input,
+    expectedConstraints,
+    expectedType,
+    expectedTypeEnv,
+  );

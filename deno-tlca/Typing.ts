@@ -191,6 +191,12 @@ export class ADT {
       [...this.parameters].join(" ")
     } = ${this.constructors.map((c) => c.toString()).join(" | ")}`;
   }
+
+  instantiate(pump: Pump): Subst {
+    return new Subst(
+      new Map([...this.parameters].map((n) => [n, pump.next()])),
+    );
+  }
 }
 
 export class TypeEnv {
@@ -216,6 +222,18 @@ export class TypeEnv {
     result.set(adt.name, adt);
 
     return new TypeEnv(this.values, result);
+  }
+
+  findConstructor(name: string): [TCon, ADT] | undefined {
+    for (const adt of this.adts.values()) {
+      for (const constructor of adt.constructors) {
+        if (constructor.name === name) {
+          return [constructor, adt];
+        }
+      }
+    }
+
+    return undefined;
   }
 
   apply(s: Subst): TypeEnv {

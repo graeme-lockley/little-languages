@@ -5,6 +5,7 @@ import {
   Pump,
   Scheme,
   TArr,
+  TCon,
   TTuple,
   Type,
   typeBool,
@@ -249,6 +250,34 @@ export const inferPattern = (
   }
   if (pattern.type === "PWildcard") {
     return [pump.next(), env];
+  }
+  if (pattern.type === "PCons") {
+    const c = env.findConstructor(pattern.name);
+
+    if (c === undefined) {
+      throw { type: "UnknownConstructorError", name: pattern.name };
+    }
+
+    const [constructor, adt] = c;
+    if (constructor.args.length !== pattern.args.length) {
+      throw {
+        type: "ArityMismatchError",
+        constructor: constructor,
+        pattern,
+      };
+    }
+
+    const subst = adt.instantiate(pump);
+
+    const ts: TCon = new Scheme(adt.parameters, constructor).instantiate(pump) as TCon;
+    let newEnv = env;
+    pattern.args.forEach((p, i) => {
+      const [t, e] = inferPattern(newEnv, p, constraints, pump);
+      constraints.add(t, ts.args[i]);
+      newEnv = e;
+    });
+
+    return [new TCon(adt.name, subst.entries().sort().map(x => x[1])), newEnv];
   }
 
   return [typeError, env];

@@ -64,6 +64,7 @@ Pattern
     | "True"
     | "False"
     | LowerIdentifier
+    | UpperIdentifier {Pattern}
     ;
 
 DataDeclaration

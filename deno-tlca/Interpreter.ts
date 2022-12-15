@@ -201,6 +201,24 @@ const matchPattern = (
   if (pattern.type === "PWildcard") {
     return runtimeEnv;
   }
+  if (pattern.type === "PCons") {
+    let newRuntimeEnv: RuntimeEnv | null = runtimeEnv;
+
+    if (value[0] !== pattern.name) {
+      return null;
+    }
+    for (let i = 0; i < pattern.args.length; i++) {
+      newRuntimeEnv = matchPattern(
+        pattern.args[i],
+        value[i + 1],
+        newRuntimeEnv,
+      );
+      if (newRuntimeEnv === null) {
+        return null;
+      }
+    }
+    return newRuntimeEnv;
+  }
   return null;
 };
 
