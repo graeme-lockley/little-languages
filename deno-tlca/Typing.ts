@@ -166,6 +166,10 @@ export class Scheme {
 
     return this.type.apply(subst);
   }
+
+  toString(): string {
+    return `${this.names.size == 0 ? "": `∀ ${[...this.names].join(", ")}. `}${this.type}`;
+  }
 }
 
 export const applyArray = (s: Subst, ts: Array<Type>): Array<Type> =>
@@ -205,8 +209,8 @@ export class DataDefinition {
 }
 
 export class TypeEnv {
-  protected values: Map<string, Scheme>;
-  protected adts: Array<DataDefinition>;
+  values: Map<string, Scheme>;
+  adts: Array<DataDefinition>;
 
   constructor(values: Map<string, Scheme>, adts: Array<DataDefinition>) {
     this.values = values;

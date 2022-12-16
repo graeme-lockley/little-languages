@@ -1,6 +1,11 @@
 import { defaultEnv, Env, executeProgram } from "./Interpreter.ts";
 import { parse } from "./Parser.ts";
-import { expressionToNestedString, nestedStringToString } from "./Values.ts";
+import {
+  expressionToNestedString,
+  nestedStringToString,
+  RuntimeValue,
+valueToString,
+} from "./Values.ts";
 
 const readline = (): string | null => {
   let result = "";
@@ -49,7 +54,26 @@ if (Deno.args.length === 0) {
       break;
     }
 
-    env = execute(line, env);
+    switch (line.trim()) {
+      case ".quit":
+        console.log("bye...");
+        Deno.exit(0);
+        break;
+      case ".env":
+        console.log("Runtime Environment");
+        for (const field in env[0]) {
+          console.log(`  ${field} = ${valueToString(env[0][field])}: ${env[1].scheme(field)}`);
+        }
+        console.log("Data Declarations")
+        console.log(env[1].adts.map (a => `  ${a}`).join("\n"));
+        break;
+      default:
+        try {
+          env = execute(line, env);
+        } catch (e) {
+          console.error(e);
+        }
+    }
   }
 } else if (Deno.args.length === 1) {
   execute(Deno.readTextFileSync(Deno.args[0]), defaultEnv);
