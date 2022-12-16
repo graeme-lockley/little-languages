@@ -35,9 +35,9 @@ The following items relate to the work on TLCA.
 
 ## Abstract Data Type
 
-- [ ] TLCA: Add ADT to grammar
-- [ ] demo: Implementation ADT construction
+- [X] TLCA: Add ADT to grammar
+- [X] demo: Implementation ADT construction
 - [ ] kotlin: Implementation ADT construction
-- [ ] TLCA: Add ADT pattern matching to grammar
-- [ ] deno: Implement ADT pattern matching
+- [X] TLCA: Add ADT pattern matching to grammar
+- [X] deno: Implement ADT pattern matching
 - [ ] kotlin: Implement ADT pattern matching
