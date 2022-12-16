@@ -38,7 +38,7 @@ export const inferProgram = (
       throw new Error("inferProgram: Data declarations not supported yet");
     }
 
-    const [, tp, newEnv] = inferExpression(env, e, constraints, pump);
+    const [, tp, newEnv] = inferExpression(e, env, constraints, pump);
 
     types.push(tp);
     env = newEnv;
@@ -48,8 +48,8 @@ export const inferProgram = (
 };
 
 export const inferExpression = (
-  env: TypeEnv,
   expression: Expression,
+  env: TypeEnv,
   constraints: Constraints = new Constraints(),
   pump: Pump = createFresh(),
 ): [Constraints, Type, TypeEnv] => {
@@ -58,7 +58,7 @@ export const inferExpression = (
     expr: Expression,
     constraints: Constraints,
   ): Type => {
-    const [_, t1] = inferExpression(env, expr, constraints, pump);
+    const [_, t1] = inferExpression(expr, env, constraints, pump);
     const tv = pump.next();
 
     constraints.add(new TArr(tv, tv), t1);
@@ -66,10 +66,10 @@ export const inferExpression = (
     return tv;
   };
 
-  const infer = (env: TypeEnv, expr: Expression): [Type, TypeEnv] => {
+  const infer = (expr: Expression, env: TypeEnv): [Type, TypeEnv] => {
     if (expr.type === "App") {
-      const [t1] = infer(env, expr.e1);
-      const [t2] = infer(env, expr.e2);
+      const [t1] = infer(expr.e1, env);
+      const [t2] = infer(expr.e2, env);
       const tv = pump.next();
 
       constraints.add(t1, new TArr(t2, tv));
@@ -77,9 +77,9 @@ export const inferExpression = (
       return [tv, env];
     }
     if (expr.type === "If") {
-      const [tg] = infer(env, expr.guard);
-      const [tt] = infer(env, expr.then);
-      const [et] = infer(env, expr.else);
+      const [tg] = infer(expr.guard, env);
+      const [tt] = infer(expr.then, env);
+      const [et] = infer(expr.else, env);
 
       constraints.add(tg, typeBool);
       constraints.add(tt, et);
@@ -89,8 +89,8 @@ export const inferExpression = (
     if (expr.type === "Lam") {
       const tv = pump.next();
       const [t] = infer(
-        env.extend(expr.name, new Scheme(new Set(), tv)),
         expr.expr,
+        env.extend(expr.name, new Scheme(new Set(), tv)),
       );
       return [new TArr(tv, t), env];
     }
@@ -100,8 +100,8 @@ export const inferExpression = (
 
       for (const declaration of expr.declarations) {
         const [nc, tb] = inferExpression(
-          newEnv,
           declaration.expr,
+          newEnv,
           constraints.clone(),
           pump,
         );
@@ -118,7 +118,7 @@ export const inferExpression = (
       if (expr.expr === undefined) {
         return [new TTuple(types), newEnv];
       } else {
-        return [infer(newEnv, expr.expr)[0], env];
+        return [infer(expr.expr, newEnv)[0], env];
       }
     }
     if (expr.type === "LetRec") {
@@ -163,7 +163,7 @@ export const inferExpression = (
       if (expr.expr === undefined) {
         return [new TTuple(types), solvedEnv];
       } else {
-        return [infer(solvedEnv, expr.expr)[0], env];
+        return [infer(expr.expr, solvedEnv)[0], env];
       }
     }
     if (expr.type === "LBool") {
@@ -176,18 +176,18 @@ export const inferExpression = (
       return [typeString, env];
     }
     if (expr.type === "LTuple") {
-      return [new TTuple(expr.values.map((v) => infer(env, v)[0])), env];
+      return [new TTuple(expr.values.map((v) => infer(v, env)[0])), env];
     }
     if (expr.type === "LUnit") {
       return [typeUnit, env];
     }
     if (expr.type === "Match") {
-      const [t] = infer(env, expr.expr);
+      const [t] = infer(expr.expr, env);
       const tv = pump.next();
 
       for (const { pattern, expr: pexpr } of expr.cases) {
-        const [tp, newEnv] = inferPattern(env, pattern, constraints, pump);
-        const [te] = infer(newEnv, pexpr);
+        const [tp, newEnv] = inferPattern(pattern, env, constraints, pump);
+        const [te] = infer(pexpr, newEnv);
         constraints.add(tp, t);
         constraints.add(te, tv);
       }
@@ -195,8 +195,8 @@ export const inferExpression = (
       return [tv, env];
     }
     if (expr.type === "Op") {
-      const [tl] = infer(env, expr.left);
-      const [tr] = infer(env, expr.right);
+      const [tl] = infer(expr.left, env);
+      const [tr] = infer(expr.right, env);
       const tv = pump.next();
 
       const u1 = new TArr(tl, new TArr(tr, tv));
@@ -215,12 +215,12 @@ export const inferExpression = (
     return [typeError, env];
   };
 
-  return [constraints, ...infer(env, expression)];
+  return [constraints, ...infer(expression, env)];
 };
 
 export const inferPattern = (
-  env: TypeEnv,
   pattern: Pattern,
+  env: TypeEnv,
   constraints: Constraints = new Constraints(),
   pump: Pump = createFresh(),
 ): [Type, TypeEnv] => {
@@ -237,7 +237,7 @@ export const inferPattern = (
     const values: Array<Type> = [];
     let newEnv = env;
     for (const p of pattern.values) {
-      const [t, e] = inferPattern(newEnv, p, constraints, pump);
+      const [t, e] = inferPattern(p, newEnv, constraints, pump);
       values.push(t);
       newEnv = e;
     }
@@ -275,7 +275,7 @@ export const inferPattern = (
 
     let newEnv = env;
     pattern.args.forEach((p, i) => {
-      const [t, e] = inferPattern(newEnv, p, constraints, pump);
+      const [t, e] = inferPattern(p, newEnv, constraints, pump);
       constraints.add(t, constructorArgTypes[i]);
       newEnv = e;
     });

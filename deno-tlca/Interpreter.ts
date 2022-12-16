@@ -369,7 +369,7 @@ const executeElement = (
     const [adts, newEnv] = executeDataDeclaration(e, env);
     return [adts, undefined, newEnv];
   } else {
-    const [constraints, type, newTypeEnv] = inferExpression(env[1], e);
+    const [constraints, type, newTypeEnv] = inferExpression(e, env[1]);
     const subst = constraints.solve();
     const newType = type.apply(subst);
 

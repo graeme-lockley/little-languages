@@ -291,7 +291,7 @@ const assertInferPatternWithEnv = (
 ) => {
   const constraints = new Constraints();
 
-  const [type, typeEnv] = inferPattern(defaultEnv, input, constraints);
+  const [type, typeEnv] = inferPattern(input, defaultEnv, constraints);
 
   assertConstraintsEquals(constraints, expectedConstraints);
   assertEquals(type.toString(), expectedType);
