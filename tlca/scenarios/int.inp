@@ -4,4 +4,10 @@ let rec isOdd n = if (n == 0) False else isEven (n - 1)
 isOdd 5 ;
 isEven 5 ;
 isOdd 10 ;
-isEven 10
+isEven 10 ;
+2 + 3 ;
+3 + 2 ;
+2 * 3 ;
+3 * 2 ;
+1 + 2 * 3 ;
+2 * 3 + 1
