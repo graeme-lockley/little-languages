@@ -3,8 +3,7 @@ import { parse } from "./Parser.ts";
 import {
   expressionToNestedString,
   nestedStringToString,
-  RuntimeValue,
-valueToString,
+  valueToString,
 } from "./Values.ts";
 
 const readline = (): string | null => {
@@ -62,10 +61,14 @@ if (Deno.args.length === 0) {
       case ".env":
         console.log("Runtime Environment");
         for (const field in env[0]) {
-          console.log(`  ${field} = ${valueToString(env[0][field])}: ${env[1].scheme(field)}`);
+          console.log(
+            `  ${field} = ${valueToString(env[0][field])}: ${
+              env[1].scheme(field)
+            }`,
+          );
         }
-        console.log("Data Declarations")
-        console.log(env[1].adts.map (a => `  ${a}`).join("\n"));
+        console.log("Data Declarations");
+        console.log(env[1].adts.map((a) => `  ${a}`).join("\n"));
         break;
       default:
         try {

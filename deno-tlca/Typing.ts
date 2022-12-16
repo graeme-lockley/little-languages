@@ -168,7 +168,9 @@ export class Scheme {
   }
 
   toString(): string {
-    return `${this.names.size == 0 ? "": `∀ ${[...this.names].join(", ")}. `}${this.type}`;
+    return `${
+      this.names.size == 0 ? "" : `∀ ${[...this.names].join(", ")}. `
+    }${this.type}`;
   }
 }
 
