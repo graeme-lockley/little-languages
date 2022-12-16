@@ -30,22 +30,13 @@ import { mkTuple, RuntimeValue, tupleComponent } from "./Values.ts";
 
 type RuntimeEnv = { [key: string]: RuntimeValue };
 
-export const runtime = (env: Env): RuntimeEnv => env[0];
-
-export const typeEnv = (env: Env): TypeEnv => env[1];
-
 export type Env = [RuntimeEnv, TypeEnv];
-
-const mkEnv = (
-  runtime: RuntimeEnv,
-  typeEnv: TypeEnv,
-): Env => [runtime, typeEnv];
 
 export const emptyRuntimeEnv: RuntimeEnv = {};
 
-export const emptyEnv = mkEnv(emptyRuntimeEnv, emptyTypeEnv);
+export const emptyEnv: Env = [emptyRuntimeEnv, emptyTypeEnv];
 
-export const defaultEnv = mkEnv(
+export const defaultEnv: Env = [
   {
     string_length: (s: string) => s.length,
     string_concat: (s1: string) => (s2: string) => s1 + s2,
@@ -91,7 +82,7 @@ export const defaultEnv = mkEnv(
     .addData(new DataDefinition("Int", [], []))
     .addData(new DataDefinition("String", [], []))
     .addData(new DataDefinition("Bool", [], [])),
-);
+];
 
 const binaryOps = new Map<
   number,
@@ -378,11 +369,11 @@ const executeElement = (
     const [adts, newEnv] = executeDataDeclaration(e, env);
     return [adts, undefined, newEnv];
   } else {
-    const [constraints, type, newTypeEnv] = inferExpression(typeEnv(env), e);
+    const [constraints, type, newTypeEnv] = inferExpression(env[1], e);
     const subst = constraints.solve();
     const newType = type.apply(subst);
 
-    const [value, newRuntime] = executeExpression(e, runtime(env));
+    const [value, newRuntime] = executeExpression(e, env[0]);
 
     return [value, newType, [newRuntime, newTypeEnv]];
   }
