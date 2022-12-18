@@ -1,0 +1,38 @@
+# let
+#   add = \a -> (\b -> a + b) ;
+#   incr = add 1
+# in
+#   incr 10
+
+  ENTER 2
+  PUSH_CLOSURE $$add
+  STORE_VAR 0
+  PUSH_CLOSURE $$incr
+  STORE_VAR 1
+  PUSH_INT 10
+  PUSH_VAR 0 1
+  CALL
+  RET
+
+:$$add
+  ENTER 2
+  STORE_VAR 0
+  PUSH_CLOSURE $$add_1
+  STORE_VAR 1
+  PUSH_VAR 0 1
+  CALL
+  RET
+
+:$$add_1
+  ENTER 1
+  STORE_VAR 0
+  PUSH_VAR 1 0
+  PUSH_VAR 0 0
+  ADD
+  RET
+
+:$$incr
+  PUSH_INT 1
+  PUSH_VAR 1 0
+  CALL
+  RET
