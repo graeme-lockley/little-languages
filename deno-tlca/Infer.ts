@@ -102,7 +102,7 @@ export const inferExpression = (
         const [nc, tb] = inferExpression(
           declaration.expr,
           newEnv,
-          constraints.clone(),
+          constraints,
           pump,
         );
 
@@ -129,7 +129,6 @@ export const inferExpression = (
         env,
       );
 
-      const nc = constraints.clone();
       const declarationType = fix(
         newEnv,
         {
@@ -140,12 +139,12 @@ export const inferExpression = (
             values: expr.declarations.map((d) => d.expr),
           },
         },
-        nc,
+        constraints,
       );
-      nc.add(new TTuple(tvs), declarationType);
+      constraints.add(new TTuple(tvs), declarationType);
       const types: Array<Type> = [];
 
-      const subst = nc.solve();
+      const subst = constraints.solve();
       const solvedTypeEnv = env.apply(subst);
       const solvedEnv = expr.declarations.reduce(
         (acc, declaration, idx) => {
