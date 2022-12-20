@@ -15,8 +15,8 @@ fun main(args: Array<String>) {
 
             try {
                 env = executeInput(input, env)
-            } catch (e: RuntimeException) {
-                println(e.message)
+            } catch (e: Exception) {
+                println(e)
             }
         }
     } else if (args.size == 1) {
