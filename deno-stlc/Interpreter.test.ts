@@ -65,6 +65,10 @@ Deno.test("Var", () => {
   assertExecute("let x = \\a -> a in x", "function: V2 -> V2");
 });
 
+Deno.test("Arb", () => {
+  assertExecute("let x n = let ss b = if (b == n) 1 else 2 in ss 5 in x", "function: Int -> Int");
+});
+
 const assertExecute = (expression: string, expected: string) => {
   const [value, type] = execute(expression);
 

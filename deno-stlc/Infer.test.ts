@@ -81,7 +81,9 @@ Deno.test("infer Let", () => {
     parse("let x = 10; y = x + 1 in y"),
   );
 
-  assertConstraintsEquals(constraints, []);
+  assertConstraintsEquals(constraints, [
+    "Int -> Int -> V1 ~ Int -> Int -> Int"
+  ]);
   assertTypeEquals(type, "Int");
 });
 

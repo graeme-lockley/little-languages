@@ -75,7 +75,11 @@ class InferTest {
     fun inferLet() {
         val (constraints, type) = infer(emptyTypeEnv, parse("let x = 10; y = x + 1 in y"))
 
-        assertConstraints(constraints, emptyList())
+        assertConstraints(
+            constraints, listOf(
+                "Int -> Int -> V1 ~ Int -> Int -> Int"
+            )
+        )
         assertEquals(typeInt, type)
     }
 

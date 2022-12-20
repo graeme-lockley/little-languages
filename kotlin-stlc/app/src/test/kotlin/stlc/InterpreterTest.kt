@@ -74,6 +74,11 @@ class InterpreterTest {
         assertExecute("let x = True in x", "true: Bool")
         assertExecute("let x = \\a -> a in x", "function: V2 -> V2")
     }
+
+    @Test
+    fun executeArb() {
+        assertExecute("let x n = let ss b = if (b == n) 1 else 2 in ss 5 in x", "function: Int -> Int")
+    }
 }
 
 private fun assertExecute(input: String, expected: String) {
