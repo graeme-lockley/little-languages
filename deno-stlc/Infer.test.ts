@@ -3,6 +3,7 @@ import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
 import { parse } from "./Parser.ts";
 import {
+  createFresh,
   emptyTypeEnv,
   Scheme,
   TArr,
@@ -29,6 +30,8 @@ Deno.test("infer Apply", () => {
       .extend("a", new Scheme(["T"], new TArr(new TVar("T"), new TVar("T"))))
       .extend("b", new Scheme([], typeInt)),
     parse("a b"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -44,6 +47,8 @@ Deno.test("infer If", () => {
       .extend("b", new Scheme([], typeInt))
       .extend("c", new Scheme(["T"], new TVar("T"))),
     parse("if (a) b else c"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -57,6 +62,8 @@ Deno.test("infer LBool", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
     parse("True"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, []);
@@ -67,6 +74,8 @@ Deno.test("infer Lam", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
     parse("\\x -> x 10"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -79,6 +88,8 @@ Deno.test("infer Let", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
     parse("let x = 10; y = x + 1 in y"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -91,6 +102,8 @@ Deno.test("infer LInt", () => {
   const [constraints, type] = inferExpression(
     emptyTypeEnv,
     parse("123"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertEquals(constraints.constraints.length, 0);
@@ -104,6 +117,8 @@ Deno.test("infer Op", () => {
         .extend("a", new Scheme(["T"], new TVar("T")))
         .extend("b", new Scheme(["T"], new TVar("T"))),
       parse(input),
+      new Constraints(),
+      createFresh(),
     );
 
     assertConstraintsEquals(constraints, [
@@ -126,6 +141,8 @@ Deno.test("infer Var", () => {
       new Scheme(["T"], new TArr(new TVar("T"), new TVar("T"))),
     ),
     parse("a"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, []);
