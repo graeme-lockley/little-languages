@@ -1,7 +1,6 @@
 import { Expression, Op } from "./Parser.ts";
 import { Constraints } from "./Constraints.ts";
 import {
-  createFresh,
   Pump,
   Scheme,
   TArr,
@@ -25,7 +24,7 @@ export const inferExpression = (
   env: TypeEnv,
   expression: Expression,
   constraints: Constraints = new Constraints(),
-  pump: Pump = createFresh(),
+  pump: Pump,
 ): [Constraints, Type] => {
   const fix = (
     env: TypeEnv,

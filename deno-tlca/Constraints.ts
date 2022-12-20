@@ -19,12 +19,6 @@ const unifies = (t1: Type, t2: Type): Unifier => {
     return unifyMany([t1.domain, t1.range], [t2.domain, t2.range]);
   }
   if (t1 instanceof TTuple && t2 instanceof TTuple) {
-    if (t1.types.length !== t2.types.length) {
-      throw `Unification Mismatch: Tuple: ${JSON.stringify(t1)} ${
-        JSON.stringify(t2)
-      }`;
-    }
-
     return unifyMany(t1.types, t2.types);
   }
   if (t1 instanceof TCon && t2 instanceof TCon && t1.name === t2.name) {

@@ -1,5 +1,5 @@
 Result c b = Error c | Okay b
 Option a = None | Some a
 List a = Cons a (List a) | Nil
-find = function: (V8 -> Bool) -> List V8 -> Result String V8
+find = function: (a -> Bool) -> List a -> Result String a
 Okay 2: Result String Int

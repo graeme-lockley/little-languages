@@ -67,7 +67,9 @@ class InferTest {
         assertInference(
             emptyTypeEnv,
             "let x = 10 and y = x + 1 ; y",
-            emptyList(),
+            listOf(
+                "Int -> Int -> V1 ~ Int -> Int -> Int"
+            ),
             listOf("(Int * Int)", "Int")
         )
     }
@@ -124,6 +126,29 @@ class InferTest {
     }
 
     @Test
+    fun inferConsPattern() {
+        val origEnv = emptyTypeEnv.addData(
+            DataDefinition(
+                "List", listOf("a"), listOf(
+                    DataConstructor("Nil", emptyList()),
+                    DataConstructor("Cons", listOf(TVar("a"), TArr(TCon("List"), TVar("a"))))
+                )
+            )
+        )
+
+        assertInferPatternWithEnv(origEnv, PConsPattern("Nil", emptyList()), emptyList(), "List V1", origEnv)
+        assertInferPatternWithEnv(
+            origEnv,
+            PConsPattern("Cons", listOf(PVarPattern("x"), PVarPattern("xs"))),
+            listOf("V2 ~ V1, V3 ~ List -> V1"),
+            "List V1",
+            origEnv
+                .extend("x", Scheme(emptySet(), TVar("V2")))
+                .extend("xs", Scheme(emptySet(), TVar("V3")))
+        )
+    }
+
+    @Test
     fun inferIntPattern() {
         assertInferPattern(PIntPattern(123), emptyList(), "Int")
     }
@@ -177,7 +202,8 @@ class InferTest {
         assertEquals(expected.joinToString(", "), constraints.toString())
     }
 
-    private fun assertInferPattern(
+    private fun assertInferPatternWithEnv(
+        defaultEnv: TypeEnv,
         pattern: Pattern,
         expectedConstraints: List<String> = emptyList(),
         expectedType: String,
@@ -185,10 +211,17 @@ class InferTest {
     ) {
         val constraints = Constraints()
 
-        val (type, typeEnv) = inferPattern(emptyTypeEnv, pattern, constraints, Pump())
+        val (type, typeEnv) = inferPattern(pattern, defaultEnv,     constraints, Pump())
 
         assertConstraints(constraints, expectedConstraints)
         assertEquals(type.toString(), expectedType)
         assertEquals(typeEnv, expectedTypeEnv)
     }
+
+    private fun assertInferPattern(
+        pattern: Pattern,
+        expectedConstraints: List<String> = emptyList(),
+        expectedType: String,
+        expectedTypeEnv: TypeEnv = emptyTypeEnv
+    ) = assertInferPatternWithEnv(emptyTypeEnv, pattern, expectedConstraints, expectedType, expectedTypeEnv)
 }

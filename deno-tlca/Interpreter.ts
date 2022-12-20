@@ -1,3 +1,4 @@
+import { Constraints } from "./Constraints.ts";
 import { inferExpression } from "./Infer.ts";
 import {
   DataDeclaration,
@@ -12,6 +13,7 @@ import {
   Type as TypeItem,
 } from "./Parser.ts";
 import {
+  createFresh,
   DataDefinition,
   emptyTypeEnv,
   Scheme,
@@ -369,7 +371,13 @@ const executeElement = (
     const [adts, newEnv] = executeDataDeclaration(e, env);
     return [adts, undefined, newEnv];
   } else {
-    const [constraints, type, newTypeEnv] = inferExpression(e, env[1]);
+    const pump = createFresh();
+    const [constraints, type, newTypeEnv] = inferExpression(
+      e,
+      env[1],
+      new Constraints(),
+      pump,
+    );
     const subst = constraints.solve();
     const newType = type.apply(subst);
 

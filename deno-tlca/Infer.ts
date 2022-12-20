@@ -2,7 +2,6 @@ import { Expression, Op, Pattern, Program } from "./Parser.ts";
 import { Constraints } from "./Constraints.ts";
 import {
   applyArray,
-  createFresh,
   Pump,
   Scheme,
   Subst,
@@ -29,8 +28,8 @@ const ops = new Map([
 export const inferProgram = (
   env: TypeEnv,
   program: Program,
-  constraints: Constraints = new Constraints(),
-  pump: Pump = createFresh(),
+  constraints: Constraints,
+  pump: Pump,
 ): [Constraints, Array<Type>, TypeEnv] => {
   const types: Array<Type> = [];
   program.forEach((e) => {
@@ -50,8 +49,8 @@ export const inferProgram = (
 export const inferExpression = (
   expression: Expression,
   env: TypeEnv,
-  constraints: Constraints = new Constraints(),
-  pump: Pump = createFresh(),
+  constraints: Constraints,
+  pump: Pump,
 ): [Constraints, Type, TypeEnv] => {
   const fix = (
     env: TypeEnv,
@@ -220,8 +219,8 @@ export const inferExpression = (
 export const inferPattern = (
   pattern: Pattern,
   env: TypeEnv,
-  constraints: Constraints = new Constraints(),
-  pump: Pump = createFresh(),
+  constraints: Constraints,
+  pump: Pump,
 ): [Type, TypeEnv] => {
   if (pattern.type === "PBool") {
     return [typeBool, env];

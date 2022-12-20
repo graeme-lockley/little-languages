@@ -166,11 +166,55 @@ class InterpreterTest {
     fun executeVar() {
         assertExecute("let x = 1 ; x", listOf(NestedString.Item("x = 1: Int"), NestedString.Item("1: Int")))
         assertExecute("let x = True ; x", listOf(NestedString.Item("x = true: Bool"), NestedString.Item("true: Bool")))
-        assertExecute("let x = \\a -> a ; x", listOf(NestedString.Item("x = function: V1 -> V1"), NestedString.Item("function: V2 -> V2")))
+        assertExecute("let x = \\a -> a ; x", listOf(NestedString.Item("x = function: V1 -> V1"), NestedString.Item("function: V1 -> V1")))
 
         assertExecute("let x = 1 in x", "1: Int")
         assertExecute("let x = True in x", "true: Bool")
         assertExecute("let x = \\a -> a in x", "function: V2 -> V2")
+    }
+
+    @Test
+    fun dataDeclarationDeclaration() {
+        assertExecute("data Boolean = BTrue | BFalse", "Boolean = BTrue | BFalse")
+        assertExecute("data Option a = Some a | None", "Option a = Some a | None")
+        assertExecute("data List a = Cons a (List a) | Nil", "List a = Cons a (List a) | Nil")
+        assertExecute("data Funny a b = A a (a -> b) b | B a (a * b) b | C ()", "Funny a b = A a (a -> b) b | B a (a * b) b | C ()")
+        assertExecute("data Funny = A Int | B String | C Bool", "Funny = A Int | B String | C Bool")
+    }
+
+    @Test
+    fun dataDeclarationExecute() {
+        assertExecute(
+            "data Boolean = BTrue | BFalse ; BTrue", listOf(
+                NestedString.Item("Boolean = BTrue | BFalse"),
+                NestedString.Item("BTrue: Boolean"),
+            )
+        )
+        assertExecute(
+            "data List a = Cons a (List a) | Nil; Nil; Cons; Cons 10; Cons 10 (Cons 20 (Cons 30 Nil))", listOf(
+                NestedString.Item("List a = Cons a (List a) | Nil"),
+                NestedString.Item("Nil: List V1"),
+                NestedString.Item("function: V1 -> List V1 -> List V1"),
+                NestedString.Item("function: List Int -> List Int"),
+                NestedString.Item("Cons 10 (Cons 20 (Cons 30 Nil)): List Int"),
+            )
+        )
+    }
+
+    @Test
+    fun dataDeclarationMatch() {
+        assertExecute(
+            "data List a = Cons a (List a) | Nil; let rec range n = if (n == 0) Nil else (Cons n (range (n - 1))) ; match (range 10) with | Nil -> 0 | Cons v _ -> v",
+            listOf(
+                NestedString.Item("List a = Cons a (List a) | Nil"),
+                NestedString.Sequence(
+                    listOf(
+                        NestedString.Item("range = function: Int -> List Int"),
+                    )
+                ),
+                NestedString.Item("10: Int"),
+            )
+        )
     }
 }
 
@@ -181,7 +225,10 @@ private fun assertExecute(input: String, expected: List<NestedString>) {
     ast.forEachIndexed { index, element ->
         val (value, type) = values[index]
 
-        assertEquals(expected[index].toString(), elementToNestedString(value, type, element).toString())
+        if (type == null)
+            assertEquals(expected[index].toString(), (value as List<*>).joinToString(", "))
+        else
+            assertEquals(expected[index].toString(), elementToNestedString(value, type, element).toString())
     }
 }
 

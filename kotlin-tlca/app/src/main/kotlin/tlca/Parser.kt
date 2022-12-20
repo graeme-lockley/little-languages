@@ -45,6 +45,8 @@ data class VarExpression(val name: String) : Expression()
 
 sealed class Pattern
 
+data class PConsPattern(val name: String, val args: List<Pattern>) : Pattern()
+
 data class PBoolPattern(val v: Boolean) : Pattern()
 
 data class PIntPattern(val v: Int) : Pattern()
@@ -154,7 +156,9 @@ class ParserVisitor : Visitor<
 
     override fun visitFactor9(a: Token): Expression = VarExpression(a.lexeme)
 
-    override fun visitFactor10(a1: Token, a2: Expression, a3: Token, a4: Token?, a5: MatchCase, a6: List<Tuple2<Token, MatchCase>>): Expression =
+    override fun visitFactor10(a: Token): Expression = VarExpression(a.lexeme)
+
+    override fun visitFactor11(a1: Token, a2: Expression, a3: Token, a4: Token?, a5: MatchCase, a6: List<Tuple2<Token, MatchCase>>): Expression =
         MatchExpression(a2, listOf(a5) + a6.map { it.b })
 
     override fun visitCase(a1: Pattern, a2: Token, a3: Expression): MatchCase = MatchCase(a1, a3)
@@ -177,6 +181,8 @@ class ParserVisitor : Visitor<
     override fun visitPattern6(a: Token): Pattern =
         if (a.lexeme == "_") PWildcardPattern else PVarPattern(a.lexeme)
 
+    override fun visitPattern7(a1: Token, a2: List<Pattern>): Pattern = PConsPattern(a1.lexeme, a2)
+
     override fun visitDataDeclaration(a1: Token, a2: TypeDeclaration, a3: List<Tuple2<Token, TypeDeclaration>>): DataDeclaration =
         DataDeclaration(listOf(a2) + a3.map { it.b })
 
@@ -191,7 +197,8 @@ class ParserVisitor : Visitor<
 
     override fun visitConstructorDeclaration(a1: Token, a2: List<TypeTerm>): ConstructorDeclaration = ConstructorDeclaration(a1.lexeme, a2)
 
-    override fun visitType(a1: TypeTerm, a2: List<Tuple2<Token, TypeTerm>>): TypeTerm = composeFunctionType(a1, a2.map { it.b })
+    override fun visitType(a1: TypeTerm, a2: List<Tuple2<Token, TypeTerm>>): TypeTerm =
+        composeFunctionType(listOf(a1) + a2.map { it.b })
 
     override fun visitADTType1(a1: Token, a2: List<TypeTerm>): TypeTerm = TypeConstructor(a1.lexeme, a2)
 
@@ -210,7 +217,7 @@ class ParserVisitor : Visitor<
 
     private fun composeLambda(names: List<String>, e: Expression): Expression = names.foldRight(e) { name, acc -> LamExpression(name, acc) }
 
-    private fun composeFunctionType(t: TypeTerm, ts: List<TypeTerm>): TypeTerm = ts.foldRight(t) { t1, acc -> TypeFunction(t1, acc) }
+    private fun composeFunctionType(ts: List<TypeTerm>): TypeTerm = ts.dropLast(1).foldRight(ts.last()) { t1, acc -> TypeFunction(t1, acc) }
 }
 
 fun parse(scanner: Scanner): List<Element> =

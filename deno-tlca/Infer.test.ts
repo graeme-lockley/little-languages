@@ -3,6 +3,7 @@ import { Constraints } from "./Constraints.ts";
 import { inferPattern, inferProgram } from "./Infer.ts";
 import { parse, Pattern } from "./Parser.ts";
 import {
+  createFresh,
   DataDefinition,
   emptyTypeEnv,
   Scheme,
@@ -35,6 +36,8 @@ Deno.test("infer Apply", () => {
       )
       .extend("b", new Scheme(new Set(), typeInt)),
     parse("a b"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -50,6 +53,8 @@ Deno.test("infer If", () => {
       .extend("b", new Scheme(new Set(), typeInt))
       .extend("c", new Scheme(new Set(["T"]), new TVar("T"))),
     parse("if (a) b else c"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -63,6 +68,8 @@ Deno.test("infer Lam", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("\\x -> x 10"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -75,6 +82,8 @@ Deno.test("infer Let", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("let x = 10 and y = x + 1 ; y"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -87,6 +96,8 @@ Deno.test("infer LBool", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("True"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, []);
@@ -97,6 +108,8 @@ Deno.test("infer LInt", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("123"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertEquals(constraints.constraints.length, 0);
@@ -107,6 +120,8 @@ Deno.test("infer LString", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse('"hello"'),
+    new Constraints(),
+    createFresh(),
   );
 
   assertEquals(constraints.constraints.length, 0);
@@ -117,6 +132,8 @@ Deno.test("infer LTuple", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse('(1, "hello", True)'),
+    new Constraints(),
+    createFresh(),
   );
 
   assertEquals(constraints.constraints.length, 0);
@@ -127,6 +144,8 @@ Deno.test("infer LUnit", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("()"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertEquals(constraints.constraints.length, 0);
@@ -137,6 +156,8 @@ Deno.test("infer Match", () => {
   const [constraints, type] = inferProgram(
     emptyTypeEnv,
     parse("match (1, 2) with (x, y) -> x + y"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, [
@@ -256,6 +277,8 @@ Deno.test("infer Op", () => {
         .extend("a", new Scheme(new Set(["T"]), new TVar("T")))
         .extend("b", new Scheme(new Set(["T"]), new TVar("T"))),
       parse(input),
+      new Constraints(),
+      createFresh(),
     );
 
     assertConstraintsEquals(constraints, [
@@ -278,6 +301,8 @@ Deno.test("infer Var", () => {
       new Scheme(new Set(["T"]), new TArr(new TVar("T"), new TVar("T"))),
     ),
     parse("a"),
+    new Constraints(),
+    createFresh(),
   );
 
   assertConstraintsEquals(constraints, []);
@@ -293,7 +318,12 @@ const assertInferPatternWithEnv = (
 ) => {
   const constraints = new Constraints();
 
-  const [type, typeEnv] = inferPattern(input, defaultEnv, constraints);
+  const [type, typeEnv] = inferPattern(
+    input,
+    defaultEnv,
+    constraints,
+    createFresh(),
+  );
 
   assertConstraintsEquals(constraints, expectedConstraints);
   assertEquals(type.toString(), expectedType);

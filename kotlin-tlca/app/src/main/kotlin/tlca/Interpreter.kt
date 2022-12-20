@@ -31,37 +31,102 @@ typealias Value = Any
 
 typealias RuntimeEnv = Map<String, Value?>
 
-data class TypedValue(val value: Value?, val type: Type)
+data class TypedValue(val value: Value?, val type: Type?)
 
 data class ExecuteResult(val values: List<TypedValue>, val env: Environment)
 
 fun execute(ast: List<Element>, defaultEnv: Environment = emptyEnvironment): ExecuteResult {
-    val pump = Pump()
     val values = mutableListOf<TypedValue>()
     var env = defaultEnv
 
     for (e in ast) {
-        if (e is Expression) {
-            val inferResult = infer(env.typeEnv, e, Constraints(), pump)
+        env = when (e) {
+            is Expression ->
+                executeExpression(env, e, values)
 
-            val subst = inferResult.constraints.solve()
-            val type = inferResult.type.apply(subst)
-
-            val evaluateResult: EvaluateResult = when (e) {
-                is LetExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
-                is LetRecExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
-                else -> EvaluateResult(evaluate(e, env.runtimeEnv), env.runtimeEnv)
-            }
-
-            values.add(TypedValue(evaluateResult.value, type))
-
-            env = Environment(evaluateResult.env, inferResult.typeEnv)
-        } else {
-            TODO()
+            is DataDeclaration ->
+                executeDataDeclaration(env, e, values)
         }
     }
 
     return ExecuteResult(values, env)
+}
+
+private fun executeExpression(
+    env: Environment,
+    e: Expression,
+    values: MutableList<TypedValue>
+): Environment {
+    val pump = Pump()
+    val inferResult = infer(env.typeEnv, e, Constraints(), pump)
+
+    val subst = inferResult.constraints.solve()
+    val type = inferResult.type.apply(subst)
+
+    val evaluateResult: EvaluateResult = when (e) {
+        is LetExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
+        is LetRecExpression -> evaluateDeclarations(e.decls, e.expr, env.runtimeEnv)
+        else -> EvaluateResult(evaluate(e, env.runtimeEnv), env.runtimeEnv)
+    }
+
+    values.add(TypedValue(evaluateResult.value, type))
+
+    return Environment(evaluateResult.env, inferResult.typeEnv)
+}
+
+private fun executeDataDeclaration(
+    initialEnv: Environment,
+    dd: DataDeclaration,
+    values: MutableList<TypedValue>
+): Environment {
+    var env = initialEnv
+
+    for (d in dd.decls) {
+        if (env.typeEnv.data(d.name) != null) {
+            throw RuntimeException("Data type ${d.name} already exists")
+        }
+        env = env.copy(typeEnv = env.typeEnv.addData(DataDefinition(d.name, d.parameters, emptyList())))
+    }
+
+    val adts: MutableList<DataDefinition> = mutableListOf()
+    for (d in dd.decls) {
+        val adt = DataDefinition(d.name, d.parameters, d.constructors.map { c -> DataConstructor(c.name, c.parameters.map { translate(it, env) }) })
+        adts.add(adt)
+        env = env.copy(typeEnv = env.typeEnv.addData(adt))
+
+        val parameters = d.parameters.toSet()
+        val constructorResultType: Type = TCon(d.name, d.parameters.map { TVar(it) })
+        for (c in d.constructors) {
+            val constructorType = c.parameters.foldRight(constructorResultType) { p, acc -> TArr(translate(p, env), acc) }
+            env = env.copy(
+                runtimeEnv = env.runtimeEnv + Pair(c.name, mkConstructorFunction(c.name, c.parameters.size)),
+                typeEnv = env.typeEnv.extend(c.name, Scheme(parameters, constructorType))
+            )
+        }
+    }
+    values.add(TypedValue(adts, null))
+
+    return env
+}
+
+private fun mkConstructorFunction(name: String, arity: Int): Value {
+    when (arity) {
+        0 -> return arrayOf(name)
+        1 -> return { a1: Value -> arrayOf(name, a1) }
+        2 -> return { a1: Value -> { a2: Value -> arrayOf(name, a1, a2) } }
+        3 -> return { a1: Value -> { a2: Value -> { a3: Value -> arrayOf(name, a1, a2, a3) } } }
+        4 -> return { a1: Value -> { a2: Value -> { a3: Value -> { a4: Value -> arrayOf(name, a1, a2, a3, a4) } } } }
+        5 -> return { a1: Value -> { a2: Value -> { a3: Value -> { a4: Value -> { a5: Value -> arrayOf(name, a1, a2, a3, a4, a5) } } } } }
+        else -> throw RuntimeException("TooManyConstructorArgumentsErrors: $arity")
+    }
+}
+
+private fun translate(tt: TypeTerm, env: Environment): Type = when (tt) {
+    is TypeVariable -> TVar(tt.name)
+    is TypeConstructor -> TCon(tt.name, tt.parameters.map { translate(it, env) })
+    is TypeFunction -> TArr(translate(tt.left, env), translate(tt.right, env))
+    is TypeTuple -> TTuple(tt.parameters.map { translate(it, env) })
+    is TypeUnit -> typeUnit
 }
 
 private val binaryOps: Map<Op, (Any?, Any?) -> Any> = mapOf(
@@ -132,8 +197,22 @@ private fun matchPattern(pattern: Pattern, value: Any?, env: RuntimeEnv): Runtim
             }
             newEnv
         }
+
         PUnitPattern -> if (value == null) env else null
         PWildcardPattern -> env
+        is PConsPattern -> {
+            if (value is Array<*> && value[0] == pattern.name) {
+                var newEnv: RuntimeEnv? = env
+                for ((p, v) in pattern.args.zip(value.drop(1))) {
+                    if (newEnv != null) {
+                        newEnv = matchPattern(p, v, newEnv)
+                    }
+                }
+                newEnv
+            } else {
+                null
+            }
+        }
     }
 
 private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, env: RuntimeEnv): EvaluateResult {
@@ -153,19 +232,23 @@ private fun evaluateDeclarations(decls: List<Declaration>, expr: Expression?, en
     }
 }
 
-fun valueToString(value: Value?, type: Type): String =
-    when (type) {
-        typeUnit -> "()"
-        typeString -> "\"${(value as String).replace("\"", "\\\"")}\""
-        is TTuple -> {
-            val values = value as List<Value?>
-            val types = type.types
+fun valueToString(value: Value?): String =
+    when (value) {
+        null -> "()"
+        is Boolean -> value.toString()
+        is Int -> value.toString()
+        is String -> "\"${value.replace("\"", "\\\"")}\""
+        is List<*> -> value.map { it }.joinToString(", ", "(", ")") { valueToString(it) }
+        is Array<*> -> {
+            val name = value[0] as String
 
-            values.zip(types).joinToString(", ", "(", ")") { (v, t) -> valueToString(v, t) }
+            if (value.size > 1)
+                "$name ${value.drop(1).joinToString(" ") { if (it is Array<*> && it.size > 1) "(${valueToString(it)})" else valueToString(it) }}"
+            else
+                name
         }
 
-        is TArr -> "function"
-        else -> value.toString()
+        else -> "function"
     }
 
 fun elementToNestedString(value: Value?, type: Type, e: Element): NestedString {
@@ -173,10 +256,7 @@ fun elementToNestedString(value: Value?, type: Type, e: Element): NestedString {
         NestedString.Sequence(decls.mapIndexed { i, d ->
             NestedString.Item(
                 "${d.n} = ${
-                    valueToString(
-                        (value as List<Value?>)[i],
-                        type.types[i]
-                    )
+                    valueToString((value as List<Value?>)[i])
                 }: ${type.types[i]}"
             )
         })
@@ -184,7 +264,7 @@ fun elementToNestedString(value: Value?, type: Type, e: Element): NestedString {
     return when {
         e is LetExpression && type is TTuple -> declarationsToNestedString(e.decls, type)
         e is LetRecExpression && type is TTuple -> declarationsToNestedString(e.decls, type)
-        else -> NestedString.Item("${valueToString(value, type)}: $type")
+        else -> NestedString.Item("${valueToString(value)}: $type")
     }
 }
 

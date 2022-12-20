@@ -1,5 +1,6 @@
 import { defaultEnv, Env, executeProgram } from "./Interpreter.ts";
 import { parse } from "./Parser.ts";
+import { Subst, TVar, Type } from "./Typing.ts";
 import {
   expressionToNestedString,
   nestedStringToString,
@@ -24,6 +25,24 @@ const readline = (): string | null => {
   }
 };
 
+const renameTypeVariables = (type: Type): Type => {
+  let i = 0;
+
+  const nextVar = (): string => {
+    if (i < 26) {
+      return String.fromCharCode(97 + i++);
+    } else {
+      return `t${i++}`;
+    }
+  };
+
+  const vars = type.ftv();
+  const subst = new Subst(
+    new Map([...vars].map((v) => [v, new TVar(nextVar())])),
+  );
+  return type.apply(subst);
+};
+
 const execute = (line: string, env: Env): Env => {
   const ast = parse(line);
   const [result, newEnv] = executeProgram(ast, env);
@@ -35,7 +54,9 @@ const execute = (line: string, env: Env): Env => {
       const [value, type] = result[i];
 
       console.log(
-        nestedStringToString(expressionToNestedString(value, type!, e)),
+        nestedStringToString(
+          expressionToNestedString(value, renameTypeVariables(type!), e),
+        ),
       );
     }
   });
