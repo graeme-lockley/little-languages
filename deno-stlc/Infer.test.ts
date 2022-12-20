@@ -82,7 +82,7 @@ Deno.test("infer Let", () => {
   );
 
   assertConstraintsEquals(constraints, [
-    "Int -> Int -> V1 ~ Int -> Int -> Int"
+    "Int -> Int -> V1 ~ Int -> Int -> Int",
   ]);
   assertTypeEquals(type, "Int");
 });
