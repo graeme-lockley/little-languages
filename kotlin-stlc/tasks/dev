@@ -97,6 +97,10 @@ interpreter_scenarios)
     interpreter_scenarios
     ;;
 
+jar)
+    build_jar
+    ;;
+
 run)
     build_parser
     unit_tests
