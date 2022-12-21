@@ -57,8 +57,8 @@ export const execute = (
         a === undefined
           ? 0
           : a[1] === null
-            ? 1
-            : 1 + activationDepth(a[1].previous);
+          ? 1
+          : 1 + activationDepth(a[1].previous);
 
       if (v == null || v == undefined) {
         return "-";
@@ -86,8 +86,9 @@ export const execute = (
       return `<${closureString}, ${ipString}, [${variablesString}]>`;
     };
 
-    return `[${stack.map(valueToString).join(", ")}] :: ${activationToString(activation)
-      }`;
+    return `[${stack.map(valueToString).join(", ")}] :: ${
+      activationToString(activation)
+    }`;
   };
 
   const readIntFrom = (ip: number): number =>
@@ -101,7 +102,8 @@ export const execute = (
       const args = op.args.map((_, i) => readIntFrom(ip + i * 4));
 
       console.log(
-        `${ip - 1}: ${op.name}${args.length > 0 ? " " : ""}${args.join(" ")
+        `${ip - 1}: ${op.name}${args.length > 0 ? " " : ""}${
+          args.join(" ")
         }: ${stackToString()}`,
       );
     }
