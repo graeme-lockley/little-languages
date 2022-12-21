@@ -40,21 +40,29 @@ fun execute(ast: List<Element>, defaultEnv: Environment = emptyEnvironment): Exe
     var env = defaultEnv
 
     for (e in ast) {
-        env = when (e) {
-            is Expression ->
-                executeExpression(env, e, values)
-
-            is DataDeclaration ->
-                executeDataDeclaration(env, e, values)
-        }
+        env = executeElement(e, env, values)
     }
 
     return ExecuteResult(values, env)
 }
 
-private fun executeExpression(
+private fun executeElement(
+    e: Element,
     env: Environment,
+    values: MutableList<TypedValue>
+): Environment =
+    when (e) {
+        is Expression ->
+            executeExpression(e, env, values)
+
+        is DataDeclaration ->
+            executeDataDeclaration(e, env, values)
+    }
+
+
+private fun executeExpression(
     e: Expression,
+    env: Environment,
     values: MutableList<TypedValue>
 ): Environment {
     val pump = Pump()
@@ -75,8 +83,8 @@ private fun executeExpression(
 }
 
 private fun executeDataDeclaration(
-    initialEnv: Environment,
     dd: DataDeclaration,
+    initialEnv: Environment,
     values: MutableList<TypedValue>
 ): Environment {
     var env = initialEnv
