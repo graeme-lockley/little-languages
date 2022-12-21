@@ -1,0 +1,7 @@
+let rec 
+  isOdd n = 
+    if (n == 0) False else isEven (n - 1); 
+  isEven n = 
+    if (n == 0) True else isOdd (n - 1) 
+in 
+  isOdd 55
