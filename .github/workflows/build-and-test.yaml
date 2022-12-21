@@ -73,6 +73,21 @@ jobs:
           cd ./kotlin-stlc
           ./tasks/dev unit
 
+      - name: Create JAR
+        run: |
+          cd ./kotlin-stlc
+          ./tasks/dev jar
+
+      - name: Run interpreter scenarios
+        run: |
+          cd ./kotlin-stlc
+          ./tasks/dev interpreter_scenarios
+
+      - name: Run compiler scenarios
+        run: |
+          cd ./kotlin-stlc
+          ./tasks/dev compiler_scenarios
+
   'tlca-deno':
     runs-on: ubuntu-latest
 

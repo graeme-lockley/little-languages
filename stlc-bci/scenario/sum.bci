@@ -4,7 +4,7 @@
 #       \i -> if (i == n) i else i + (total (i + 1))
 #     in total 0
 # in
-#   sum 3
+#   sum 10
 
   ENTER 1
   PUSH_CLOSURE $$sum

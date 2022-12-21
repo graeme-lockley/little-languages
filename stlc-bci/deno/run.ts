@@ -57,8 +57,8 @@ export const execute = (
         a === undefined
           ? 0
           : a[1] === null
-          ? 1
-          : 1 + activationDepth(a[1].previous);
+            ? 1
+            : 1 + activationDepth(a[1].previous);
 
       if (v == null || v == undefined) {
         return "-";
@@ -86,9 +86,8 @@ export const execute = (
       return `<${closureString}, ${ipString}, [${variablesString}]>`;
     };
 
-    return `[${stack.map(valueToString).join(", ")}] :: ${
-      activationToString(activation)
-    }`;
+    return `[${stack.map(valueToString).join(", ")}] :: ${activationToString(activation)
+      }`;
   };
 
   const readIntFrom = (ip: number): number =>
@@ -102,8 +101,7 @@ export const execute = (
       const args = op.args.map((_, i) => readIntFrom(ip + i * 4));
 
       console.log(
-        `${ip - 1}: ${op.name}${args.length > 0 ? " " : ""}${
-          args.join(" ")
+        `${ip - 1}: ${op.name}${args.length > 0 ? " " : ""}${args.join(" ")
         }: ${stackToString()}`,
       );
     }
@@ -127,6 +125,11 @@ export const execute = (
     }
 
     switch (op) {
+      case InstructionOpCode.JMP: {
+        ip = readInt();
+        break;
+      }
+
       case InstructionOpCode.JMP_TRUE: {
         const targetIP = readInt();
         const v = stack.pop() as BoolValue;
@@ -149,6 +152,14 @@ export const execute = (
         stack.push(argument);
         break;
       }
+      case InstructionOpCode.PUSH_TRUE: {
+        stack.push({ tag: "BoolValue", value: true });
+        break;
+      }
+      case InstructionOpCode.PUSH_FALSE: {
+        stack.push({ tag: "BoolValue", value: false });
+        break;
+      }
       case InstructionOpCode.PUSH_INT: {
         const value = readInt();
 
@@ -168,10 +179,31 @@ export const execute = (
         break;
       }
       case InstructionOpCode.ADD: {
-        const a = stack.pop() as IntValue;
         const b = stack.pop() as IntValue;
+        const a = stack.pop() as IntValue;
 
-        stack.push({ tag: "IntValue", value: a.value + b.value });
+        stack.push({ tag: "IntValue", value: (a.value + b.value) | 0 });
+        break;
+      }
+      case InstructionOpCode.SUB: {
+        const b = stack.pop() as IntValue;
+        const a = stack.pop() as IntValue;
+
+        stack.push({ tag: "IntValue", value: (a.value - b.value) | 0 });
+        break;
+      }
+      case InstructionOpCode.MUL: {
+        const b = stack.pop() as IntValue;
+        const a = stack.pop() as IntValue;
+
+        stack.push({ tag: "IntValue", value: (a.value * b.value) | 0 });
+        break;
+      }
+      case InstructionOpCode.DIV: {
+        const b = stack.pop() as IntValue;
+        const a = stack.pop() as IntValue;
+
+        stack.push({ tag: "IntValue", value: (a.value / b.value) | 0 });
         break;
       }
       case InstructionOpCode.EQ: {
@@ -181,8 +213,10 @@ export const execute = (
         stack.push({ tag: "BoolValue", value: a.value === b.value });
         break;
       }
-      case InstructionOpCode.CALL: {
+      case InstructionOpCode.SWAP_CALL: {
+        const v = stack.pop();
         const closure = stack.pop() as ClosureValue;
+        stack.push(v);
         const newActivation: Activation = [activation, closure, ip, null];
         ip = closure.ip;
         activation = newActivation;

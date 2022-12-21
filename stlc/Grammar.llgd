@@ -9,25 +9,25 @@ Expression
     ;
 
 Relational
-    : Multiplicative ["==" Multiplicative]
-    ;
-
-Multiplicative
-    : Additive {MultiplicativeOps Additive}
-    ;
-
-MultiplicativeOps
-    : "*"
-    | "/"
+    : Additive ["==" Additive]
     ;
 
 Additive
-    : Factor {AdditiveOps Factor}
+    : Multiplicative {AdditiveOps Multiplicative}
     ;
 
 AdditiveOps
     : "+"
     | "-"
+    ;
+
+Multiplicative
+    : Factor {MultiplicativeOps Factor}
+    ;
+
+MultiplicativeOps
+    : "*"
+    | "/"
     ;
 
 Factor
