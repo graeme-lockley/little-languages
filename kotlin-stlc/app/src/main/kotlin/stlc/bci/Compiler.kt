@@ -113,9 +113,9 @@ private fun compile(toplevel: Expression, builder: Builder) {
                 var newEnv = env
 
                 for (d in e.decls) {
-                    newEnv = newEnv.bind(d.n)
+                    compileExpression(d.e, bb, newEnv)
 
-                    compileExpression(d.e, bb, env)
+                    newEnv = newEnv.bind(d.n)
                     bb.writeOpCode(InstructionOpCode.STORE_VAR)
                     bb.writeInt(newEnv.variables[d.n]!!.offset)
                 }
