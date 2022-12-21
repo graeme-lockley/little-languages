@@ -216,7 +216,7 @@ export const execute = (
         break;
       }
       case InstructionOpCode.SWAP_CALL: {
-        const v = stack.pop();
+        const v = stack.pop()!;
         const closure = stack.pop() as ClosureValue;
         stack.push(v);
         const newActivation: Activation = [activation, closure, ip, null];
