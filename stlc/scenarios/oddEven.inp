@@ -4,4 +4,4 @@ let rec
   isEven n = 
     if (n == 0) True else isOdd (n - 1) 
 in 
-  isOdd 100001
+  isOdd 55
