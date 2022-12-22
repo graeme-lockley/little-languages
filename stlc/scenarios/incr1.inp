@@ -1,0 +1,4 @@
+let
+  incr = \n -> n + 1
+in
+  incr 10
