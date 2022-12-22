@@ -7,32 +7,25 @@
   ENTER 2
   PUSH_CLOSURE $$add
   STORE_VAR 0
-  PUSH_CLOSURE $$incr
+  PUSH_VAR 0 0
+  PUSH_INT 1
+  SWAP_CALL
   STORE_VAR 1
-  PUSH_INT 10
   PUSH_VAR 0 1
-  CALL
+  PUSH_INT 10
+  SWAP_CALL
   RET
 
 :$$add
-  ENTER 2
+  ENTER 1
   STORE_VAR 0
-  PUSH_CLOSURE $$add_1
-  STORE_VAR 1
-  PUSH_VAR 0 1
-  CALL
+  PUSH_CLOSURE $$add1
   RET
 
-:$$add_1
+:$$add1
   ENTER 1
   STORE_VAR 0
   PUSH_VAR 1 0
   PUSH_VAR 0 0
   ADD
-  RET
-
-:$$incr
-  PUSH_INT 1
-  PUSH_VAR 1 0
-  CALL
   RET
