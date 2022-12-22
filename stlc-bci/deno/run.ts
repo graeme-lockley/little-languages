@@ -70,20 +70,21 @@ export const execute = (
         case "BoolValue":
           return `${v.value}`;
         case "ClosureValue":
-          return `ClosureValue(${v.ip}, #${activationDepth(v.previous)})`;
+          return `c${v.ip}#${activationDepth(v.previous)}`;
       }
     };
 
     const activationToString = (a: Activation): string => {
       const [, closure, ip, variables] = a;
 
+      const activationString = a[0] === null ? "-" : activationToString(a[0]);
       const closureString = closure === null ? "-" : valueToString(closure);
       const ipString = ip === null ? "-" : `${ip}`;
       const variablesString = variables === null
         ? "-"
-        : variables.map(valueToString).join(", ");
+        : `[${variables.map(valueToString).join(", ")}]`;
 
-      return `<${closureString}, ${ipString}, [${variablesString}]>`;
+      return `<${activationString}, ${closureString}, ${ipString}, ${variablesString}>`;
     };
 
     return `[${stack.map(valueToString).join(", ")}] :: ${
@@ -228,7 +229,7 @@ export const execute = (
         const size = readInt();
 
         if (activation[3] === null) {
-          activation[3] = Array(size);
+          activation[3] = Array(size).fill(undefined);
         } else {
           throw new Error(`ENTER: Activation already exists: ${bciState()}`);
         }

@@ -1,0 +1,7 @@
+src/*.o
+src/main
+
+test/*.o
+test/test-runner
+
+compile_commands.json
