@@ -16,7 +16,36 @@ build_bin() {
         echo "- scenario test: $FILE"
         deno run --allow-read --allow-write ../deno/bci.ts asm "$FILE" || exit 1
     done
+}
 
+unit_tests() {
+    echo "---| run unit tests"
+
+    cd "$PROJECT_HOME" || exit 1
+
+    for FILE in "$PROJECT_HOME"/test/*.bci; do
+        echo "- unit test: $FILE"
+        deno run --allow-read --allow-write ../deno/bci.ts asm "$FILE" || exit 1
+        ./src/bci run "$PROJECT_HOME"/test/$(basename "$FILE" .bci).bin | tee t.txt || exit 1
+
+        if grep -q "Memory leak detected" t.txt; then
+            echo "scenario test failed: $FILE"
+            echo "Memory leak detected"
+            rm t.txt
+            exit 1
+        fi
+
+        grep -v "^gc" t.txt > t2.txt
+        if ! diff -q "$PROJECT_HOME"/test/$(basename "$FILE" .bci).out t2.txt; then
+            echo "scenario test failed: $FILE"
+            diff "$PROJECT_HOME"/test/$(basename "$FILE" .bci).out t2.txt
+            rm t.txt t2.txt
+            exit 1
+        fi
+
+
+        rm t.txt t2.txt
+    done
 }
 
 scenario_tests() {
@@ -37,13 +66,6 @@ scenario_tests() {
 
         rm t.txt
     done
-
-}
-
-unit_tests() {
-    echo "---| unit tests"
-    cd "$PROJECT_HOME" || exit 1
-    ./gradlew test || exit 1
 }
 
 case "$1" in
@@ -58,6 +80,8 @@ case "$1" in
     echo "    Assemble the scenario bin files"
     echo "  scenario"
     echo "    Run the different scenario tests"
+    echo "  unit"
+    echo "    Run the different unit tests"
     echo "  run"
     echo "    Run all tasks"
     ;;
@@ -74,8 +98,13 @@ scenario)
     scenario_tests
     ;;
 
+unit)
+    unit_tests
+    ;;
+
 run)
     build_bci
+    unit_tests
     build_bin
     scenario_tests
     ;;

@@ -11,9 +11,6 @@ struct State
 {
     unsigned char *block;
     int32_t ip;
-    int32_t sp;
-
-    Value *activation;
 
     MemoryState memoryState;
 };
@@ -24,10 +21,8 @@ static struct State initState(unsigned char *block)
 
     state.block = block;
     state.ip = 0;
-    state.sp = 0;
-    state.activation = value_newActivation(NULL, NULL, -1, 0);
-    state.memoryState.stackSize = DEFAULT_STACK_SIZE;
-    state.memoryState.stack = ALLOCATE(Value *, DEFAULT_STACK_SIZE);
+    state.memoryState = value_newMemoryManager(DEFAULT_STACK_SIZE);
+    state.memoryState.activation = value_newActivation(NULL, NULL, -1, &state.memoryState);
 
     return state;
 }
@@ -66,17 +61,20 @@ static void logInstruction(struct State *state)
     }
     printf(": [");
 
-    for (int i = 0; i < state->sp; i++)
+    for (int i = 0; i < state->memoryState.sp; i++)
     {
+        // printf("--- %d of %d\n", i, state->memoryState.sp);
         char *value = value_toString(state->memoryState.stack[i]);
         printf("%s", value);
         FREE(value);
-        if (i < state->sp - 1)
+        // printf("\n");
+        if (i < state->memoryState.sp - 1)
             printf(", ");
     }
     printf("] ");
+    // printf("\n");
 
-    char *a = value_toString(state->activation);
+    char *a = value_toString(state->memoryState.activation);
     printf("%s ", a);
     FREE(a);
 
@@ -90,34 +88,13 @@ static int32_t readInt(struct State *state)
     return result;
 }
 
-static void push(struct State *state, Value *value)
-{
-    if (state->sp == state->memoryState.stackSize)
-    {
-        state->memoryState.stackSize *= 2;
-        state->memoryState.stack = REALLOCATE(state->memoryState.stack, Value *, state->memoryState.stackSize);
-    }
-
-    state->memoryState.stack[state->sp++] = value;
-}
-
-static Value *pop(struct State *state)
-{
-    if (state->sp == 0)
-    {
-        printf("Run: pop: stack is empty\n");
-        exit(1);
-    }
-
-    return state->memoryState.stack[--state->sp];
-}
-
 void execute(unsigned char *block, int debug)
 {
     struct State state = initState(block);
 
     while (1)
     {
+        // forceGC(&state.memoryState);
         if (debug)
         {
             logInstruction(&state);
@@ -127,15 +104,15 @@ void execute(unsigned char *block, int debug)
         switch (opcode)
         {
         case PUSH_TRUE:
-            push(&state, value_True);
+            push(value_True, &state.memoryState);
             break;
         case PUSH_FALSE:
-            push(&state, value_False);
+            push(value_False, &state.memoryState);
             break;
         case PUSH_INT:
         {
             int32_t value = readInt(&state);
-            push(&state, value_newInt(value));
+            value_newInt(value, &state.memoryState);
             break;
         }
         case PUSH_VAR:
@@ -143,7 +120,7 @@ void execute(unsigned char *block, int debug)
             int32_t index = readInt(&state);
             int32_t offset = readInt(&state);
 
-            Value *a = state.activation;
+            Value *a = state.memoryState.activation;
             while (index > 0)
             {
                 if (value_getType(a) != VActivation)
@@ -169,75 +146,74 @@ void execute(unsigned char *block, int debug)
                 printf("Run: PUSH_VAR: offset out of bounds: %d >= %d\n", offset, a->data.a.stateSize);
                 exit(1);
             }
-            push(&state, a->data.a.state[offset]);
+            push(a->data.a.state[offset], &state.memoryState);
 
             break;
         }
         case PUSH_CLOSURE:
         {
             int32_t targetIP = readInt(&state);
-            Value *closure = value_newClosure(state.activation, targetIP);
-            push(&state, closure);
+            value_newClosure(state.memoryState.activation, targetIP, &state.memoryState);
             break;
         }
         case ADD:
         {
-            Value *b = pop(&state);
-            Value *a = pop(&state);
+            Value *b = pop(&state.memoryState);
+            Value *a = pop(&state.memoryState);
             if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: ADD: not an int\n");
                 exit(1);
             }
-            push(&state, value_newInt(a->data.i + b->data.i));
+            value_newInt(a->data.i + b->data.i, &state.memoryState);
             break;
         }
         case SUB:
         {
-            Value *b = pop(&state);
-            Value *a = pop(&state);
+            Value *b = pop(&state.memoryState);
+            Value *a = pop(&state.memoryState);
             if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: SUB: not an int\n");
                 exit(1);
             }
-            push(&state, value_newInt(a->data.i - b->data.i));
+            value_newInt(a->data.i - b->data.i, &state.memoryState);
             break;
         }
         case MUL:
         {
-            Value *b = pop(&state);
-            Value *a = pop(&state);
+            Value *b = pop(&state.memoryState);
+            Value *a = pop(&state.memoryState);
             if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: MUL: not an int\n");
                 exit(1);
             }
-            push(&state, value_newInt(a->data.i * b->data.i));
+            value_newInt(a->data.i * b->data.i, &state.memoryState);
             break;
         }
         case DIV:
         {
-            Value *b = pop(&state);
-            Value *a = pop(&state);
+            Value *b = pop(&state.memoryState);
+            Value *a = pop(&state.memoryState);
             if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: DIV: not an int\n");
                 exit(1);
             }
-            push(&state, value_newInt(a->data.i / b->data.i));
+            value_newInt(a->data.i / b->data.i, &state.memoryState);
             break;
         }
         case EQ:
         {
-            Value *b = pop(&state);
-            Value *a = pop(&state);
+            Value *b = pop(&state.memoryState);
+            Value *a = pop(&state.memoryState);
             if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: EQ: not an int\n");
                 exit(1);
             }
-            push(&state, a->data.i == b->data.i ? value_True : value_False);
+            push(a->data.i == b->data.i ? value_True : value_False, &state.memoryState);
             break;
         }
         case JMP:
@@ -249,7 +225,7 @@ void execute(unsigned char *block, int debug)
         case JMP_TRUE:
         {
             int32_t targetIP = readInt(&state);
-            Value *v = pop(&state);
+            Value *v = pop(&state.memoryState);
             if (value_getType(v) != VBool)
             {
                 printf("Run: JMP_TRUE: not a bool\n");
@@ -261,25 +237,24 @@ void execute(unsigned char *block, int debug)
         }
         case SWAP_CALL:
         {
-            Value *v = pop(&state);
-            Value *closure = pop(&state);
-            push(&state, v);
-            Value *newActivation = value_newActivation(state.activation, closure, state.ip, 0);
-            state.ip = closure->data.c.ip;
-            state.activation = newActivation;
+            Value *newActivation = value_newActivation(state.memoryState.activation, peek(1, &state.memoryState), state.ip, &state.memoryState);
+            state.ip = peek(2, &state.memoryState)->data.c.ip;
+            state.memoryState.activation = newActivation;
+            state.memoryState.stack[state.memoryState.sp - 3] = state.memoryState.stack[state.memoryState.sp - 2];
+            popN(2, &state.memoryState);
             break;
         }
         case ENTER:
         {
             int32_t size = readInt(&state);
 
-            if (state.activation->data.a.state == NULL)
+            if (state.memoryState.activation->data.a.state == NULL)
             {
-                state.activation->data.a.stateSize = size;
-                state.activation->data.a.state = ALLOCATE(Value *, size);
+                state.memoryState.activation->data.a.stateSize = size;
+                state.memoryState.activation->data.a.state = ALLOCATE(Value *, size);
 
                 for (int i = 0; i < size; i++)
-                    state.activation->data.a.state[i] = NULL;
+                    state.memoryState.activation->data.a.state[i] = NULL;
             }
             else
             {
@@ -290,35 +265,52 @@ void execute(unsigned char *block, int debug)
         }
         case RET:
         {
-            if (state.activation->data.a.parentActivation == NULL)
+            if (state.memoryState.activation->data.a.parentActivation == NULL)
             {
-                Value *v = pop(&state);
-                char *result = value_toString(v);
-                printf("%s\n", result);
-                FREE(result);
-                exit(0);
+                Value *v = pop(&state.memoryState);
+                switch (value_getType(v))
+                {
+                case VInt:
+                    printf("%d: Int\n", v->data.i);
+                    break;
+                case VBool:
+                    printf("%s: Bool\n", v->data.b ? "true" : "false");
+                    break;
+                case VClosure:
+                case VActivation:
+                {
+                    char *s = value_toString(v);
+
+                    printf("%s\n", s);
+                    FREE(s);
+                    break;
+                }
+                }
+                value_destroyMemoryManager(&state.memoryState);
+
+                return;
             }
-            state.ip = state.activation->data.a.nextIP;
-            state.activation = state.activation->data.a.parentActivation;
+            state.ip = state.memoryState.activation->data.a.nextIP;
+            state.memoryState.activation = state.memoryState.activation->data.a.parentActivation;
             break;
         }
         case STORE_VAR:
         {
             int32_t index = readInt(&state);
-            Value *value = pop(&state);
+            Value *value = pop(&state.memoryState);
 
-            if (state.activation->data.a.state == NULL)
+            if (state.memoryState.activation->data.a.state == NULL)
             {
                 printf("Run: STORE_VAR: activation has no state\n");
                 exit(1);
             }
-            if (index >= state.activation->data.a.stateSize)
+            if (index >= state.memoryState.activation->data.a.stateSize)
             {
                 printf("Run: STORE_VAR: index out of bounds: %d\n", index);
                 exit(1);
             }
 
-            state.activation->data.a.state[index] = value;
+            state.memoryState.activation->data.a.state[index] = value;
             break;
         }
         default:

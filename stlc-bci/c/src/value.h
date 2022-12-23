@@ -39,9 +39,15 @@ typedef struct Value {
 } Value;
 
 typedef struct {
+    Colour colour;
+
     int size;
     int capacity;
 
+    Value *root;
+    Value *activation;
+
+    int32_t sp;
     int32_t stackSize;
     Value **stack;
 } MemoryState;
@@ -51,10 +57,20 @@ extern Value *value_False;
 
 extern char *value_toString(Value *v);
 
-extern Value *value_newInt(int i);
-extern Value *value_newBool(int b);
-extern Value *value_newClosure(Value *previousActivation, int ip);
-extern Value *value_newActivation(Value *parentActivation, Value *closure, int nextIp, int stateSize);
+extern MemoryState value_newMemoryManager(int initialStackSize);
+extern void value_destroyMemoryManager(MemoryState *mm);
+
+extern void push(Value *value, MemoryState *mm);
+extern Value *pop(MemoryState *mm);
+extern void popN(int n, MemoryState *mm);
+extern Value *peek(int offset, MemoryState *mm);
+
+extern void forceGC(MemoryState *mm);
+
+extern Value *value_newInt(int i, MemoryState *mm);
+extern Value *value_newBool(int b, MemoryState *mm);
+extern Value *value_newClosure(Value *previousActivation, int ip, MemoryState *mm);
+extern Value *value_newActivation(Value *parentActivation, Value *closure, int nextIp, MemoryState *mm);
 
 extern void value_initialise(void);
 extern void value_finalise(void);

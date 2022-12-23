@@ -1,5 +1,5 @@
 src/*.o
-src/main
+src/bci
 
 test/*.o
 test/test-runner

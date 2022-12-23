@@ -54,10 +54,28 @@ int32_t main(int argc, char *argv[])
     int32_t size;
 
     readBinaryFile(argv[optind + 1], &block, &size);
+
+    int start_memory_allocated = memory_allocated();
+
     op_initialise();
     value_initialise();
 
     execute(block, debug);
+
+    value_finalise();
+    op_finalise();
+
+    int end_memory_allocated = memory_allocated();
+
+    if (debug)
+    {
+      printf(". Memory allocated delta: %d\n", end_memory_allocated - start_memory_allocated);
+
+      if (end_memory_allocated > start_memory_allocated)
+      {
+        printf(". Memory leak detected: %d allocations leaked\n", end_memory_allocated - start_memory_allocated);
+      }
+    }
 
     return 0;
   }
@@ -70,6 +88,7 @@ int32_t main(int argc, char *argv[])
 
     op_initialise();
     dis(block, size);
+    op_finalise();
 
     return 0;
   }

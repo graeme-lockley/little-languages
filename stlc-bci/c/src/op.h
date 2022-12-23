@@ -35,6 +35,8 @@ typedef struct {
 } Instruction;
 
 extern void op_initialise(void);
+extern void op_finalise(void);
+
 extern Instruction* find(InstructionOpCode opcode);
 extern Instruction* findOnName(char *name);
 

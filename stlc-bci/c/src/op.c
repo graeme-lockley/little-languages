@@ -1,13 +1,15 @@
-#include "op.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "memory.h"
+
+#include "op.h"
 
 Instruction **instructions;
 
 static void initInstruction(InstructionOpCode opcode, char *name, int arity, OpParameter *parameters)
 {
-    Instruction *i = (Instruction *)malloc(sizeof(Instruction));
+    Instruction *i = ALLOCATE(Instruction, 1);
 
     i->opcode = opcode;
     i->name = name;
@@ -19,7 +21,7 @@ static void initInstruction(InstructionOpCode opcode, char *name, int arity, OpP
 
 void op_initialise(void)
 {
-    instructions = (Instruction **)malloc(sizeof(Instruction *) * 17);
+    instructions = ALLOCATE(Instruction *, 18);
 
 #define init(name, arity, parameters) initInstruction(name, #name, arity, parameters)
     init(PUSH_TRUE, 0, NULL);
@@ -41,6 +43,19 @@ void op_initialise(void)
     init(STORE_VAR, 1, (OpParameter[]){OPInt});
     instructions[17] = NULL;
 #undef init
+}
+
+void op_finalise(void)
+{
+    Instruction **i = instructions;
+    while (*i != NULL)
+    {
+        FREE(*i);
+        i++;
+    }
+
+    FREE(instructions);
+    instructions = NULL;
 }
 
 Instruction *find(InstructionOpCode opcode)
