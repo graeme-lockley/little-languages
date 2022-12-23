@@ -1,0 +1,87 @@
+#!/bin/bash
+
+PROJECT_HOME=$(dirname "$0")/..
+
+build_bci() {
+    echo "---| build bci"
+    cd "$PROJECT_HOME" || exit 1
+    make || exit 1
+}
+
+build_bin() {
+    echo "---| assemble scenario tests"
+
+    cd "$PROJECT_HOME" || exit 1
+    for FILE in "$PROJECT_HOME"/../scenarios/*.bci; do
+        echo "- scenario test: $FILE"
+        deno run --allow-read --allow-write ../deno/bci.ts asm "$FILE" || exit 1
+    done
+
+}
+
+scenario_tests() {
+    echo "---| run scenario tests"
+
+    cd "$PROJECT_HOME" || exit 1
+
+    for FILE in "$PROJECT_HOME"/../scenarios/*.bci; do
+        echo "- scenario test: $FILE"
+        ./src/bci run "$PROJECT_HOME"/../scenarios/$(basename "$FILE" .bci).bin | tee t.txt || exit 1
+
+        if ! diff -q "$PROJECT_HOME"/../scenarios/$(basename "$FILE" .bci).out t.txt; then
+            echo "scenario test failed: $FILE"
+            diff "$PROJECT_HOME"/../scenarios/$(basename "$FILE" .bci).out t.txt
+            rm t.txt
+            exit 1
+        fi
+
+        rm t.txt
+    done
+
+}
+
+unit_tests() {
+    echo "---| unit tests"
+    cd "$PROJECT_HOME" || exit 1
+    ./gradlew test || exit 1
+}
+
+case "$1" in
+"" | help)
+    echo "Usage: $0 [<command>]"
+    echo "Commands:"
+    echo "  help"
+    echo "    This help page"
+    echo "  bci"
+    echo "    Build the bci binary"
+    echo "  bin"
+    echo "    Assemble the scenario bin files"
+    echo "  scenario"
+    echo "    Run the different scenario tests"
+    echo "  run"
+    echo "    Run all tasks"
+    ;;
+
+bci)
+    build_bci
+    ;;
+
+bin)
+    build_bin
+    ;;
+
+scenario)
+    scenario_tests
+    ;;
+
+run)
+    build_bci
+    build_bin
+    scenario_tests
+    ;;
+
+*)
+    echo "$0: $1: Unknown command"
+    exit 1
+    ;;
+esac
