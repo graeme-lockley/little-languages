@@ -15,8 +15,7 @@ struct State
 
     Value *activation;
 
-    int32_t stackSize;
-    Value **stack;
+    MemoryState memoryState;
 };
 
 static struct State initState(unsigned char *block)
@@ -27,8 +26,8 @@ static struct State initState(unsigned char *block)
     state.ip = 0;
     state.sp = 0;
     state.activation = value_newActivation(NULL, NULL, -1, 0);
-    state.stackSize = DEFAULT_STACK_SIZE;
-    state.stack = ALLOCATE(Value *, DEFAULT_STACK_SIZE);
+    state.memoryState.stackSize = DEFAULT_STACK_SIZE;
+    state.memoryState.stack = ALLOCATE(Value *, DEFAULT_STACK_SIZE);
 
     return state;
 }
@@ -69,7 +68,7 @@ static void logInstruction(struct State *state)
 
     for (int i = 0; i < state->sp; i++)
     {
-        char *value = value_toString(state->stack[i]);
+        char *value = value_toString(state->memoryState.stack[i]);
         printf("%s", value);
         FREE(value);
         if (i < state->sp - 1)
@@ -93,13 +92,13 @@ static int32_t readInt(struct State *state)
 
 static void push(struct State *state, Value *value)
 {
-    if (state->sp == state->stackSize)
+    if (state->sp == state->memoryState.stackSize)
     {
-        state->stackSize *= 2;
-        state->stack = REALLOCATE(state->stack, Value *, state->stackSize);
+        state->memoryState.stackSize *= 2;
+        state->memoryState.stack = REALLOCATE(state->memoryState.stack, Value *, state->memoryState.stackSize);
     }
 
-    state->stack[state->sp++] = value;
+    state->memoryState.stack[state->sp++] = value;
 }
 
 static Value *pop(struct State *state)
@@ -110,7 +109,7 @@ static Value *pop(struct State *state)
         exit(1);
     }
 
-    return state->stack[--state->sp];
+    return state->memoryState.stack[--state->sp];
 }
 
 void execute(unsigned char *block, int debug)
@@ -147,7 +146,7 @@ void execute(unsigned char *block, int debug)
             Value *a = state.activation;
             while (index > 0)
             {
-                if (a->type != VActivation)
+                if (value_getType(a) != VActivation)
                 {
                     printf("Run: PUSH_VAR: intermediate not an activation record: %d\n", index);
                     exit(1);
@@ -155,7 +154,7 @@ void execute(unsigned char *block, int debug)
                 a = a->data.a.closure->data.c.previousActivation;
                 index--;
             }
-            if (a->type != VActivation)
+            if (value_getType(a) != VActivation)
             {
                 printf("Run: PUSH_VAR: not an activation record: %d\n", index);
                 exit(1);
@@ -185,7 +184,7 @@ void execute(unsigned char *block, int debug)
         {
             Value *b = pop(&state);
             Value *a = pop(&state);
-            if (a->type != VInt || b->type != VInt)
+            if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: ADD: not an int\n");
                 exit(1);
@@ -197,7 +196,7 @@ void execute(unsigned char *block, int debug)
         {
             Value *b = pop(&state);
             Value *a = pop(&state);
-            if (a->type != VInt || b->type != VInt)
+            if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: SUB: not an int\n");
                 exit(1);
@@ -209,7 +208,7 @@ void execute(unsigned char *block, int debug)
         {
             Value *b = pop(&state);
             Value *a = pop(&state);
-            if (a->type != VInt || b->type != VInt)
+            if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: MUL: not an int\n");
                 exit(1);
@@ -221,7 +220,7 @@ void execute(unsigned char *block, int debug)
         {
             Value *b = pop(&state);
             Value *a = pop(&state);
-            if (a->type != VInt || b->type != VInt)
+            if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: DIV: not an int\n");
                 exit(1);
@@ -233,7 +232,7 @@ void execute(unsigned char *block, int debug)
         {
             Value *b = pop(&state);
             Value *a = pop(&state);
-            if (a->type != VInt || b->type != VInt)
+            if (value_getType(a) != VInt || value_getType(b) != VInt)
             {
                 printf("Run: EQ: not an int\n");
                 exit(1);
@@ -251,7 +250,7 @@ void execute(unsigned char *block, int debug)
         {
             int32_t targetIP = readInt(&state);
             Value *v = pop(&state);
-            if (v->type != VBool)
+            if (value_getType(v) != VBool)
             {
                 printf("Run: JMP_TRUE: not a bool\n");
                 exit(1);

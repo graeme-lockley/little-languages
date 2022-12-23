@@ -2,6 +2,11 @@
 #define VALUE_H
 
 typedef enum {
+    VBlack = 8,
+    VWhite = 0
+} Colour;
+
+typedef enum {
     VInt,
     VBool,
     VClosure,
@@ -22,6 +27,7 @@ typedef struct Closure {
 } Closure;
 
 typedef struct Value {
+    Colour colour;
     ValueType type;
     union {
         int i;
@@ -29,7 +35,16 @@ typedef struct Value {
         struct Closure c;
         struct Activation a;
     } data;
+    struct Value *next;
 } Value;
+
+typedef struct {
+    int size;
+    int capacity;
+
+    int32_t stackSize;
+    Value **stack;
+} MemoryState;
 
 extern Value *value_True;
 extern Value *value_False;
@@ -42,5 +57,9 @@ extern Value *value_newClosure(Value *previousActivation, int ip);
 extern Value *value_newActivation(Value *parentActivation, Value *closure, int nextIp, int stateSize);
 
 extern void value_initialise(void);
+extern void value_finalise(void);
+
+extern ValueType value_getType(Value *v);
+extern Colour value_getColour(Value *v);
 
 #endif

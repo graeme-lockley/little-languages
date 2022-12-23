@@ -15,7 +15,7 @@ static int activationDepth(Value *v)
     {
         return 0;
     }
-    else if (v->type == VActivation)
+    else if (value_getType(v) == VActivation)
     {
         return 1 + activationDepth(v->data.a.parentActivation);
     }
@@ -32,7 +32,7 @@ char *value_toString(Value *v)
         return STRDUP("-");
     }
 
-    switch (v->type)
+    switch (value_getType(v))
     {
     case VInt:
     {
@@ -119,7 +119,7 @@ Value *value_newBool(int b)
 
 Value *value_newClosure(Value *previousActivation, int ip)
 {
-    if (previousActivation != NULL && previousActivation->type != VActivation)
+    if (previousActivation != NULL && value_getType(previousActivation) != VActivation)
     {
         printf("Error: value_newClosure: previousActivation is not an activation: %s\n", value_toString(previousActivation));
         exit(1);
@@ -136,7 +136,7 @@ Value *value_newClosure(Value *previousActivation, int ip)
 
 Value *value_newActivation(Value *parentActivation, Value *closure, int nextIp, int stateSize)
 {
-    if (parentActivation != NULL && parentActivation->type != VActivation)
+    if (parentActivation != NULL && value_getType(parentActivation) != VActivation)
     {
         printf("Error: value_newActivation: parentActivation is not an activation: %s\n", value_toString(parentActivation));
         exit(1);
@@ -162,4 +162,18 @@ void value_initialise(void)
 {
     value_True = value_newBool(1);
     value_False = value_newBool(0);
+}
+
+void value_finalise(void)
+{
+    FREE(value_True);
+    FREE(value_False);
+}
+
+ValueType value_getType(Value *v) {
+    return v->type & 0x7;
+}
+
+Colour value_getColour(Value *v) {
+    return v->type & 0x8;
 }
