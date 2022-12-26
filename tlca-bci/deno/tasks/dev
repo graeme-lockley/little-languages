@@ -79,9 +79,8 @@ scenario)
     ;;
 
 run)
-    build_bci
-    build_bin
     unit_tests
+    build_bin
     scenario_tests
     ;;
 
