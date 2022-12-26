@@ -1,18 +1,25 @@
 import { find, InstructionOpCode } from "./instructions.ts";
 
-type Value =
-  | IntValue
-  | BoolValue
-  | ClosureValue;
+// import { writeAllSync } from "https://deno.land/std/streams/conversion.ts";
 
-type IntValue = {
-  tag: "IntValue";
-  value: number;
-};
+type Value =
+  | BoolValue
+  | BuiltinValue
+  | ClosureValue
+  | DataValue
+  | IntValue
+  | StringValue
+  | TupleValue
+  | UnitValue;
 
 type BoolValue = {
   tag: "BoolValue";
   value: boolean;
+};
+
+type BuiltinValue = {
+  tag: "BuiltinValue";
+  name: string;
 };
 
 type ClosureValue = {
@@ -21,15 +28,139 @@ type ClosureValue = {
   previous: Activation;
 };
 
-const valueToString = (v: Value): string => {
-  switch (v.tag) {
-    case "IntValue":
-      return `${v.value}: Int`;
-    case "BoolValue":
-      return `${v.value}: Bool`;
-    case "ClosureValue":
-      return "function";
-  }
+type DataValue = {
+  tag: "DataValue";
+  meta: number;
+  id: number;
+  values: Array<Value>;
+};
+
+type IntValue = {
+  tag: "IntValue";
+  value: number;
+};
+
+type StringValue = {
+  tag: "StringValue";
+  value: string;
+};
+
+type TupleValue = {
+  tag: "TupleValue";
+  values: Array<Value>;
+};
+
+type UnitValue = {
+  tag: "UnitValue";
+};
+
+const builtins: {
+  [key: string]: (stack: Array<Value>, block: Uint8Array) => void;
+} = {
+  "$$builtin-print": (stack: Array<Value>, block: Uint8Array) => {
+    const v = stack.pop()!;
+    // deno-lint-ignore no-deprecated-deno-api
+    Deno.writeAllSync(
+      Deno.stdout,
+      encoder.encode(valueToString(v, false, block)),
+    );
+  },
+  "$$builtin-println": (stack: Array<Value>, _block: Uint8Array) => {
+    stack.pop()!;
+    // deno-lint-ignore no-deprecated-deno-api
+    Deno.writeAllSync(Deno.stdout, encoder.encode("\n"));
+  },
+};
+
+const readIntFrom = (ip: number, block: Uint8Array): number =>
+  block[ip] | (block[ip + 1] << 8) | (block[ip + 2] << 16) |
+  (block[ip + 3] << 24);
+
+const valueToString = (
+  v: Value,
+  withType = true,
+  block: Uint8Array,
+): string => {
+  const dataNames = (meta: number): Array<string> => {
+    const names: Array<string> = [];
+
+    const numberOfNames = readIntFrom(meta, block) + 1;
+    let nameIndex = 0;
+    let i = meta + 4;
+    while (nameIndex < numberOfNames) {
+      const name: Array<string> = [];
+      while (true) {
+        const n = block[i++];
+        if (n === 0) {
+          break;
+        }
+        name.push(String.fromCharCode(n));
+      }
+      names.push(name.join(""));
+      nameIndex++;
+    }
+
+    return names;
+  };
+
+  const value = (v: Value): string => {
+    const activationDepth = (a: Activation | undefined): number =>
+      a === undefined
+        ? 0
+        : a[1] === null
+        ? 1
+        : 1 + activationDepth(a[1].previous);
+
+    switch (v.tag) {
+      case "BoolValue":
+        return `${v.value}`;
+      case "BuiltinValue":
+        return v.name;
+      case "ClosureValue":
+        return `c${v.ip}#${activationDepth(v.previous)}`;
+      case "DataValue": {
+        const names = dataNames(v.meta);
+
+        return `${names[v.id + 1]}${
+          v.values.map((e) =>
+            e.tag === "DataValue" && e.values.length > 0
+              ? ` (${value(e)})`
+              : ` ${value(e)}`
+          ).join("")
+        }`;
+      }
+      case "IntValue":
+        return `${v.value}`;
+      case "StringValue":
+        return withType ? `"${v.value.replace('"', '\\"')}"` : v.value;
+      case "TupleValue":
+        return `(${v.values.map(value).join(", ")})`;
+      case "UnitValue":
+        return "()";
+    }
+  };
+  const type = (v: Value): string => {
+    switch (v.tag) {
+      case "BoolValue":
+        return "Bool";
+      case "BuiltinValue":
+        return "Builtin";
+      case "ClosureValue":
+        return "Closure";
+      case "DataValue":
+        return dataNames(v.meta)[0];
+      case "IntValue":
+        return "Int";
+      case "StringValue":
+        return "String";
+      case "TupleValue":
+        return `(${v.values.map(type).join(" * ")})`;
+      case "UnitValue":
+        return "Unit";
+    }
+  };
+
+  return withType ? `${value(v)}: ${type(v)}` : value(v);
 };
 
 type Activation = [
@@ -43,6 +174,8 @@ export type ExecuteOptions = {
   debug?: boolean;
 };
 
+const encoder = new TextEncoder();
+
 export const execute = (
   block: Uint8Array,
   ip: number,
@@ -52,44 +185,26 @@ export const execute = (
   let activation: Activation = [null, null, null, null];
 
   const stackToString = (): string => {
-    const valueToString = (v: Value | null): string => {
-      const activationDepth = (a: Activation | undefined): number =>
-        a === undefined
-          ? 0
-          : a[1] === null
-          ? 1
-          : 1 + activationDepth(a[1].previous);
-
-      if (v == null || v == undefined) {
-        return "-";
-      }
-
-      switch (v.tag) {
-        case "IntValue":
-          return `${v.value}`;
-        case "BoolValue":
-          return `${v.value}`;
-        case "ClosureValue":
-          return `c${v.ip}#${activationDepth(v.previous)}`;
-      }
-    };
-
     const activationToString = (a: Activation): string => {
       const [, closure, ip, variables] = a;
 
       const activationString = a[0] === null ? "-" : activationToString(a[0]);
-      const closureString = closure === null ? "-" : valueToString(closure);
+      const closureString = closure === null
+        ? "-"
+        : valueToString(closure, false, block);
       const ipString = ip === null ? "-" : `${ip}`;
       const variablesString = variables === null
         ? "-"
-        : `[${variables.map(valueToString).join(", ")}]`;
+        : `[${
+          variables.map((v) => valueToString(v, false, block)).join(", ")
+        }]`;
 
       return `<${activationString}, ${closureString}, ${ipString}, ${variablesString}>`;
     };
 
-    return `[${stack.map(valueToString).join(", ")}] :: ${
-      activationToString(activation)
-    }`;
+    return `[${
+      stack.map((v) => valueToString(v, false, block)).join(", ")
+    }] :: ${activationToString(activation)}`;
   };
 
   const readIntFrom = (ip: number): number =>
@@ -110,8 +225,10 @@ export const execute = (
     }
   };
 
-  const bciState = (): string => {
-    return `ip: ${ip}, stack: ${stackToString()}, activation: ${activation}`;
+  const bciState = (n = 0): string => {
+    return `ip: ${
+      ip - n
+    }, stack: ${stackToString()}, activation: ${activation}`;
   };
 
   const readInt = (): number => {
@@ -119,6 +236,19 @@ export const execute = (
     ip += 4;
     return n;
   };
+  const readString: () => string = () => {
+    const result: Array<string> = [];
+    while (true) {
+      const n = block[ip++];
+      if (n === 0) {
+        break;
+      }
+      result.push(String.fromCharCode(n));
+    }
+    return result.join("");
+  };
+
+  readInt(); // skip offset to data segment
 
   while (true) {
     const op = block[ip++];
@@ -144,6 +274,15 @@ export const execute = (
         break;
       }
 
+      case InstructionOpCode.PUSH_BUILTIN: {
+        const builtin = readString();
+        if (builtins[builtin] === undefined) {
+          throw new Error(`Unknown builtin: ${builtin}: ${bciState(1)}`);
+        }
+
+        stack.push({ tag: "BuiltinValue", name: builtin });
+        break;
+      }
       case InstructionOpCode.PUSH_CLOSURE: {
         const targetIP = readInt();
 
@@ -153,6 +292,14 @@ export const execute = (
           previous: activation,
         };
         stack.push(argument);
+        break;
+      }
+      case InstructionOpCode.PUSH_DATA: {
+        const meta = readInt();
+        const id = readInt();
+        const size = readInt();
+        const values = stack.splice(stack.length - size, size);
+        stack.push({ tag: "DataValue", meta, id, values });
         break;
       }
       case InstructionOpCode.PUSH_TRUE: {
@@ -167,6 +314,22 @@ export const execute = (
         const value = readInt();
 
         stack.push({ tag: "IntValue", value });
+        break;
+      }
+      case InstructionOpCode.PUSH_STRING: {
+        const value = readString();
+
+        stack.push({ tag: "StringValue", value });
+        break;
+      }
+      case InstructionOpCode.PUSH_TUPLE: {
+        const size = readInt();
+        const values = stack.splice(stack.length - size, size);
+        stack.push({ tag: "TupleValue", values });
+        break;
+      }
+      case InstructionOpCode.PUSH_UNIT: {
+        stack.push({ tag: "UnitValue" });
         break;
       }
       case InstructionOpCode.PUSH_VAR: {
@@ -218,11 +381,22 @@ export const execute = (
       }
       case InstructionOpCode.SWAP_CALL: {
         const v = stack.pop()!;
-        const closure = stack.pop() as ClosureValue;
+        const closure = stack.pop()!;
         stack.push(v);
-        const newActivation: Activation = [activation, closure, ip, null];
-        ip = closure.ip;
-        activation = newActivation;
+
+        if (closure.tag === "ClosureValue") {
+          const newActivation: Activation = [activation, closure, ip, null];
+          ip = closure.ip;
+          activation = newActivation;
+        } else if (closure.tag === "BuiltinValue") {
+          const builtin = builtins[closure.name];
+          if (builtin === undefined) {
+            throw new Error(`Unknown builtin: ${closure.name}: ${bciState(1)}`);
+          }
+          builtin(stack, block);
+        } else {
+          throw new Error(`SWAP_CALL: Not a closure: ${bciState(1)}`);
+        }
         break;
       }
       case InstructionOpCode.ENTER: {
@@ -237,7 +411,11 @@ export const execute = (
       }
       case InstructionOpCode.RET: {
         if (activation[2] === null) {
-          console.log(valueToString(stack.pop()!));
+          const v = stack.pop()!;
+
+          if (v.tag !== "UnitValue") {
+            console.log(valueToString(v, true, block));
+          }
           Deno.exit(0);
         }
 

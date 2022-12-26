@@ -18,7 +18,12 @@ export const readBinary = (filename: string): Uint8Array => {
 export const dis = (data: Uint8Array) => {
   let lp = 0;
 
-  while (lp < data.length) {
+  const ds = (data[lp] | (data[lp + 1] << 8) | (data[lp + 2] << 16) |
+    (data[lp + 3] << 24)) >>> 0;
+
+  lp += 4;
+
+  while (lp < ds) {
     const op = data[lp++];
     const instruction = findInstruction(op);
     if (instruction === undefined) {
@@ -33,5 +38,43 @@ export const dis = (data: Uint8Array) => {
         return n;
       }),
     );
+  }
+
+  if (lp < data.length) {
+    console.log("Data segment:");
+    let isText = (data[lp] < 32) ? false : true;
+    const encoder = new TextEncoder();
+
+    // deno-lint-ignore no-deprecated-deno-api
+    Deno.writeAllSync(Deno.stdout, encoder.encode(`${lp}:`));
+    while (lp < data.length) {
+      const ch = data[lp];
+      const nextIsText = ch < 32 ? false : true;
+
+      if (isText && nextIsText) {
+        // deno-lint-ignore no-deprecated-deno-api
+        Deno.writeAllSync(Deno.stdout, encoder.encode(String.fromCharCode(ch)));
+      } else if (isText && !nextIsText) {
+        // deno-lint-ignore no-deprecated-deno-api
+        Deno.writeAllSync(
+          Deno.stdout,
+          encoder.encode(`\n${lp}: 0x${ch.toString(16)}`),
+        );
+      } else if (!isText && nextIsText) {
+        // deno-lint-ignore no-deprecated-deno-api
+        Deno.writeAllSync(
+          Deno.stdout,
+          encoder.encode(`\n${lp}: ${String.fromCharCode(ch)}`),
+        );
+      } else {
+        // deno-lint-ignore no-deprecated-deno-api
+        Deno.writeAllSync(Deno.stdout, encoder.encode(` 0x${ch.toString(16)}`));
+      }
+
+      isText = nextIsText;
+      lp += 1;
+    }
+    // deno-lint-ignore no-deprecated-deno-api
+    Deno.writeAllSync(Deno.stdout, encoder.encode("\n"));
   }
 };

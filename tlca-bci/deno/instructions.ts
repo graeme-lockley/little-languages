@@ -1,10 +1,14 @@
 export enum InstructionOpCode {
-  PUSH_TRUE,
+  PUSH_BUILTIN,
+  PUSH_CLOSURE,
+  PUSH_DATA,
   PUSH_FALSE,
   PUSH_INT,
-  PUSH_VAR,
-  PUSH_CLOSURE,
+  PUSH_STRING,
+  PUSH_TRUE,
   PUSH_TUPLE,
+  PUSH_UNIT,
+  PUSH_VAR,
   ADD,
   SUB,
   MUL,
@@ -21,7 +25,13 @@ export enum InstructionOpCode {
 export enum OpParameter {
   OPInt,
   OPLabel,
+  OPBuiltIn,
+  OPString,
 }
+
+export type Builtin = {
+  name: string;
+};
 
 export type Instruction = {
   name: string;
@@ -29,8 +39,27 @@ export type Instruction = {
   args: Array<OpParameter>;
 };
 
+const builtins = [
+  { name: "$$builtin-print" },
+  { name: "$$builtin-println" },
+];
+
 const instructions: Array<Instruction> = [
-  { name: "PUSH_TRUE", opcode: InstructionOpCode.PUSH_TRUE, args: [] },
+  {
+    name: "PUSH_BUILTIN",
+    opcode: InstructionOpCode.PUSH_BUILTIN,
+    args: [OpParameter.OPBuiltIn],
+  },
+  {
+    name: "PUSH_CLOSURE",
+    opcode: InstructionOpCode.PUSH_CLOSURE,
+    args: [OpParameter.OPLabel],
+  },
+  {
+    name: "PUSH_DATA",
+    opcode: InstructionOpCode.PUSH_DATA,
+    args: [OpParameter.OPLabel, OpParameter.OPInt, OpParameter.OPInt],
+  },
   { name: "PUSH_FALSE", opcode: InstructionOpCode.PUSH_FALSE, args: [] },
   {
     name: "PUSH_INT",
@@ -38,16 +67,22 @@ const instructions: Array<Instruction> = [
     args: [OpParameter.OPInt],
   },
   {
+    name: "PUSH_STRING",
+    opcode: InstructionOpCode.PUSH_STRING,
+    args: [OpParameter.OPString],
+  },
+  { name: "PUSH_TRUE", opcode: InstructionOpCode.PUSH_TRUE, args: [] },
+  {
+    name: "PUSH_TUPLE",
+    opcode: InstructionOpCode.PUSH_TUPLE,
+    args: [OpParameter.OPInt],
+  },
+  { name: "PUSH_UNIT", opcode: InstructionOpCode.PUSH_UNIT, args: [] },
+  {
     name: "PUSH_VAR",
     opcode: InstructionOpCode.PUSH_VAR,
     args: [OpParameter.OPInt, OpParameter.OPInt],
   },
-  {
-    name: "PUSH_CLOSURE",
-    opcode: InstructionOpCode.PUSH_CLOSURE,
-    args: [OpParameter.OPLabel],
-  },
-  { name: "PUSH_TUPLE", opcode: InstructionOpCode.PUSH_TUPLE, args: [] },
   { name: "ADD", opcode: InstructionOpCode.ADD, args: [] },
   { name: "SUB", opcode: InstructionOpCode.SUB, args: [] },
   { name: "MUL", opcode: InstructionOpCode.MUL, args: [] },
@@ -68,6 +103,9 @@ const instructions: Array<Instruction> = [
     args: [OpParameter.OPInt],
   },
 ];
+
+export const findBuiltin = (name: string): Builtin | undefined =>
+  builtins.find((b) => b.name === name);
 
 export const find = (opCode: InstructionOpCode): Instruction | undefined =>
   instructions.find((i) => i.opcode === opCode);

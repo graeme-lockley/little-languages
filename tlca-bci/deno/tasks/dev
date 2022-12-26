@@ -14,7 +14,7 @@ build_bin() {
 }
 
 scenario_tests() {
-    echo "---| run scenario tests"
+    echo "---| scenario tests"
 
     cd "$PROJECT_HOME" || exit 1
 
@@ -31,13 +31,27 @@ scenario_tests() {
 
         rm t.txt
     done
-
 }
 
 unit_tests() {
     echo "---| unit tests"
+
     cd "$PROJECT_HOME" || exit 1
-    ./gradlew test || exit 1
+
+    for FILE in "$PROJECT_HOME"/../unit-tests/*.bci; do
+        echo "- unit test: $FILE"
+        deno run --allow-read --allow-write ../deno/bci.ts asm "$PROJECT_HOME"/../unit-tests/$(basename "$FILE" .bci).bci || exit 1
+        deno run --allow-read --allow-write ../deno/bci.ts run "$PROJECT_HOME"/../unit-tests/$(basename "$FILE" .bci).bin | tee t.txt || exit 1
+
+        if ! diff -q "$PROJECT_HOME"/../unit-tests/$(basename "$FILE" .bci).out t.txt; then
+            echo "scenario test failed: $FILE"
+            diff "$PROJECT_HOME"/../unit-tests/$(basename "$FILE" .bci).out t.txt
+            rm t.txt
+            exit 1
+        fi
+
+        rm t.txt
+    done
 }
 
 case "$1" in
@@ -52,6 +66,8 @@ case "$1" in
     echo "    Run the different scenario tests"
     echo "  run"
     echo "    Run all tasks"
+    echo "  unit"
+    echo "    Run the different unit tests"
     ;;
 
 bin)
@@ -65,7 +81,12 @@ scenario)
 run)
     build_bci
     build_bin
+    unit_tests
     scenario_tests
+    ;;
+
+unit)
+    unit_tests
     ;;
 
 *)

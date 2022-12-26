@@ -165,7 +165,7 @@ jobs:
           cd ./kotlin-tlca
           ./tasks/dev scenario
 
-  'bci-deno':
+  'stlc-bci-deno':
     runs-on: ubuntu-latest
 
     steps:
@@ -192,7 +192,7 @@ jobs:
           cd ./stlc-bci/deno
           ./tasks/dev run
 
-  'bci-c':
+  'stlc-bci-c':
     runs-on: ubuntu-latest
 
     steps:
@@ -207,5 +207,32 @@ jobs:
       - name: Scenario tests
         run: |
           cd ./stlc-bci/c
+          ./tasks/dev run
+
+  'tlca-bci-deno':
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Lint
+        run: |
+          cd ./tlca-bci/deno
+          deno lint
+
+      - name: Formatting
+        run: |
+          cd ./tlca-bci/deno
+          deno fmt --check
+
+      - name: Scenario tests
+        run: |
+          cd ./tlca-bci/deno
           ./tasks/dev run
 
