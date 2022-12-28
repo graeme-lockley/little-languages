@@ -21,6 +21,7 @@ export enum InstructionOpCode {
   EQ,
   JMP,
   JMP_DATA,
+  JMP_FALSE,
   JMP_TRUE,
   SWAP_CALL,
   ENTER,
@@ -111,6 +112,11 @@ const instructions: Array<Instruction> = [
   { name: "EQ", opcode: InstructionOpCode.EQ, args: [] },
   { name: "JMP", opcode: InstructionOpCode.JMP, args: [OpParameter.OPLabel] },
   { name: "JMP_DATA", opcode: InstructionOpCode.JMP_DATA, args: [] },
+  {
+    name: "JMP_FALSE",
+    opcode: InstructionOpCode.JMP_FALSE,
+    args: [OpParameter.OPLabel],
+  },
   {
     name: "JMP_TRUE",
     opcode: InstructionOpCode.JMP_TRUE,

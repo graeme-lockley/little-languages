@@ -453,6 +453,16 @@ export const execute = (
         break;
       }
 
+      case InstructionOpCode.JMP_FALSE: {
+        const targetIP = readInt();
+        const v = stack.pop() as BoolValue;
+
+        if (!v.value) {
+          ip = targetIP;
+        }
+
+        break;
+      }
       case InstructionOpCode.JMP_TRUE: {
         const targetIP = readInt();
         const v = stack.pop() as BoolValue;
