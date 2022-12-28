@@ -1,4 +1,8 @@
-import { find as findInstruction } from "./instructions.ts";
+import {
+  find as findInstruction,
+  InstructionOpCode,
+  OpParameter,
+} from "./instructions.ts";
 
 export const readBinary = (filename: string): Uint8Array => {
   const file = Deno.openSync(filename, { read: true, write: false });
@@ -18,10 +22,16 @@ export const readBinary = (filename: string): Uint8Array => {
 export const dis = (data: Uint8Array) => {
   let lp = 0;
 
-  const ds = (data[lp] | (data[lp + 1] << 8) | (data[lp + 2] << 16) |
-    (data[lp + 3] << 24)) >>> 0;
+  const readInt = (): number => {
+    const v = (data[lp] | (data[lp + 1] << 8) | (data[lp + 2] << 16) |
+      (data[lp + 3] << 24)) >>> 0;
 
-  lp += 4;
+    lp += 4;
+
+    return v;
+  };
+
+  const ds = readInt();
 
   while (lp < ds) {
     const op = data[lp++];
@@ -29,15 +39,33 @@ export const dis = (data: Uint8Array) => {
     if (instruction === undefined) {
       throw new Error(`Unknown opcode: ${op}`);
     }
-    console.log(
-      `${lp - 1}: ${instruction.name}`,
-      ...instruction.args.map(() => {
-        const n = (data[lp] | (data[lp + 1] << 8) | (data[lp + 2] << 16) |
-          (data[lp + 3] << 24)) >>> 0;
-        lp += 4;
-        return n;
-      }),
-    );
+    if (op === InstructionOpCode.JMP_DATA) {
+      const n = readInt();
+      const labels: Array<number> = [];
+      for (let i = 0; i < n; i++) {
+        labels.push(readInt());
+      }
+
+      console.log(`${lp - 5}: JMP_DATA ${n} ${labels.join(" ")}`);
+    } else {
+      console.log(
+        `${lp - 1}: ${instruction.name}`,
+        ...instruction.args.map((t) => {
+          if (t === OpParameter.OPInt || t === OpParameter.OPLabel) {
+            return readInt();
+          } else {
+            const name: Array<string> = [];
+
+            while (data[lp] !== 0) {
+              name.push(String.fromCharCode(data[lp++]));
+            }
+            lp++;
+
+            return name.join("");
+          }
+        }),
+      );
+    }
   }
 
   if (lp < data.length) {

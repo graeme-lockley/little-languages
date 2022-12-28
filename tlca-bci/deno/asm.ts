@@ -1,6 +1,7 @@
 import {
   findBuiltin,
   findOnName as findInstruction,
+  InstructionOpCode,
   OpParameter,
 } from "./instructions.ts";
 
@@ -64,7 +65,24 @@ export const asm = (text: string): Uint8Array => {
       if (instruction === undefined) {
         throw new Error(`Unknown instruction: ${line}: ${name}`);
       }
-      if (
+      if (instruction.opcode === InstructionOpCode.JMP_DATA) {
+        result.push(instruction.opcode);
+
+        const n = parseInt(args[0]);
+        appendInt(n);
+        if (args.length !== n + 1) {
+          throw new Error(
+            `Wrong number of arguments: ${line}: ${name}: expected ${
+              n + 1
+            }: got ${args.length}`,
+          );
+        }
+        for (let i = 1; i < n + 1; i++) {
+          const arg = args[i];
+          patch.push([result.length, arg, line]);
+          appendInt(0);
+        }
+      } else if (
         instruction.args.length === 1 &&
         instruction.args[0] === OpParameter.OPString
       ) {

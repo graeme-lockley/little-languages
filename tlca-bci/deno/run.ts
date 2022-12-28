@@ -1,4 +1,4 @@
-import { find, InstructionOpCode } from "./instructions.ts";
+import { find, InstructionOpCode, OpParameter } from "./instructions.ts";
 
 // import { writeAllSync } from "https://deno.land/std/streams/conversion.ts";
 
@@ -59,26 +59,40 @@ const builtins: {
 } = {
   "$$builtin-print": (stack: Array<Value>, block: Uint8Array) => {
     const v = stack.pop()!;
-    // deno-lint-ignore no-deprecated-deno-api
-    Deno.writeAllSync(
-      Deno.stdout,
-      encoder.encode(valueToString(v, false, block)),
-    );
+    print(valueToString(v, ValueToStringStyle.VSSRaw, block));
+  },
+  "$$builtin-print-literal": (stack: Array<Value>, block: Uint8Array) => {
+    const v = stack.pop()!;
+    print(valueToString(v, ValueToStringStyle.VSSLiteral, block));
+  },
+  "$$builtin-print-typed": (stack: Array<Value>, block: Uint8Array) => {
+    const v = stack.pop()!;
+    print(valueToString(v, ValueToStringStyle.VSSTyped, block));
   },
   "$$builtin-println": (stack: Array<Value>, _block: Uint8Array) => {
     stack.pop()!;
-    // deno-lint-ignore no-deprecated-deno-api
-    Deno.writeAllSync(Deno.stdout, encoder.encode("\n"));
+    print("\n");
   },
+};
+
+const print = (v: string) => {
+  // deno-lint-ignore no-deprecated-deno-api
+  Deno.writeAllSync(Deno.stdout, encoder.encode(v));
 };
 
 const readIntFrom = (ip: number, block: Uint8Array): number =>
   block[ip] | (block[ip + 1] << 8) | (block[ip + 2] << 16) |
   (block[ip + 3] << 24);
 
+enum ValueToStringStyle {
+  VSSRaw,
+  VSSLiteral,
+  VSSTyped,
+}
+
 const valueToString = (
   v: Value,
-  withType = true,
+  style: ValueToStringStyle,
   block: Uint8Array,
 ): string => {
   const dataNames = (meta: number): Array<string> => {
@@ -117,7 +131,9 @@ const valueToString = (
       case "BuiltinValue":
         return v.name;
       case "ClosureValue":
-        return `c${v.ip}#${activationDepth(v.previous)}`;
+        return style === ValueToStringStyle.VSSRaw
+          ? `c${v.ip}#${activationDepth(v.previous)}`
+          : "function";
       case "DataValue": {
         const names = dataNames(v.meta);
 
@@ -132,13 +148,16 @@ const valueToString = (
       case "IntValue":
         return `${v.value}`;
       case "StringValue":
-        return withType ? `"${v.value.replace('"', '\\"')}"` : v.value;
+        return style === ValueToStringStyle.VSSRaw
+          ? v.value
+          : `"${v.value.replace('"', '\\"')}"`;
       case "TupleValue":
         return `(${v.values.map(value).join(", ")})`;
       case "UnitValue":
         return "()";
     }
   };
+
   const type = (v: Value): string => {
     switch (v.tag) {
       case "BoolValue":
@@ -160,7 +179,13 @@ const valueToString = (
     }
   };
 
-  return withType ? `${value(v)}: ${type(v)}` : value(v);
+  if (v === undefined) {
+    return "-X-";
+  }
+
+  return style === ValueToStringStyle.VSSTyped
+    ? `${value(v)}: ${type(v)}`
+    : value(v);
 };
 
 type Activation = [
@@ -191,19 +216,23 @@ export const execute = (
       const activationString = a[0] === null ? "-" : activationToString(a[0]);
       const closureString = closure === null
         ? "-"
-        : valueToString(closure, false, block);
+        : valueToString(closure, ValueToStringStyle.VSSRaw, block);
       const ipString = ip === null ? "-" : `${ip}`;
       const variablesString = variables === null
         ? "-"
         : `[${
-          variables.map((v) => valueToString(v, false, block)).join(", ")
+          variables.map((v) =>
+            valueToString(v, ValueToStringStyle.VSSRaw, block)
+          ).join(", ")
         }]`;
 
       return `<${activationString}, ${closureString}, ${ipString}, ${variablesString}>`;
     };
 
     return `[${
-      stack.map((v) => valueToString(v, false, block)).join(", ")
+      stack.map((v) => valueToString(v, ValueToStringStyle.VSSRaw, block)).join(
+        ", ",
+      )
     }] :: ${activationToString(activation)}`;
   };
 
@@ -211,11 +240,35 @@ export const execute = (
     block[ip] | (block[ip + 1] << 8) | (block[ip + 2] << 16) |
     (block[ip + 3] << 24);
 
+  const readStringFrom = (tip: number): [number, string] => {
+    const result: Array<string> = [];
+    while (true) {
+      const n = block[tip++];
+      if (n === 0) {
+        break;
+      }
+      result.push(String.fromCharCode(n));
+    }
+    return [tip, result.join("")];
+  };
+
   const logInstruction = (instruction: InstructionOpCode) => {
     const op = find(instruction);
 
     if (op !== undefined) {
-      const args = op.args.map((_, i) => readIntFrom(ip + i * 4));
+      const args: Array<string> = [];
+
+      let tip = ip;
+      op.args.forEach((p) => {
+        if (p === OpParameter.OPBuiltIn || p === OpParameter.OPString) {
+          const [newIP, str] = readStringFrom(tip);
+          args.push(str);
+          tip = newIP;
+        } else {
+          args.push(readIntFrom(tip).toString());
+          tip += 4;
+        }
+      });
 
       console.log(
         `${ip - 1}: ${op.name}${args.length > 0 ? " " : ""}${
@@ -236,16 +289,12 @@ export const execute = (
     ip += 4;
     return n;
   };
+
   const readString: () => string = () => {
-    const result: Array<string> = [];
-    while (true) {
-      const n = block[ip++];
-      if (n === 0) {
-        break;
-      }
-      result.push(String.fromCharCode(n));
-    }
-    return result.join("");
+    const [newIP, str] = readStringFrom(ip);
+    ip = newIP;
+
+    return str;
   };
 
   readInt(); // skip offset to data segment
@@ -258,22 +307,6 @@ export const execute = (
     }
 
     switch (op) {
-      case InstructionOpCode.JMP: {
-        ip = readInt();
-        break;
-      }
-
-      case InstructionOpCode.JMP_TRUE: {
-        const targetIP = readInt();
-        const v = stack.pop() as BoolValue;
-
-        if (v.value) {
-          ip = targetIP;
-        }
-
-        break;
-      }
-
       case InstructionOpCode.PUSH_BUILTIN: {
         const builtin = readString();
         if (builtins[builtin] === undefined) {
@@ -302,6 +335,12 @@ export const execute = (
         stack.push({ tag: "DataValue", meta, id, values });
         break;
       }
+      case InstructionOpCode.PUSH_DATA_ITEM: {
+        const offset = readInt();
+        const value = stack.pop() as DataValue;
+        stack.push(value.values[offset]);
+        break;
+      }
       case InstructionOpCode.PUSH_TRUE: {
         stack.push({ tag: "BoolValue", value: true });
         break;
@@ -328,6 +367,12 @@ export const execute = (
         stack.push({ tag: "TupleValue", values });
         break;
       }
+      case InstructionOpCode.PUSH_TUPLE_ITEM: {
+        const offset = readInt();
+        const value = stack.pop() as TupleValue;
+        stack.push(value.values[offset]);
+        break;
+      }
       case InstructionOpCode.PUSH_UNIT: {
         stack.push({ tag: "UnitValue" });
         break;
@@ -342,6 +387,21 @@ export const execute = (
           index -= 1;
         }
         stack.push(a![3]![offset]);
+        break;
+      }
+      case InstructionOpCode.DUP: {
+        stack.push(stack[stack.length - 1]);
+        break;
+      }
+      case InstructionOpCode.DISCARD: {
+        stack.pop();
+        break;
+      }
+      case InstructionOpCode.SWAP: {
+        const a = stack.pop() as Value;
+        const b = stack.pop() as Value;
+        stack.push(a);
+        stack.push(b);
         break;
       }
       case InstructionOpCode.ADD: {
@@ -379,6 +439,30 @@ export const execute = (
         stack.push({ tag: "BoolValue", value: a.value === b.value });
         break;
       }
+      case InstructionOpCode.JMP: {
+        ip = readInt();
+        break;
+      }
+
+      case InstructionOpCode.JMP_DATA: {
+        readInt();
+        const v = stack.pop() as DataValue;
+
+        ip = readIntFrom(ip + v.id * 4);
+
+        break;
+      }
+
+      case InstructionOpCode.JMP_TRUE: {
+        const targetIP = readInt();
+        const v = stack.pop() as BoolValue;
+
+        if (v.value) {
+          ip = targetIP;
+        }
+
+        break;
+      }
       case InstructionOpCode.SWAP_CALL: {
         const v = stack.pop()!;
         const closure = stack.pop()!;
@@ -414,7 +498,7 @@ export const execute = (
           const v = stack.pop()!;
 
           if (v.tag !== "UnitValue") {
-            console.log(valueToString(v, true, block));
+            console.log(valueToString(v, ValueToStringStyle.VSSTyped, block));
           }
           Deno.exit(0);
         }
@@ -436,7 +520,7 @@ export const execute = (
         break;
       }
       default:
-        throw new Error(`Unknown InstructionOpCode: ${op}`);
+        throw new Error(`Unknown InstructionOpCode: ${op} at ${ip - 1}}`);
     }
   }
 };
