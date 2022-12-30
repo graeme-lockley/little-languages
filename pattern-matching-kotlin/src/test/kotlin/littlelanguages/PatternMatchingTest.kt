@@ -42,7 +42,8 @@ class EnvironmentTest {
 class MatchTest {
     private val env = Environment(
         listOf(
-            AbstractDataType("List", listOf("Nil" to 0, "Cons" to 2))
+            AbstractDataType("List", listOf("Nil" to 0, "Cons" to 2)),
+            AbstractDataType("Pair", listOf("Pair" to 2)),
         )
     )
 
@@ -62,7 +63,8 @@ class MatchTest {
 
         assertFullMatch(
             variables, equations,
-            "if (_v1 == \"0\") then \"1\" else (F _v1)")
+            "if (_v1 == \"0\") then \"1\" else (F _v1)"
+        )
     }
 
     @Test
@@ -197,6 +199,60 @@ class MatchTest {
         assertFullMatch(
             variables, equations,
             "case _v2 of Nil -> ((A _v1) _v3) | Cons _u0 _u1 -> case _v3 of Nil -> (((B _v1) _u0) _u1) | Cons _u2 _u3 -> (((((C _v1) _u0) _u1) _u2) _u3)",
+        )
+    }
+
+    @Test
+    fun pair() {
+        val variables = listOf("_v1")
+        val equations = listOf(
+            Equation(
+                listOf(
+                    ConPattern("Pair", listOf(VarPattern("a"), VarPattern("b"))),
+                ),
+                App(App(Var("A"), Var("a")), Var("b"))
+            ),
+        )
+
+        assertFullMatch(
+            variables, equations,
+            "case _v1 of Pair _u0 _u1 -> ((A _u0) _u1)",
+        )
+    }
+
+    @Test
+    fun pairWithLiteral() {
+        val variables = listOf("_v1")
+        val equations = listOf(
+            Equation(
+                listOf(
+                    ConPattern("Pair", listOf(LiteralPattern("100"), VarPattern("b"))),
+                ),
+                App(Var("A"), Var("b"))
+            ),
+        )
+
+        assertFullMatch(
+            variables, equations,
+            "case _v1 of Pair _u0 _u1 -> if (_u0 == \"100\") then (A _u1) else ERROR",
+        )
+    }
+
+    @Test
+    fun pairWithAFreeField() {
+        val variables = listOf("_v1")
+        val equations = listOf(
+            Equation(
+                listOf(
+                    ConPattern("Pair", listOf(VarPattern("a"), VarPattern("b"))),
+                ),
+                App(Var("A"), Var("a"))
+            ),
+        )
+
+        assertFullMatch(
+            variables, equations,
+            "case _v1 of Pair _u0 null -> (A _u0)",
         )
     }
 
