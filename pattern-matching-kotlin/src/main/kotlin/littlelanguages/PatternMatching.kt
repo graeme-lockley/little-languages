@@ -22,49 +22,26 @@ data class Environment(private val types: List<AbstractDataType>) {
     fun makeVar(): Variable = "_u${counter++}"
 }
 
-sealed class Expression {
-    open fun subst(old: Variable, new: Variable): Expression = this
-}
+sealed class Expression
 
-data class And(val left: Expression, val right: Expression) : Expression() {
-    override fun subst(old: Variable, new: Variable): Expression =
-        And(left.subst(old, new), right.subst(old, new))
-}
+data class And(val left: Expression, val right: Expression) : Expression()
 
-data class App(val function: Expression, val argument: Expression) : Expression() {
-    override fun subst(old: Variable, new: Variable): Expression =
-        App(function.subst(old, new), argument.subst(old, new))
-}
+data class App(val function: Expression, val argument: Expression) : Expression()
 
-data class Case(val variable: Variable, val clauses: List<Clause>) : Expression() {
-    override fun subst(old: Variable, new: Variable): Expression =
-        Case(if (variable == old) new else variable, clauses.map { it.subst(old, new) })
-}
+data class Case(val variable: Variable, val clauses: List<Clause>) : Expression()
 
-data class Eq(val left: Expression, val right: Expression) : Expression() {
-    override fun subst(old: Variable, new: Variable): Expression =
-        Eq(left.subst(old, new), right.subst(old, new))
-}
+data class Eq(val left: Expression, val right: Expression) : Expression()
 
 object ERROR : Expression()
 object FAIL : Expression()
 
-data class FATBAR(val left: Expression, val right: Expression) : Expression() {
-    override fun subst(old: Variable, new: Variable): Expression =
-        FATBAR(left.subst(old, new), right.subst(old, new))
-}
+data class FATBAR(val left: Expression, val right: Expression) : Expression()
 
-data class If(val condition: Expression, val thenBranch: Expression, val elseBranch: Expression) : Expression() {
-    override fun subst(old: Variable, new: Variable): Expression =
-        If(condition.subst(old, new), thenBranch.subst(old, new), elseBranch.subst(old, new))
-}
+data class If(val condition: Expression, val thenBranch: Expression, val elseBranch: Expression) : Expression()
 
 data class Literal(val value: String) : Expression()
 
-data class Var(val variable: Variable) : Expression() {
-    override fun subst(old: Variable, new: Variable): Expression =
-        if (variable == old) Var(new) else this
-}
+data class Var(val variable: Variable) : Expression()
 
 fun prettyPrint(e: Expression, pretty: Boolean = false): String {
     val sb = StringBuilder()
@@ -151,10 +128,7 @@ fun prettyPrint(e: Expression, pretty: Boolean = false): String {
     return sb.toString()
 }
 
-data class Clause(val constructor: Constructor, val variables: List<Variable?>, val expression: Expression) {
-    fun subst(old: Variable, new: Variable): Clause =
-        Clause(constructor, variables, expression.subst(old, new))
-}
+data class Clause(val constructor: Constructor, val variables: List<Variable?>, val expression: Expression)
 
 data class Equation(val patterns: List<Pattern>, val body: Expression, val guard: Expression? = null) {
     fun isVar(): Boolean =
@@ -303,6 +277,30 @@ fun removeUnusedVariables(e: Expression): Expression {
 
 
 fun match(variables: List<Variable>, equations: List<Equation>, e: Expression, env: Environment): Expression {
+    fun subst(e: Expression, old: Variable, new: Variable): Expression =
+        when (e) {
+            is And -> And(subst(e.left, old, new), subst(e.right, old, new))
+            is App -> App(subst(e.function, old, new), subst(e.argument, old, new))
+            is Case -> Case(
+                if (e.variable == old) new else e.variable,
+                e.clauses.map {
+                    Clause(
+                        it.constructor,
+                        it.variables,
+                        if (it.variables.contains(old)) it.expression else subst(it.expression, old, new)
+                    )
+                }
+            )
+
+            is Eq -> Eq(subst(e.left, old, new), subst(e.right, old, new))
+            ERROR -> ERROR
+            FAIL -> FAIL
+            is FATBAR -> FATBAR(subst(e.left, old, new), subst(e.right, old, new))
+            is If -> If(subst(e.condition, old, new), subst(e.thenBranch, old, new), subst(e.elseBranch, old, new))
+            is Literal -> e
+            is Var -> if (e.variable == old) Var(new) else e
+        }
+
     fun matchVar(variables: List<Variable>, equations: List<Equation>, e: Expression): Expression {
         val u = variables.first()
         val us = variables.drop(1)
@@ -310,7 +308,7 @@ fun match(variables: List<Variable>, equations: List<Equation>, e: Expression, e
         return match(us, equations.map {
             val variable = (it.patterns[0] as VarPattern).variable
 
-            Equation(it.patterns.drop(1), it.body.subst(variable, u), it.guard?.subst(variable, u))
+            Equation(it.patterns.drop(1), subst(it.body, variable, u), if (it.guard == null) null else subst(it.guard, variable, u))
         }, e, env)
     }
 
