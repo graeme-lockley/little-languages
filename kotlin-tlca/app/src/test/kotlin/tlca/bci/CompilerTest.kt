@@ -72,7 +72,7 @@ private fun assertCompile(input: String) {
 }
 
 private fun runThis(): String {
-    val process: Process = Runtime.getRuntime().exec("/usr/local/bin/deno run --allow-read ../../tlca-bci/deno/bci.ts run t.bin")
+    val process: Process = Runtime.getRuntime().exec("../../tlca-bci/deno/bci run t.bin", null)
     process.waitFor(60, TimeUnit.SECONDS)
     return process.errorStream.bufferedReader().readText() + process.inputStream.bufferedReader().readText()
 }
