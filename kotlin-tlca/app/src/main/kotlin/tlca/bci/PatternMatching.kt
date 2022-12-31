@@ -2,7 +2,7 @@ package tlca.bci
 
 import tlca.*
 
-val TUPLE_DATA_NAME = "\$\$TUPLE"
+const val TUPLE_DATA_NAME = "\$\$TUPLE"
 
 fun transformPattern(e: Expression, env: TypeEnv): Expression {
     fun transform(e: Expression): Expression = when (e) {
@@ -27,14 +27,11 @@ fun transformPattern(e: Expression, env: TypeEnv): Expression {
         )
 
         is MatchExpression -> {
-            val matchExpression = e.e
+            val matchExpression = transform(e.e)
             val variable = if (matchExpression is VarExpression) matchExpression.name else "_x"
 
             val match = fullMatch(
-                listOf(variable),
-                e.cases.map { Equation(listOf(it.pattern), it.expr) },
-                ErrorExpression,
-                PatternEnvironment(env)
+                listOf(variable), e.cases.map { Equation(listOf(it.pattern), transform(it.expr)) }, ErrorExpression, PatternEnvironment(env)
             )
 
             if (matchExpression is VarExpression) match
@@ -51,11 +48,8 @@ fun transformPattern(e: Expression, env: TypeEnv): Expression {
 data class PatternEnvironment(private val typeEnv: TypeEnv) {
     fun arity(constructor: String): Int = typeEnv.findConstructor(constructor)?.first?.arity ?: throw Exception("Unknown constructor: $constructor")
 
-    fun constructors(name: String): List<String> =
-        if (name == TUPLE_DATA_NAME)
-            listOf(TUPLE_DATA_NAME)
-        else
-            typeEnv.findConstructor(name)?.second?.constructors?.map { it.name } ?: throw Exception("Unknown ADT: $name")
+    fun constructors(name: String): List<String> = if (name == TUPLE_DATA_NAME) listOf(TUPLE_DATA_NAME)
+    else typeEnv.findConstructor(name)?.second?.constructors?.map { it.name } ?: throw Exception("Unknown ADT: $name")
 
     private var counter = 0
 
@@ -74,20 +68,13 @@ fun canError(e: Expression): Boolean = when (e) {
     is AppExpression -> canError(e.e1) || canError(e.e2)
     is CaseExpression -> e.clauses.any { canError(it.expression) }
     ErrorExpression -> true
-    FailExpression -> false
     is FatBarExpression -> canError(e.left) || canError(e.right)
     is IfExpression -> canError(e.e1) || canError(e.e2) || canError(e.e3)
-    is LIntExpression -> false
-    is LStringExpression -> false
     is OpExpression -> canError(e.e1) || canError(e.e2)
-    is VarExpression -> false
-    is LBoolExpression -> false
     is LTupleExpression -> e.es.any { canError(it) }
-    LUnitExpression -> false
-    is LamExpression -> false
     is LetExpression -> if (e.expr == null) false else canError(e.expr)
     is LetRecExpression -> if (e.expr == null) false else canError(e.expr)
-    is MatchExpression -> false
+    else -> false
 }
 
 fun <T> partition(list: List<T>, predicate: (T) -> Boolean): List<List<T>> {
@@ -138,10 +125,8 @@ fun removeLiterals(equations: List<Equation>): List<Equation> {
             is PWildcardPattern -> PVarPattern(nextVarName())
             is PBoolPattern -> {
                 val name = nextVarName()
-                val expr = if (pattern.v)
-                    VarExpression(name)
-                else
-                    IfExpression(VarExpression(name), LBoolExpression(false), LBoolExpression(true))
+                val expr = if (pattern.v) VarExpression(name)
+                else IfExpression(VarExpression(name), LBoolExpression(false), LBoolExpression(true))
 
                 guard = if (guard == null) expr else IfExpression(guard!!, expr, LBoolExpression(false))
 
@@ -160,38 +145,41 @@ fun tidyUpFails(e: Expression): Expression {
         is AppExpression -> AppExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2))
         is CaseExpression -> CaseExpression(ep.variable, ep.clauses.map { Clause(it.constructor, it.variables, replaceFailWithError(it.expression)) })
 
-        ErrorExpression -> ErrorExpression
         FailExpression -> ErrorExpression
         is FatBarExpression -> FatBarExpression(ep.left, replaceFailWithError(ep.right))
         is IfExpression -> IfExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2), replaceFailWithError(ep.e3))
-        is LBoolExpression -> ep
-        is LIntExpression -> ep
-        is LStringExpression -> ep
         is OpExpression -> OpExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2), ep.op)
-        is VarExpression -> ep
-        else -> TODO("replaceFailWithError: $ep")
+        is LTupleExpression -> LTupleExpression(ep.es.map { replaceFailWithError(it) })
+        is LamExpression -> LamExpression(ep.n, replaceFailWithError(ep.e))
+        is LetExpression -> if (ep.expr == null) ep else LetExpression(
+            ep.decls.map { Declaration(it.n, replaceFailWithError(it.e)) }, replaceFailWithError(ep.expr)
+        )
+
+        is LetRecExpression -> if (ep.expr == null) ep else LetRecExpression(
+            ep.decls.map { Declaration(it.n, replaceFailWithError(it.e)) }, replaceFailWithError(ep.expr)
+        )
+
+        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
+        else -> ep
     }
 
     return when (e) {
         is AppExpression -> AppExpression(tidyUpFails(e.e1), tidyUpFails(e.e2))
         is CaseExpression -> CaseExpression(e.variable, e.clauses.map { Clause(it.constructor, it.variables, tidyUpFails(it.expression)) })
-        ErrorExpression -> ErrorExpression
-        FailExpression -> FailExpression
-        is FatBarExpression -> {
-            when (e.right) {
-                ErrorExpression -> tidyUpFails(replaceFailWithError(e.left))
-                FailExpression -> tidyUpFails(e.left)
-                else -> FatBarExpression(tidyUpFails(e.left), tidyUpFails(e.right))
-            }
+        is FatBarExpression -> when (e.right) {
+            ErrorExpression -> tidyUpFails(replaceFailWithError(e.left))
+            FailExpression -> tidyUpFails(e.left)
+            else -> FatBarExpression(tidyUpFails(e.left), tidyUpFails(e.right))
         }
 
         is IfExpression -> IfExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), tidyUpFails(e.e3))
-        is LBoolExpression -> e
-        is LIntExpression -> e
-        is LStringExpression -> e
         is OpExpression -> OpExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), e.op)
-        is VarExpression -> e
-        else -> TODO("tidyUpFails: $e")
+        is LTupleExpression -> LTupleExpression(e.es.map { tidyUpFails(it) })
+        is LamExpression -> LamExpression(e.n, tidyUpFails(e.e))
+        is LetExpression -> if (e.expr == null) e else LetExpression(e.decls.map { Declaration(it.n, tidyUpFails(it.e)) }, tidyUpFails(e.expr))
+        is LetRecExpression -> if (e.expr == null) e else LetRecExpression(e.decls.map { Declaration(it.n, tidyUpFails(it.e)) }, tidyUpFails(e.expr))
+        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
+        else -> e
     }
 }
 
@@ -204,16 +192,16 @@ fun removeUnusedVariables(e: Expression): Expression {
             }.toSet()
         }
 
-        ErrorExpression -> emptySet()
-        FailExpression -> emptySet()
         is FatBarExpression -> variables(e.left) + variables(e.right)
         is IfExpression -> variables(e.e1) + variables(e.e2) + variables(e.e3)
-        is LBoolExpression -> emptySet()
-        is LIntExpression -> emptySet()
-        is LStringExpression -> emptySet()
         is OpExpression -> variables(e.e1) + variables(e.e2)
         is VarExpression -> setOf(e.name)
-        else -> TODO("variables: $e")
+        is LTupleExpression -> e.es.flatMap { variables(it) }.toSet()
+        is LamExpression -> variables(e.e) - setOf(e.n)
+        is LetExpression -> if (e.expr == null) emptySet() else variables(e.expr) + e.decls.flatMap { variables(it.e) - setOf(it.n) }.toSet()
+        is LetRecExpression -> if (e.expr == null) emptySet() else variables(e.expr) + e.decls.flatMap { variables(it.e) - setOf(it.n) }.toSet()
+        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
+        else -> emptySet()
     }
 
     return when (e) {
@@ -223,16 +211,23 @@ fun removeUnusedVariables(e: Expression): Expression {
             Clause(it.constructor, it.variables.map { v -> if (vs.contains(v)) v else null }, removeUnusedVariables(it.expression))
         })
 
-        ErrorExpression -> ErrorExpression
-        FailExpression -> FailExpression
         is FatBarExpression -> FatBarExpression(removeUnusedVariables(e.left), removeUnusedVariables(e.right))
         is IfExpression -> IfExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2), removeUnusedVariables(e.e3))
-        is LBoolExpression -> e
-        is LIntExpression -> e
-        is LStringExpression -> e
         is OpExpression -> OpExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2), e.op)
-        is VarExpression -> e
-        else -> TODO("removeUnusedVariables: $e")
+        is LTupleExpression -> LTupleExpression(e.es.map { removeUnusedVariables(it) })
+        is LamExpression -> LamExpression(e.n, removeUnusedVariables(e.e))
+        is LetExpression -> LetExpression(
+            e.decls.map { Declaration(it.n, removeUnusedVariables(it.e)) },
+            if (e.expr == null) null else removeUnusedVariables(e.expr)
+        )
+
+        is LetRecExpression -> LetRecExpression(
+            e.decls.map { Declaration(it.n, removeUnusedVariables(it.e)) },
+            if (e.expr == null) null else removeUnusedVariables(e.expr)
+        )
+
+        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
+        else -> e
     }
 }
 
@@ -246,16 +241,16 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
             )
         })
 
-        ErrorExpression -> ErrorExpression
-        FailExpression -> FailExpression
         is FatBarExpression -> FatBarExpression(subst(e.left, old, new), subst(e.right, old, new))
         is IfExpression -> IfExpression(subst(e.e1, old, new), subst(e.e2, old, new), subst(e.e3, old, new))
-        is LBoolExpression -> e
-        is LIntExpression -> e
-        is LStringExpression -> e
         is OpExpression -> OpExpression(subst(e.e1, old, new), subst(e.e2, old, new), e.op)
         is VarExpression -> if (e.name == old) VarExpression(new) else e
-        else -> TODO("subst: $e")
+        is LTupleExpression -> LTupleExpression(e.es.map { subst(it, old, new) })
+        is LamExpression -> if (e.n == old) e else LamExpression(e.n, subst(e.e, old, new))
+        is LetExpression -> LetExpression(e.decls.map { Declaration(it.n, subst(it.e, old, new)) }, if (e.expr == null) null else subst(e.expr, old, new))
+        is LetRecExpression -> LetRecExpression(e.decls.map { Declaration(it.n, subst(it.e, old, new)) }, if (e.expr == null) null else subst(e.expr, old, new))
+        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
+        else -> e
     }
 
     fun matchVar(variables: List<String>, equations: List<Equation>, e: Expression): Expression {
@@ -272,10 +267,8 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
     fun matchClause(constructor: String, variables: List<String>, equations: List<Equation>, e: Expression): Clause {
         val us = variables.drop(1)
 
-        val kp = if (constructor == TUPLE_DATA_NAME)
-            (equations[0].patterns[0] as PDataPattern).args.size
-        else
-            env.arity(constructor)
+        val kp = if (constructor == TUPLE_DATA_NAME) (equations[0].patterns[0] as PDataPattern).args.size
+        else env.arity(constructor)
         val usp = List(kp) { env.makeVar() }
 
         return Clause(
