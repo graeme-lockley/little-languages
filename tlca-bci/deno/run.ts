@@ -5,6 +5,7 @@ import { find, InstructionOpCode, OpParameter } from "./instructions.ts";
 type Value =
   | BoolValue
   | BuiltinValue
+  | BuiltinClosureValue
   | ClosureValue
   | DataValue
   | IntValue
@@ -20,6 +21,11 @@ type BoolValue = {
 type BuiltinValue = {
   tag: "BuiltinValue";
   name: string;
+};
+
+type BuiltinClosureValue = {
+  tag: "BuiltinClosureValue";
+  value: (v: Value) => Value | undefined;
 };
 
 type ClosureValue = {
@@ -72,6 +78,63 @@ const builtins: {
   "$$builtin-println": (stack: Array<Value>, _block: Uint8Array) => {
     stack.pop()!;
     print("\n");
+  },
+  "$$builtin-string-compare": (stack: Array<Value>, _block: Uint8Array) => {
+    const v1 = stack.pop()!;
+    stack.push({
+      tag: "BuiltinClosureValue",
+      value: (v2: Value): Value =>
+        v1.tag === "StringValue" && v2.tag === "StringValue"
+          ? {
+            tag: "IntValue",
+            value: v1.value === v2.value ? 0 : v1.value < v2.value ? -1 : 1,
+          }
+          : { tag: "IntValue", value: 0 },
+    });
+  },
+  "$$builtin-string-concat": (stack: Array<Value>, _block: Uint8Array) => {
+    const v1 = stack.pop()!;
+    stack.push({
+      tag: "BuiltinClosureValue",
+      value: (v2: Value): Value =>
+        v1.tag === "StringValue" && v2.tag === "StringValue"
+          ? { tag: "StringValue", value: `${v1.value}${v2.value}` }
+          : { tag: "StringValue", value: "" },
+    });
+  },
+  "$$builtin-string-equal": (stack: Array<Value>, _block: Uint8Array) => {
+    const v1 = stack.pop()!;
+    stack.push({
+      tag: "BuiltinClosureValue",
+      value: (v2: Value): Value =>
+        v1.tag === "StringValue" && v2.tag === "StringValue"
+          ? { tag: "BoolValue", value: v1.value === v2.value }
+          : { tag: "BoolValue", value: false },
+    });
+  },
+  "$$builtin-string-length": (stack: Array<Value>, _block: Uint8Array) => {
+    const v = stack.pop()!;
+    stack.push({
+      tag: "IntValue",
+      value: v.tag === "StringValue" ? v.value.length : 0,
+    });
+  },
+  "$$builtin-string-substring": (stack: Array<Value>, _block: Uint8Array) => {
+    const v1 = stack.pop()!;
+    stack.push({
+      tag: "BuiltinClosureValue",
+      value: (v2: Value): Value => ({
+        tag: "BuiltinClosureValue",
+        value: (v3: Value): Value =>
+          v1.tag === "StringValue" && v2.tag === "IntValue" &&
+            v3.tag === "IntValue" && v2.value < v3.value
+            ? {
+              tag: "StringValue",
+              value: v1.value.substring(v2.value, v3.value),
+            }
+            : { tag: "StringValue", value: "" },
+      }),
+    });
   },
 };
 
@@ -130,6 +193,8 @@ const valueToString = (
         return `${v.value}`;
       case "BuiltinValue":
         return v.name;
+      case "BuiltinClosureValue":
+        return "builtin-closure";
       case "ClosureValue":
         return style === ValueToStringStyle.VSSRaw
           ? `c${v.ip}#${activationDepth(v.previous)}`
@@ -150,7 +215,7 @@ const valueToString = (
       case "StringValue":
         return style === ValueToStringStyle.VSSRaw
           ? v.value
-          : `"${v.value.replace('"', '\\"')}"`;
+          : `"${v.value.replaceAll('"', '\\"')}"`;
       case "TupleValue":
         return `(${v.values.map(value).join(", ")})`;
       case "UnitValue":
@@ -164,6 +229,8 @@ const valueToString = (
         return "Bool";
       case "BuiltinValue":
         return "Builtin";
+      case "BuiltinClosureValue":
+        return "BuiltinClosure";
       case "ClosureValue":
         return "Closure";
       case "DataValue":
@@ -476,19 +543,26 @@ export const execute = (
       case InstructionOpCode.SWAP_CALL: {
         const v = stack.pop()!;
         const closure = stack.pop()!;
-        stack.push(v);
 
         if (closure.tag === "ClosureValue") {
+          stack.push(v);
           const newActivation: Activation = [activation, closure, ip, null];
           ip = closure.ip;
           activation = newActivation;
         } else if (closure.tag === "BuiltinValue") {
+          stack.push(v);
           const builtin = builtins[closure.name];
           if (builtin === undefined) {
             throw new Error(`Unknown builtin: ${closure.name}: ${bciState(1)}`);
           }
           builtin(stack, block);
+        } else if (closure.tag === "BuiltinClosureValue") {
+          const result = closure.value(v);
+          if (result !== undefined) {
+            stack.push(result);
+          }
         } else {
+          stack.push(v);
           throw new Error(`SWAP_CALL: Not a closure: ${bciState(1)}`);
         }
         break;

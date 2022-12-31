@@ -51,6 +51,11 @@ const builtins = [
   { name: "$$builtin-print-literal" },
   { name: "$$builtin-print-typed" },
   { name: "$$builtin-println" },
+  { name: "$$builtin-string-compare" },
+  { name: "$$builtin-string-concat" },
+  { name: "$$builtin-string-equal" },
+  { name: "$$builtin-string-length" },
+  { name: "$$builtin-string-substring" },
 ];
 
 const instructions: Array<Instruction> = [
