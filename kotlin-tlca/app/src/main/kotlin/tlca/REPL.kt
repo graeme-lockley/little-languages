@@ -1,5 +1,7 @@
 package tlca
 
+import tlca.bci.compileTo
+import tlca.bci.renameTypeVariables
 import java.io.File
 
 fun main(args: Array<String>) {
@@ -22,23 +24,14 @@ fun main(args: Array<String>) {
     } else if (args.size == 1) {
         val input = File(args[0]).readText()
         executeInput(input, defaultEnvironment)
+    } else if (args.size == 2) {
+        val input = File(args[0]).readText()
+        val output = File(args[1])
+
+        compileTo(input, output)
     } else {
-        println("Usage: tlca [file-name]")
+        println("Usage: tlca [input-file] [output-file]")
     }
-}
-
-private fun renameTypeVariables(t: Type): Type {
-    var i = 0
-
-    fun nextVar(): String =
-        if (i < 26)
-            ('a' + i++).toString()
-        else
-            "t${i++ - 26}"
-
-    val vars = t.ftv().toList()
-    val subst = Subst(vars.zip(vars.map { TVar(nextVar()) }).toMap())
-    return t.apply(subst)
 }
 
 private fun executeInput(input: String, env: Environment): Environment {

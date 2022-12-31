@@ -11,15 +11,30 @@ sealed class Element
 
 sealed class Expression : Element()
 
+interface ExpressionDeclaration {
+    val decls: List<Declaration>
+    val expr: Expression?
+}
+
 data class AppExpression(val e1: Expression, val e2: Expression) : Expression()
+
+data class CaseExpression(val variable: String, val clauses: List<Clause>) : Expression()
+
+data class Clause(val constructor: String, val variables: List<String?>, val expression: Expression)
 
 data class IfExpression(val e1: Expression, val e2: Expression, val e3: Expression) : Expression()
 
-data class LetExpression(val decls: List<Declaration>, val expr: Expression?) : Expression()
+data class LetExpression(override val decls: List<Declaration>, override val expr: Expression?) : Expression(), ExpressionDeclaration
 
-data class LetRecExpression(val decls: List<Declaration>, val expr: Expression?) : Expression()
+data class LetRecExpression(override val decls: List<Declaration>, override val expr: Expression?) : Expression(), ExpressionDeclaration
 
 data class Declaration(val n: String, val e: Expression)
+
+object ErrorExpression : Expression()
+
+object FailExpression : Expression()
+
+data class FatBarExpression(val left: Expression, val right: Expression) : Expression()
 
 data class LamExpression(val n: String, val e: Expression) : Expression()
 
@@ -43,9 +58,10 @@ enum class Op { Equals, Plus, Minus, Times, Divide }
 
 data class VarExpression(val name: String) : Expression()
 
+
 sealed class Pattern
 
-data class PConsPattern(val name: String, val args: List<Pattern>) : Pattern()
+data class PDataPattern(val name: String, val args: List<Pattern>) : Pattern()
 
 data class PBoolPattern(val v: Boolean) : Pattern()
 
@@ -181,7 +197,7 @@ class ParserVisitor : Visitor<
     override fun visitPattern6(a: Token): Pattern =
         if (a.lexeme == "_") PWildcardPattern else PVarPattern(a.lexeme)
 
-    override fun visitPattern7(a1: Token, a2: List<Pattern>): Pattern = PConsPattern(a1.lexeme, a2)
+    override fun visitPattern7(a1: Token, a2: List<Pattern>): Pattern = PDataPattern(a1.lexeme, a2)
 
     override fun visitDataDeclaration(a1: Token, a2: TypeDeclaration, a3: List<Tuple2<Token, TypeDeclaration>>): DataDeclaration =
         DataDeclaration(listOf(a2) + a3.map { it.b })

@@ -11,12 +11,7 @@ val defaultEnvironment = Environment(
         "string_substring" to { s: String -> { start: Int -> { end: Int -> stringSubstring(s, start, end) } } },
         "string_equal" to { s1: String -> { s2: String -> s1 == s2 } },
         "string_compare" to { s1: String -> { s2: String -> if (s1 < s2) -1 else if (s1 == s2) 0 else 1 } },
-    ), emptyTypeEnv
-        .extend("string_length", Scheme(setOf(), TArr(typeString, typeInt)))
-        .extend("string_concat", Scheme(setOf(), TArr(typeString, TArr(typeString, typeString))))
-        .extend("string_substring", Scheme(setOf(), TArr(typeString, TArr(typeInt, TArr(typeInt, typeString)))))
-        .extend("string_equal", Scheme(setOf(), TArr(typeString, TArr(typeString, typeBool))))
-        .extend("string_compare", Scheme(setOf(), TArr(typeString, TArr(typeString, typeInt))))
+    ), defaultTypeEnv
 )
 
 fun stringSubstring(str: String, start: Int, end: Int): String {
@@ -98,14 +93,14 @@ private fun executeDataDeclaration(
 
     val adts: MutableList<DataDefinition> = mutableListOf()
     for (d in dd.decls) {
-        val adt = DataDefinition(d.name, d.parameters, d.constructors.map { c -> DataConstructor(c.name, c.parameters.map { translate(it, env) }) })
+        val adt = DataDefinition(d.name, d.parameters, d.constructors.map { c -> DataConstructor(c.name, c.parameters.map { translate(it) }) })
         adts.add(adt)
         env = env.copy(typeEnv = env.typeEnv.addData(adt))
 
         val parameters = d.parameters.toSet()
         val constructorResultType: Type = TCon(d.name, d.parameters.map { TVar(it) })
         for (c in d.constructors) {
-            val constructorType = c.parameters.foldRight(constructorResultType) { p, acc -> TArr(translate(p, env), acc) }
+            val constructorType = c.parameters.foldRight(constructorResultType) { p, acc -> TArr(translate(p), acc) }
             env = env.copy(
                 runtimeEnv = env.runtimeEnv + Pair(c.name, mkConstructorFunction(c.name, c.parameters.size)),
                 typeEnv = env.typeEnv.extend(c.name, Scheme(parameters, constructorType))
@@ -129,11 +124,11 @@ private fun mkConstructorFunction(name: String, arity: Int): Value {
     }
 }
 
-private fun translate(tt: TypeTerm, env: Environment): Type = when (tt) {
+fun translate(tt: TypeTerm): Type = when (tt) {
     is TypeVariable -> TVar(tt.name)
-    is TypeConstructor -> TCon(tt.name, tt.parameters.map { translate(it, env) })
-    is TypeFunction -> TArr(translate(tt.left, env), translate(tt.right, env))
-    is TypeTuple -> TTuple(tt.parameters.map { translate(it, env) })
+    is TypeConstructor -> TCon(tt.name, tt.parameters.map { translate(it) })
+    is TypeFunction -> TArr(translate(tt.left), translate(tt.right))
+    is TypeTuple -> TTuple(tt.parameters.map { translate(it) })
     is TypeUnit -> typeUnit
 }
 
@@ -152,8 +147,9 @@ private fun evaluate(ast: Expression, env: RuntimeEnv): Value? =
     when (ast) {
         is AppExpression -> {
             val function = evaluate(ast.e1, env) as (Any?) -> Any
+            val argument = evaluate(ast.e2, env)
 
-            function(evaluate(ast.e2, env))
+            function(argument)
         }
 
         is IfExpression ->
@@ -163,7 +159,7 @@ private fun evaluate(ast: Expression, env: RuntimeEnv): Value? =
                 evaluate(ast.e3, env)
 
         is LamExpression ->
-            { x: Any -> evaluate(ast.e, env + Pair(ast.n, x)) }
+            { x: Any? -> evaluate(ast.e, env + Pair(ast.n, x)) }
 
         is LetExpression -> evaluateDeclarations(ast.decls, ast.expr, env).value
         is LetRecExpression -> evaluateDeclarations(ast.decls, ast.expr, env).value
@@ -175,6 +171,10 @@ private fun evaluate(ast: Expression, env: RuntimeEnv): Value? =
         is MatchExpression -> matchExpression(ast, env)
         is OpExpression -> binaryOps[ast.op]!!(evaluate(ast.e1, env), evaluate(ast.e2, env))
         is VarExpression -> env[ast.name]
+        is CaseExpression -> TODO()
+        ErrorExpression -> TODO()
+        FailExpression -> TODO()
+        is FatBarExpression -> TODO()
     }
 
 private fun matchExpression(e: MatchExpression, env: RuntimeEnv): Value? {
@@ -208,7 +208,7 @@ private fun matchPattern(pattern: Pattern, value: Any?, env: RuntimeEnv): Runtim
 
         PUnitPattern -> if (value == null) env else null
         PWildcardPattern -> env
-        is PConsPattern -> {
+        is PDataPattern -> {
             if (value is Array<*> && value[0] == pattern.name) {
                 var newEnv: RuntimeEnv? = env
                 for ((p, v) in pattern.args.zip(value.drop(1))) {

@@ -88,9 +88,11 @@ data class DataConstructor(
 
 data class DataDefinition(val name: String, val typeVars: List<String>, val constructors: List<DataConstructor>) {
     override fun toString(): String = "$name${if (typeVars.isEmpty()) "" else " "}${typeVars.joinToString(" ")} = ${
-        constructors.joinToString(" | ") { "${it.name}${if (it.args.isEmpty()) "" else " "}${
-            it.args.joinToString(" ") { if (it is TCon && it.args.isNotEmpty() || it is TArr) "($it)" else "$it" }
-        }" }
+        constructors.joinToString(" | ") {
+            "${it.name}${if (it.args.isEmpty()) "" else " "}${
+                it.args.joinToString(" ") { if (it is TCon && it.args.isNotEmpty() || it is TArr) "($it)" else "$it" }
+            }"
+        }
     }"
 }
 
@@ -124,6 +126,13 @@ data class TypeEnv(private val values: Map<String, Scheme>, private val adts: Li
 }
 
 val emptyTypeEnv = TypeEnv(emptyMap(), emptyList())
+val defaultTypeEnv = emptyTypeEnv
+    .extend("string_length", Scheme(setOf(), TArr(typeString, typeInt)))
+    .extend("string_concat", Scheme(setOf(), TArr(typeString, TArr(typeString, typeString))))
+    .extend("string_substring", Scheme(setOf(), TArr(typeString, TArr(typeInt, TArr(typeInt, typeString)))))
+    .extend("string_equal", Scheme(setOf(), TArr(typeString, TArr(typeString, typeBool))))
+    .extend("string_compare", Scheme(setOf(), TArr(typeString, TArr(typeString, typeInt))))
+
 
 data class Pump(private var counter: Int = 0) {
     fun next(): TVar {

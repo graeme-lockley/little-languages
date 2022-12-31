@@ -24,12 +24,31 @@ build_parser() {
     )
 }
 
-scenario_tests() {
-    echo "---| scenario tests"
+interpreter_scenario_tests() {
+    echo "---| interpreter scenario tests"
 
     for FILE in "$PROJECT_HOME"/../tlca/scenarios/*.inp; do
         echo "- scenario test: $FILE"
         java -jar app/build/libs/app.jar "$FILE" > t.txt || exit 1
+
+        if ! diff -q "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
+            echo "scenario test failed: $FILE"
+            diff "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt
+            rm t.txt
+            exit 1
+        fi
+
+        rm t.txt
+    done
+}
+
+compiler_scenario_tests() {
+    echo "---| compiler scenario tests"
+
+    for FILE in "$PROJECT_HOME"/../tlca/scenarios/*.inp; do
+        echo "- scenario test: $FILE"
+        java -jar app/build/libs/app.jar "$FILE" "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).bin || exit 1
+        deno run --allow-read ../tlca-bci/deno/bci.ts run "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).bin > t.txt || exit 1
 
         if ! diff -q "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
             echo "scenario test failed: $FILE"
@@ -54,23 +73,34 @@ case "$1" in
     echo "Commands:"
     echo "  help"
     echo "    This help page"
+    echo "  compiler_scenario"
+    echo "    Run all compiler scenario tests"
+    echo "  interpreter_scenario"
+    echo "    Run all interpreter scenario tests"
     echo "  jar"
     echo "    Create the application's JAR file"
     echo "  parser"
     echo "    Builds the parser from specs"
     echo "  run"
     echo "    Run all tasks"
-    echo "  scenario"
-    echo "    Run all scenario tests"
     echo "  unit"
     echo "    Run all unit tests"
+    ;;
+
+compiler_scenario)
+    compiler_scenario_tests
+    ;;
+
+interpreter_scenario)
+    interpreter_scenario_tests
     ;;
 
 run)
     build_parser
     unit_tests
     build_jar
-    scenario_tests
+    interpreter_scenario_tests
+    compiler_scenario_tests
     ;;
 
 jar)
@@ -79,10 +109,6 @@ jar)
 
 parser)
     build_parser
-    ;;
-
-scenario)
-    scenario_tests
     ;;
 
 unit)

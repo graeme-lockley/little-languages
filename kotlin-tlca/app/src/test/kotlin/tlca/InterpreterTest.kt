@@ -138,6 +138,12 @@ class InterpreterTest {
         assertExecute("match True with x -> x", "true: Bool")
         assertExecute("match False with x -> x", "false: Bool")
         assertExecute("match () with x -> x", "(): ()")
+        assertExecute(
+            "let d n = match n with () -> \"bingo\" ; d ()", listOf(
+                NestedString.Item("d = function: () -> String"),
+                NestedString.Item("\"bingo\": String"),
+            )
+        )
         assertExecute("match \"hello\" with x -> x", "\"hello\": String")
         assertExecute("match (1, 2) with (x, y) -> x + y", "3: Int")
 

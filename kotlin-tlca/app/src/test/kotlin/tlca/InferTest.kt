@@ -136,10 +136,10 @@ class InferTest {
             )
         )
 
-        assertInferPatternWithEnv(origEnv, PConsPattern("Nil", emptyList()), emptyList(), "List V1", origEnv)
+        assertInferPatternWithEnv(origEnv, PDataPattern("Nil", emptyList()), emptyList(), "List V1", origEnv)
         assertInferPatternWithEnv(
             origEnv,
-            PConsPattern("Cons", listOf(PVarPattern("x"), PVarPattern("xs"))),
+            PDataPattern("Cons", listOf(PVarPattern("x"), PVarPattern("xs"))),
             listOf("V2 ~ V1, V3 ~ List -> V1"),
             "List V1",
             origEnv

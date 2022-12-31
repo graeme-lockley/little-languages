@@ -144,6 +144,11 @@ private class Inference(val constraints: Constraints, val pump: Pump) {
 
                 InferenceResult(scheme.instantiate(pump), typeEnv)
             }
+
+            is CaseExpression -> TODO()
+            ErrorExpression -> TODO()
+            FailExpression -> TODO()
+            is FatBarExpression -> TODO()
         }
 
     private fun fix(typeEnv: TypeEnv, e: Expression, constraints: Constraints): Type {
@@ -192,7 +197,7 @@ fun inferPattern(pattern: Pattern, env: TypeEnv, constraints: Constraints, pump:
         }
 
         is PWildcardPattern -> InferenceResult(pump.next(), env)
-        is PConsPattern -> {
+        is PDataPattern -> {
             val (constructor, adt) = env.findConstructor(pattern.name) ?: throw UnknownNameException(pattern.name, env)
 
             if (constructor.arity != pattern.args.size)
