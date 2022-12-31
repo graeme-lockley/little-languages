@@ -160,10 +160,15 @@ jobs:
           cd ./kotlin-tlca
           ./tasks/dev jar
 
-      - name: Scenario Tests
+      - name: Interpreter Scenario Tests
         run: |
           cd ./kotlin-tlca
-          ./tasks/dev scenario
+          ./tasks/dev interpreter_scenarios
+
+      - name: Compiler Scenario Tests
+        run: |
+          cd ./kotlin-tlca
+          ./tasks/dev compiler_scenarios
 
   'stlc-bci-deno':
     runs-on: ubuntu-latest
