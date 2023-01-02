@@ -263,6 +263,6 @@ jobs:
 
       - name: Scenario tests
         run: |
-          cd ./tlca-bci/deno
+          cd ./tlca-bci/c
           ./tasks/dev run
 
