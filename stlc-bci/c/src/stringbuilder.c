@@ -15,6 +15,7 @@ void stringbuilder_free(StringBuilder *sb) {
 }
 
 char *stringbuilder_free_use(StringBuilder *sb){
+    stringbuilder_append_char(sb, '\0');
     char *s = buffer_free_use(sb);
     return s;
 }
