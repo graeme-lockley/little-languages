@@ -1,5 +1,4 @@
 {
   "deno.enable": true,
-  "deno.unstable": true,
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/stlc-bci/c/compile_commands.json"
+  "deno.unstable": true
 }

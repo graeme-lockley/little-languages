@@ -2,4 +2,6 @@
 
 SCRIPT_HOME=$(dirname "$0")
 
-deno run --allow-read --allow-write "$SCRIPT_HOME"/bci.ts $*
+DENO=$(which deno) || "/usr/local/bin/deno"
+
+$DENO run --allow-read --allow-write "$SCRIPT_HOME"/bci.ts $*

@@ -4,36 +4,33 @@ PROJECT_HOME=$(dirname "$0")/..
 
 build_jar() {
     echo "---| build JAR"
-    cd "$PROJECT_HOME" || exit 1
+
     ./gradlew jar || exit 1
 }
 
 build_parser() {
-    (
-        echo "---| build parser"
-        cd "$PROJECT_HOME" || exit 1
+    echo "---| build parser"
 
-        mkdir -p "$PROJECT_HOME"/parser || exit 1
+    mkdir -p ./parser || exit 1
 
-        deno run --allow-read --allow-write --allow-net --unsafely-ignore-certificate-errors \
-            "https://raw.githubusercontent.com/littlelanguages/parspiler-cli/main/mod.ts" kotlin \
-            --verbose \
-            --directory=./app/src/main/kotlin \
-            --package=tlca.parser \
-            "$PROJECT_HOME"/../tlca/Grammar.llgd || exit 1
-    )
+    deno run --allow-read --allow-write --allow-net --unsafely-ignore-certificate-errors \
+        "https://raw.githubusercontent.com/littlelanguages/parspiler-cli/main/mod.ts" kotlin \
+        --verbose \
+        --directory=./app/src/main/kotlin \
+        --package=tlca.parser \
+        ../tlca/Grammar.llgd || exit 1
 }
 
 interpreter_scenario_tests() {
     echo "---| interpreter scenario tests"
 
-    for FILE in "$PROJECT_HOME"/../tlca/scenarios/*.inp; do
+    for FILE in ../tlca/scenarios/*.inp; do
         echo "- scenario test: $FILE"
-        java -jar app/build/libs/app.jar "$FILE" > t.txt || exit 1
+        java -jar ./app/build/libs/app.jar "$FILE" > t.txt || exit 1
 
-        if ! diff -q "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
+        if ! diff -q ../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
             echo "scenario test failed: $FILE"
-            diff "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt
+            diff ../tlca/scenarios/$(basename "$FILE" .inp).out t.txt
             rm t.txt
             exit 1
         fi
@@ -45,14 +42,14 @@ interpreter_scenario_tests() {
 compiler_scenario_tests() {
     echo "---| compiler scenario tests"
 
-    for FILE in "$PROJECT_HOME"/../tlca/scenarios/*.inp; do
+    for FILE in ../tlca/scenarios/*.inp; do
         echo "- scenario test: $FILE"
-        java -jar app/build/libs/app.jar "$FILE" "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).bin || exit 1
-        deno run --allow-read ../tlca-bci/deno/bci.ts run "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).bin > t.txt || exit 1
+        java -jar ./app/build/libs/app.jar "$FILE" ../tlca/scenarios/$(basename "$FILE" .inp).bin || exit 1
+        deno run --allow-read ../tlca-bci/deno/bci.ts run ../tlca/scenarios/$(basename "$FILE" .inp).bin > t.txt || exit 1
 
-        if ! diff -q "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
+        if ! diff -q ../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
             echo "scenario test failed: $FILE"
-            diff "$PROJECT_HOME"/../tlca/scenarios/$(basename "$FILE" .inp).out t.txt
+            diff ../tlca/scenarios/$(basename "$FILE" .inp).out t.txt
             rm t.txt
             exit 1
         fi
@@ -63,9 +60,10 @@ compiler_scenario_tests() {
 
 unit_tests() {
     echo "---| unit tests"
-    cd "$PROJECT_HOME" || exit 1
     ./gradlew test || exit 1
 }
+
+cd "$PROJECT_HOME" || exit 1
 
 case "$1" in
 "" | help)
