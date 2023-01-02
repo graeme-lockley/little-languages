@@ -241,3 +241,28 @@ jobs:
           cd ./tlca-bci/deno
           ./tasks/dev run
 
+  'tlca-bci-c':
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '18'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Install deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Scenario tests
+        run: |
+          cd ./tlca-bci/deno
+          ./tasks/dev run
+
