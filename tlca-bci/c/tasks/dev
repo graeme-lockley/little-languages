@@ -11,6 +11,7 @@ build_bci() {
 build_bin() {
     echo "---| assemble scenario tests"
 
+    ../../kotlin-tlca/tasks/dev parser || exit 1
     ../../kotlin-tlca/tasks/dev jar || exit 1
     ../../kotlin-tlca/tasks/dev compiler_scenario || exit 1
 }
