@@ -21,7 +21,8 @@ unit_tests() {
     for FILE in ../unit-tests/*.bci; do
         echo "- unit test: $FILE"
         deno run --allow-read --allow-write ../deno/bci.ts asm "$FILE" || exit 1
-        ./src/bci run ../unit-tests/$(basename "$FILE" .bci).bin | tee t.txt || exit 1
+        ./src/bci run ../unit-tests/$(basename "$FILE" .bci).bin > t.txt || exit 1
+        cat t.txt
 
         if grep -q "Memory leak detected" t.txt; then
             echo "scenario test failed: $FILE"
@@ -47,7 +48,8 @@ scenario_tests() {
 
     for FILE in ../../tlca/scenarios/*.inp; do
         echo "- scenario test: $FILE"
-        ./src/bci run ../../tlca/scenarios/$(basename "$FILE" .inp).bin | tee t.txt || exit 1
+        ./src/bci run ../../tlca/scenarios/$(basename "$FILE" .inp).bin > t.txt || exit 1
+        cat t.txt
 
         if ! diff -q ../../tlca/scenarios/$(basename "$FILE" .inp).out t.txt; then
             echo "scenario test failed: $FILE"
