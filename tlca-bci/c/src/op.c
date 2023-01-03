@@ -17,6 +17,7 @@ static void _fatalError(struct State *state)
 static void _print(struct State *state)
 {
     Value *v = pop(state);
+    pop(state);
     char *s = machine_toString(v, VSS_Raw, state);
     printf("%s", s);
     FREE(s);
@@ -25,6 +26,7 @@ static void _print(struct State *state)
 static void _printLiteral(struct State *state)
 {
     Value *v = pop(state);
+    pop(state);
     char *s = machine_toString(v, VSS_Literal, state);
     printf("%s", s);
     FREE(s);
@@ -32,6 +34,7 @@ static void _printLiteral(struct State *state)
 
 static void _println(struct State *state)
 {
+    pop(state);
     pop(state);
     printf("\n");
 }
