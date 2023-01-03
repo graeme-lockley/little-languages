@@ -10,13 +10,13 @@ Builtin **builtins;
 
 static void _fatalError(struct State *state)
 {
-    printf("Fatal error: %s\n", machine_toString(pop(&state->memoryState), VSS_Raw, state));
+    printf("Fatal error: %s\n", machine_toString(pop(state), VSS_Raw, state));
     exit(1);
 }
 
 static void _print(struct State *state)
 {
-    Value *v = pop(&state->memoryState);
+    Value *v = pop(state);
     char *s = machine_toString(v, VSS_Raw, state);
     printf("%s", s);
     FREE(s);
@@ -24,7 +24,7 @@ static void _print(struct State *state)
 
 static void _printLiteral(struct State *state)
 {
-    Value *v = pop(&state->memoryState);
+    Value *v = pop(state);
     char *s = machine_toString(v, VSS_Literal, state);
     printf("%s", s);
     FREE(s);
@@ -32,89 +32,89 @@ static void _printLiteral(struct State *state)
 
 static void _println(struct State *state)
 {
-    pop(&state->memoryState);
+    pop(state);
     printf("\n");
 }
 
 static void _stringCompare1(struct State *state)
 {
-    Value *v1 = pop(&state->memoryState);
-    Value *v2 = pop(&state->memoryState);
+    Value *v1 = pop(state);
+    Value *v2 = pop(state);
 
-    machine_newInt(strcmp(v2->data.bc.argument->data.s, v1->data.s), &state->memoryState, state);
+    machine_newInt(strcmp(v2->data.bc.argument->data.s, v1->data.s), state);
 }
 
 static void _stringCompare(struct State *state)
 {
-    Value *v1 = peek(0, &state->memoryState);
+    Value *v1 = peek(0, state);
 
-    machine_newBuiltinClosure(peek(1, &state->memoryState), v1, _stringCompare1, &state->memoryState, state);
+    machine_newBuiltinClosure(peek(1, state), v1, _stringCompare1, state);
 
-    state->memoryState.stack[state->memoryState.sp - 3] = state->memoryState.stack[state->memoryState.sp - 1];
+    state->stack[state->sp - 3] = state->stack[state->sp - 1];
 
-    popN(2, &state->memoryState);
+    popN(2, state);
 }
 
 static void _stringConcat1(struct State *state)
 {
-    Value *v1 = pop(&state->memoryState);
-    Value *v2 = pop(&state->memoryState);
+    Value *v1 = pop(state);
+    Value *v2 = pop(state);
 
     char *s = ALLOCATE(char, strlen(v1->data.s) + strlen(v2->data.bc.argument->data.s) + 1);
     strcpy(s, v2->data.bc.argument->data.s);
     strcat(s, v1->data.s);
-    machine_newString_reference(s, &state->memoryState, state);
+    machine_newString_reference(s, state);
 }
 
 static void _stringConcat(struct State *state)
 {
-    Value *v1 = peek(0, &state->memoryState);
+    Value *v1 = peek(0, state);
 
-    machine_newBuiltinClosure(peek(1, &state->memoryState), v1, _stringConcat1, &state->memoryState, state);
+    machine_newBuiltinClosure(peek(1, state), v1, _stringConcat1, state);
 
-    state->memoryState.stack[state->memoryState.sp - 3] = state->memoryState.stack[state->memoryState.sp - 1];
+    state->stack[state->sp - 3] = state->stack[state->sp - 1];
 
-    popN(2, &state->memoryState);
+    popN(2, state);
 }
 
 static void _stringEqual1(struct State *state)
 {
-    Value *v1 = pop(&state->memoryState);
-    Value *v2 = pop(&state->memoryState);
+    Value *v1 = pop(state);
+    Value *v2 = pop(state);
 
     if (strcmp(v1->data.s, v2->data.bc.argument->data.s) == 0)
     {
-        push(machine_True, &state->memoryState);
+        push(machine_True, state);
     }
     else
     {
-        push(machine_False, &state->memoryState);
+        push(machine_False, state);
     }
 }
 
 static void _stringEqual(struct State *state)
 {
-    Value *v1 = peek(0, &state->memoryState);
+    Value *v1 = peek(0, state);
 
-    machine_newBuiltinClosure(peek(1, &state->memoryState), v1, _stringEqual1, &state->memoryState, state);
+    machine_newBuiltinClosure(peek(1, state), v1, _stringEqual1, state);
 
-    state->memoryState.stack[state->memoryState.sp - 3] = state->memoryState.stack[state->memoryState.sp - 1];
+    state->stack[state->sp - 3] = state->stack[state->sp - 1];
 
-    popN(2, &state->memoryState);
+    popN(2, state);
 }
 
 static void _stringLength(struct State *state)
 {
-    Value *v = pop(&state->memoryState);
-    pop(&state->memoryState);
-    machine_newInt(strlen(v->data.s), &state->memoryState, state);
+    Value *v = pop(state);
+    pop(state);
+    machine_newInt(strlen(v->data.s), state);
 }
 
 static void _stringSubstring2(struct State *state)
 {
     // printf("> _stringSubstring2\n");
-    Value *v1 = pop(&state->memoryState);
-    Value *v2 = pop(&state->memoryState);
+    Value *v1 = pop(state);
+    Value *v2 = pop(state);
 
     // printf("_stringSubstring2: %s, %s\n", machine_toString(v1, VSS_Raw, state), machine_toString(v2, VSS_Raw, state));
     int32_t arg3 = v1->data.i;
@@ -133,11 +133,11 @@ static void _stringSubstring2(struct State *state)
 
     if (arg2 >= strlen(arg1))
     {
-        machine_newString("", &state->memoryState, state);
+        machine_newString("", state);
     }
     else if (arg3 <= arg2)
     {
-        machine_newString("", &state->memoryState, state);
+        machine_newString("", state);
     }
     else
     {
@@ -147,10 +147,10 @@ static void _stringSubstring2(struct State *state)
         char *s = ALLOCATE(char, arg3 - arg2 + 1);
         strncpy(s, arg1 + arg2, arg3 - arg2);
         s[arg3 - arg2] = '\0';
-        machine_newString_reference(s, &state->memoryState, state);
+        machine_newString_reference(s, state);
     }
 
-    // printf("result: \"%s\"\n", machine_toString(peek(0, &state->memoryState), VSS_Raw, state));
+    // printf("result: \"%s\"\n", machine_toString(peek(0, state), VSS_Raw, state));
     // printf("<\n");
 }
 
@@ -158,33 +158,33 @@ static void _stringSubstring1(struct State *state)
 {
     // printf("> _stringSubstring1\n");
 
-    Value *v1 = peek(0, &state->memoryState);
-    Value *v2 = peek(1, &state->memoryState);
+    Value *v1 = peek(0, state);
+    Value *v2 = peek(1, state);
 
     // printf("v1: %s\n", machine_toString(v1, VSS_Typed, state));
     // printf("v2: %s\n", machine_toString(v2, VSS_Typed, state));
 
-    machine_newBuiltinClosure(v2, v1, _stringSubstring2, &state->memoryState, state);
+    machine_newBuiltinClosure(v2, v1, _stringSubstring2, state);
 
-    state->memoryState.stack[state->memoryState.sp - 3] = state->memoryState.stack[state->memoryState.sp - 1];
-    popN(2, &state->memoryState);
+    state->stack[state->sp - 3] = state->stack[state->sp - 1];
+    popN(2, state);
 
-    // printf("result: %s\n", machine_toString(peek(0, &state->memoryState), VSS_Typed, state));
+    // printf("result: %s\n", machine_toString(peek(0, state), VSS_Typed, state));
     // printf("<\n");
 }
 
 static void _stringSubstring(struct State *state)
 {
     // printf("> _stringSubstring\n");
-    Value *v1 = peek(0, &state->memoryState);
+    Value *v1 = peek(0, state);
 
     // printf("v1: %s\n", machine_toString(v1, VSS_Typed, state));
 
-    machine_newBuiltinClosure(peek(1, &state->memoryState), v1, _stringSubstring1, &state->memoryState, state);
+    machine_newBuiltinClosure(peek(1, state), v1, _stringSubstring1, state);
 
-    state->memoryState.stack[state->memoryState.sp - 3] = state->memoryState.stack[state->memoryState.sp - 1];
+    state->stack[state->sp - 3] = state->stack[state->sp - 1];
 
-    popN(2, &state->memoryState);
+    popN(2, state);
     // printf("<\n");
 }
 

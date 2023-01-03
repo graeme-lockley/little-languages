@@ -19,7 +19,7 @@ Value *machine_Unit;
 // #define DEBUG_GC
 #define GC_FORCE
 
-static MemoryState internalMM;
+static MachineState internalMM;
 
 static int activationDepth(Value *v)
 {
@@ -37,7 +37,7 @@ static int activationDepth(Value *v)
     }
 }
 
-static void append_builtin_closure(Value *v, enum ValueToStringStyle style, struct State *state, StringBuilder *sb)
+static void append_builtin_closure(Value *v, enum ValueToStringStyle style, MachineState *state, StringBuilder *sb)
 {
     if (machine_getType(v->data.bc.previous) == VBuiltin)
     {
@@ -55,7 +55,7 @@ static void append_builtin_closure(Value *v, enum ValueToStringStyle style, stru
     FREE(s);
 }
 
-static void append_value(Value *v, enum ValueToStringStyle style, struct State *state, StringBuilder *sb)
+static void append_value(Value *v, enum ValueToStringStyle style, MachineState *state, StringBuilder *sb)
 {
     if (v == NULL)
     {
@@ -193,7 +193,7 @@ static void append_value(Value *v, enum ValueToStringStyle style, struct State *
     }
 }
 
-static void append_type(Value *v, enum ValueToStringStyle style, struct State *state, StringBuilder *sb)
+static void append_type(Value *v, enum ValueToStringStyle style, MachineState *state, StringBuilder *sb)
 {
     if (v != NULL)
     {
@@ -258,7 +258,7 @@ static void append_type(Value *v, enum ValueToStringStyle style, struct State *s
     }
 }
 
-char *machine_toString(Value *v, enum ValueToStringStyle style, struct State *state)
+char *machine_toString(Value *v, enum ValueToStringStyle style, MachineState *state)
 {
     StringBuilder *sb = stringbuilder_new();
     append_value(v, style, state, sb);
@@ -270,41 +270,7 @@ char *machine_toString(Value *v, enum ValueToStringStyle style, struct State *st
     return stringbuilder_free_use(sb);
 }
 
-MemoryState machine_newMemoryManager(int initialStackSize)
-{
-    MemoryState mm;
-
-    mm.colour = VWhite;
-
-    mm.size = 0;
-    mm.capacity = DEFAULT_HEAP_CAPACITY;
-
-    mm.root = NULL;
-    mm.activation = NULL;
-
-    mm.sp = 0;
-    mm.stackSize = initialStackSize;
-    mm.stack = ALLOCATE(Value *, initialStackSize);
-
-    for (int i = 0; i < initialStackSize; i++)
-        mm.stack[i] = NULL;
-
-    return mm;
-}
-
-void machine_destroyMemoryManager(MemoryState *mm, struct State *state)
-{
-    mm->stackSize = 0;
-    mm->sp = 0;
-    mm->activation = NULL;
-
-    forceGC(mm, state);
-    forceGC(mm, state);
-
-    FREE(mm->stack);
-}
-
-void push(Value *value, MemoryState *mm)
+void push(Value *value, MachineState *mm)
 {
     if (mm->sp == mm->stackSize)
     {
@@ -318,7 +284,7 @@ void push(Value *value, MemoryState *mm)
     mm->stack[mm->sp++] = value;
 }
 
-Value *pop(MemoryState *mm)
+Value *pop(MachineState *mm)
 {
     if (mm->sp == 0)
     {
@@ -329,7 +295,7 @@ Value *pop(MemoryState *mm)
     return mm->stack[--mm->sp];
 }
 
-void popN(int n, MemoryState *mm)
+void popN(int n, MachineState *mm)
 {
     if (mm->sp < n)
     {
@@ -340,7 +306,7 @@ void popN(int n, MemoryState *mm)
     mm->sp -= n;
 }
 
-Value *peek(int offset, MemoryState *mm)
+Value *peek(int offset, MachineState *mm)
 {
     if (mm->sp <= offset)
     {
@@ -359,7 +325,7 @@ long long timeInMilliseconds(void)
     return (((long long)tv.tv_sec) * 1000) + (tv.tv_usec / 1000);
 }
 
-static void mark(Value *v, Colour colour, struct State *state)
+static void mark(Value *v, Colour colour, MachineState *state)
 {
     if (v == NULL)
         return;
@@ -433,7 +399,7 @@ static void mark(Value *v, Colour colour, struct State *state)
     }
 }
 
-static void sweep(MemoryState *mm, struct State *state)
+static void sweep(MachineState *mm)
 {
     Value *v;
 #ifdef DEBUG_GC
@@ -443,7 +409,7 @@ static void sweep(MemoryState *mm, struct State *state)
         Value *nextV = v->next;
         if (machine_getColour(v) != mm->colour)
         {
-            char *s = machine_toString(v, VSS_Raw, state);
+            char *s = machine_toString(v, VSS_Raw, mm);
             printf("gc: releasing %s\n", s);
             FREE(s);
         }
@@ -529,7 +495,7 @@ static void sweep(MemoryState *mm, struct State *state)
     while (v != NULL)
     {
         Value *nextV = v->next;
-        char *s = machine_toString(v, VSS_Raw, state);
+        char *s = machine_toString(v, VSS_Raw, mm);
         printf("gc: --- %s\n", s);
         FREE(s);
         v = nextV;
@@ -537,7 +503,7 @@ static void sweep(MemoryState *mm, struct State *state)
 #endif
 }
 
-void forceGC(MemoryState *mm, struct State *state)
+void forceGC(MachineState *mm)
 {
 #ifdef DEBUG_GC
     printf("gc: forcing garbage collection ------------------------------\n");
@@ -551,11 +517,11 @@ void forceGC(MemoryState *mm, struct State *state)
 
     if (mm->activation != NULL)
     {
-        mark(mm->activation, newColour, state);
+        mark(mm->activation, newColour, mm);
     }
     for (int i = 0; i < mm->sp; i++)
     {
-        mark(mm->stack[i], newColour, state);
+        mark(mm->stack[i], newColour, mm);
     }
 
     mm->colour = newColour;
@@ -566,7 +532,7 @@ void forceGC(MemoryState *mm, struct State *state)
 #ifdef DEBUG_GC
     printf("gc: sweeping\n");
 #endif
-    sweep(mm, state);
+    sweep(mm);
 
 #ifdef TIME_GC
     long long endSweep = timeInMilliseconds();
@@ -575,36 +541,36 @@ void forceGC(MemoryState *mm, struct State *state)
 #endif
 }
 
-static void gc(MemoryState *mm, struct State *state)
+static void gc(MachineState *state)
 {
 #ifdef GC_FORCE
-    forceGC(mm, state);
+    forceGC(state);
 #else
-    if (mm->size >= mm->capacity)
+    if (state->size >= state->capacity)
     {
-        forceGC(mm, state);
+        forceGC(state);
 
-        if (mm->size >= mm->capacity)
+        if (state->size >= state->capacity)
         {
 #ifdef DEBUG_GC
-            printf("gc: memory still full after gc... increasing heap capacity to %d\n", mm->capacity * 2);
+            printf("gc: memory still full after gc... increasing heap capacity to %d\n", state->capacity * 2);
 #endif
-            mm->capacity *= 2;
+            state->capacity *= 2;
         }
     }
 #endif
 }
 
-static void attachValue(Value *v, MemoryState *mm)
+static void attachValue(Value *v, MachineState *mm)
 {
     mm->size++;
     v->next = mm->root;
     mm->root = v;
 }
 
-Value *machine_newActivation(Value *parentActivation, Value *closure, int nextIp, MemoryState *mm, struct State *state)
+Value *machine_newActivation(Value *parentActivation, Value *closure, int nextIp, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     if (parentActivation != NULL && machine_getType(parentActivation) != VActivation)
     {
@@ -619,70 +585,70 @@ Value *machine_newActivation(Value *parentActivation, Value *closure, int nextIp
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VActivation | mm->colour;
+    v->type = VActivation | state->colour;
     v->data.a.parentActivation = parentActivation;
     v->data.a.closure = closure;
     v->data.a.nextIP = nextIp;
     v->data.a.stateSize = -1;
     v->data.a.state = NULL;
 
-    attachValue(v, mm);
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
-Value *machine_newBool(int b, MemoryState *mm, struct State *state)
+Value *machine_newBool(int b, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VBool | mm->colour;
+    v->type = VBool | state->colour;
     v->data.b = b;
-    attachValue(v, mm);
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
-Value *machine_newBuiltin(Builtin *builtin, MemoryState *mm, struct State *state)
+Value *machine_newBuiltin(Builtin *builtin, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VBuiltin | mm->colour;
+    v->type = VBuiltin | state->colour;
     v->data.bi = builtin;
-    attachValue(v, mm);
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
-Value *machine_newBuiltinClosure(Value *previous, Value *argument, void (*function)(struct State *state), MemoryState *mm, struct State *state)
+Value *machine_newBuiltinClosure(Value *previous, Value *argument, void (*function)(MachineState *state), MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VBuiltinClosure | mm->colour;
+    v->type = VBuiltinClosure | state->colour;
     v->data.bc.previous = previous;
     v->data.bc.argument = argument;
     v->data.bc.function = function;
-    attachValue(v, mm);
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
-Value *machine_newClosure(Value *previousActivation, int ip, MemoryState *mm, struct State *state)
+Value *machine_newClosure(Value *previousActivation, int ip, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     if (previousActivation != NULL && machine_getType(previousActivation) != VActivation)
     {
@@ -692,23 +658,23 @@ Value *machine_newClosure(Value *previousActivation, int ip, MemoryState *mm, st
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VClosure | mm->colour;
+    v->type = VClosure | state->colour;
     v->data.c.previousActivation = previousActivation;
     v->data.c.ip = ip;
-    attachValue(v, mm);
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
-Value *machine_newData(int32_t meta, int32_t id, int32_t size, Value **values, MemoryState *mm, struct State *state)
+Value *machine_newData(int32_t meta, int32_t id, int32_t size, Value **values, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VData | mm->colour;
+    v->type = VData | state->colour;
     v->data.d.meta = meta;
     v->data.d.id = id;
     v->data.d.size = size;
@@ -718,55 +684,55 @@ Value *machine_newData(int32_t meta, int32_t id, int32_t size, Value **values, M
         v->data.d.values[i] = values[i];
     }
 
-    attachValue(v, mm);
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
-Value *machine_newInt(int i, MemoryState *mm, struct State *state)
+Value *machine_newInt(int i, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
-    v->type = VInt | mm->colour;
+    v->type = VInt | state->colour;
     v->data.i = i;
 
-    push(v, mm);
+    push(v, state);
 
-    attachValue(v, mm);
+    attachValue(v, state);
 
     return v;
 }
 
-Value *machine_newString_reference(char *s, MemoryState *mm, struct State *state)
+Value *machine_newString_reference(char *s, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
-    v->type = VString | mm->colour;
+    v->type = VString | state->colour;
     v->data.s = s;
 
-    push(v, mm);
+    push(v, state);
 
-    attachValue(v, mm);
+    attachValue(v, state);
 
     return v;
 }
 
-Value *machine_newString(char *s, MemoryState *mm, struct State *state)
+Value *machine_newString(char *s, MachineState *state)
 {
-    return machine_newString_reference(STRDUP(s), mm, state);
+    return machine_newString_reference(STRDUP(s), state);
 }
 
-Value *machine_newTuple(int32_t size, Value **values, MemoryState *mm, struct State *state)
+Value *machine_newTuple(int32_t size, Value **values, MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VTuple | mm->colour;
+    v->type = VTuple | state->colour;
     v->data.t.size = size;
     v->data.t.values = ALLOCATE(Value *, size);
     for (int i = 0; i < size; i++)
@@ -774,34 +740,34 @@ Value *machine_newTuple(int32_t size, Value **values, MemoryState *mm, struct St
         v->data.t.values[i] = values[i];
     }
 
-    attachValue(v, mm);
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
-static Value *machine_newUnit(MemoryState *mm, struct State *state)
+static Value *machine_newUnit(MachineState *state)
 {
-    gc(mm, state);
+    gc(state);
 
     Value *v = ALLOCATE(Value, 1);
 
-    v->type = VUnit | mm->colour;
-    attachValue(v, mm);
+    v->type = VUnit | state->colour;
+    attachValue(v, state);
 
-    push(v, mm);
+    push(v, state);
 
     return v;
 }
 
 void machine_initialise(void)
 {
-    internalMM = machine_newMemoryManager(2);
+    internalMM = machine_initState(NULL);
 
-    machine_False = machine_newBool(0, &internalMM, NULL);
-    machine_True = machine_newBool(1, &internalMM, NULL);
-    machine_Unit = machine_newUnit(&internalMM, NULL);
+    machine_False = machine_newBool(0, &internalMM);
+    machine_True = machine_newBool(1, &internalMM);
+    machine_Unit = machine_newUnit(&internalMM);
 }
 
 void machine_finalise(void)
@@ -809,31 +775,52 @@ void machine_finalise(void)
 #ifdef DEBUG_GC
     printf("machine_finalise\n");
 #endif
-    machine_destroyMemoryManager(&internalMM, NULL);
+    machine_destroyState(&internalMM);
 
     machine_False = NULL;
     machine_True = NULL;
     machine_Unit = NULL;
 }
 
-struct State machine_initState(unsigned char *block)
+MachineState machine_initState(unsigned char *block)
 {
-    struct State state;
+    MachineState state;
 
     state.block = block;
     state.ip = 4;
-    state.memoryState = machine_newMemoryManager(DEFAULT_STACK_SIZE);
-    state.memoryState.activation = machine_newActivation(NULL, NULL, -1, &state.memoryState, &state);
+    state.colour = VWhite;
+
+    state.size = 0;
+    state.capacity = DEFAULT_HEAP_CAPACITY;
+
+    state.root = NULL;
+    state.activation = NULL;
+
+    state.sp = 0;
+    state.stackSize = DEFAULT_STACK_SIZE;
+    state.stack = ALLOCATE(Value *, DEFAULT_STACK_SIZE);
+
+    for (int i = 0; i < DEFAULT_STACK_SIZE; i++)
+        state.stack[i] = NULL;
+
+    state.activation = machine_newActivation(NULL, NULL, -1, &state);
 
     return state;
 }
 
-void machine_destroyState(struct State *state)
+void machine_destroyState(MachineState *state)
 {
-    machine_destroyMemoryManager(&state->memoryState, state);
+    state->stackSize = 0;
+    state->sp = 0;
+    state->activation = NULL;
+
+    forceGC(state);
+    forceGC(state);
+
+    FREE(state->stack);
 }
 
-int32_t machine_readIntFrom(struct State *state, int offset)
+int32_t machine_readIntFrom(MachineState *state, int offset)
 {
     unsigned char *block = state->block;
 
@@ -845,12 +832,12 @@ int32_t machine_readIntFrom(struct State *state, int offset)
     return size;
 }
 
-char *machine_readStringFrom(struct State *state, int offset)
+char *machine_readStringFrom(MachineState *state, int offset)
 {
     return (char *)state->block + offset;
 }
 
-struct DataNames *machine_readDataNamesFrom(struct State *state, int offset)
+struct DataNames *machine_readDataNamesFrom(MachineState *state, int offset)
 {
     struct DataNames *dataNames = ALLOCATE(struct DataNames, 1);
     dataNames->count = machine_readIntFrom(state, offset) + 1;
