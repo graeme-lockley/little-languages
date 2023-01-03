@@ -392,6 +392,11 @@ void execute(unsigned char *block, int debug)
             {
                 Value *v = pop(&state);
 
+                if (state.sp != 1) {
+                    printf("run: RET: stack not empty: %d\n", state.sp);
+                    exit(1);
+                }
+
                 if (machine_getType(v) != VUnit)
                 {
                     char *s = machine_toString(v, VSS_Typed, &state);
