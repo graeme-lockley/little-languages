@@ -23,8 +23,8 @@ export const dis = (data: Uint8Array) => {
   let lp = 0;
 
   const readInt = (): number => {
-    const v = (data[lp] | (data[lp + 1] << 8) | (data[lp + 2] << 16) |
-      (data[lp + 3] << 24));
+    const v = data[lp] | (data[lp + 1] << 8) | (data[lp + 2] << 16) |
+      (data[lp + 3] << 24);
 
     lp += 4;
 
