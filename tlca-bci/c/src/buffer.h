@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include "settings.h"
+
 typedef struct
 {
     char *buffer;

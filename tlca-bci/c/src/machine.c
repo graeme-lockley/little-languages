@@ -4,6 +4,7 @@
 
 #include "memory.h"
 #include "op.h"
+#include "settings.h"
 #include "stringbuilder.h"
 
 #include "machine.h"
@@ -12,12 +13,7 @@ Value *machine_False;
 Value *machine_True;
 Value *machine_Unit;
 
-#define DEFAULT_HEAP_CAPACITY 2
-#define DEFAULT_STACK_SIZE 2
-
-// #define TIME_GC
-// #define DEBUG_GC
-// #define GC_FORCE
+// #define MACHINE_GC_FORCE
 
 static MachineState internalMM;
 
@@ -332,14 +328,14 @@ static void mark(Value *v, Colour colour, MachineState *state)
     if (machine_getColour(v) == colour)
         return;
 
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     ValueType oldValueType = machine_getType(v);
     Colour oldColour = machine_getColour(v);
 #endif
 
     v->type = (machine_getType(v) & 0xf) | colour;
 
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     if (oldValueType != machine_getType(v))
     {
         printf("gc: mark: type changed.\n");
@@ -352,7 +348,7 @@ static void mark(Value *v, Colour colour, MachineState *state)
     }
 #endif
 
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     char *s = machine_toString(v, VSS_Raw, state);
     printf("gc: marking %s\n", s);
     FREE(s);
@@ -401,7 +397,7 @@ static void mark(Value *v, Colour colour, MachineState *state)
 static void sweep(MachineState *mm)
 {
     Value *v;
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     v = mm->root;
     while (v != NULL)
     {
@@ -438,14 +434,14 @@ static void sweep(MachineState *mm)
             case VBuiltin:
             case VBuiltinClosure:
             case VUnit:
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
                 v->data.i = -1;
 #endif
                 break;
 
             case VString:
                 FREE(v->data.s);
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
                 v->data.s = NULL;
 #endif
                 break;
@@ -456,7 +452,7 @@ static void sweep(MachineState *mm)
                 FREE(v->data.d.values);
                 break;
             case VClosure:
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
                 v->data.c.ip = -1;
                 v->data.c.previousActivation = NULL;
 #endif
@@ -466,7 +462,7 @@ static void sweep(MachineState *mm)
                 {
                     FREE(v->data.a.state);
                 }
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
                 v->data.a.parentActivation = NULL;
                 v->data.a.closure = NULL;
                 v->data.a.nextIP = -1;
@@ -482,7 +478,7 @@ static void sweep(MachineState *mm)
         v = nextV;
     }
 
-#ifdef TIME_GC
+#ifdef MACHINE_TIME_GC
     if (mm->size != newSize)
     {
         printf("gc: collected %d objects, %d remaining\n", mm->size - newSize, newSize);
@@ -492,7 +488,7 @@ static void sweep(MachineState *mm)
     mm->root = newRoot;
     mm->size = newSize;
 
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     v = mm->root;
     while (v != NULL)
     {
@@ -507,11 +503,11 @@ static void sweep(MachineState *mm)
 
 void forceGC(MachineState *mm)
 {
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     printf("gc: forcing garbage collection ------------------------------\n");
 #endif
 
-#ifdef TIME_GC
+#ifdef MACHINE_TIME_GC
     long long start = timeInMilliseconds();
 #endif
 
@@ -528,15 +524,15 @@ void forceGC(MachineState *mm)
 
     mm->colour = newColour;
 
-#ifdef TIME_GC
+#ifdef MACHINE_TIME_GC
     long long endMark = timeInMilliseconds();
 #endif
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     printf("gc: sweeping\n");
 #endif
     sweep(mm);
 
-#ifdef TIME_GC
+#ifdef MACHINE_TIME_GC
     long long endSweep = timeInMilliseconds();
 
     printf("gc: mark took %lldms, sweep took %lldms\n", endMark - start, endSweep - endMark);
@@ -545,7 +541,7 @@ void forceGC(MachineState *mm)
 
 static void gc(MachineState *state)
 {
-#ifdef GC_FORCE
+#ifdef MACHINE_GC_FORCE
     forceGC(state);
 #else
     if (state->size >= state->capacity)
@@ -554,7 +550,7 @@ static void gc(MachineState *state)
 
         if (state->size >= state->capacity)
         {
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
             printf("gc: memory still full after gc... increasing heap capacity to %d\n", state->capacity * 2);
 #endif
             state->capacity *= 2;
@@ -775,7 +771,7 @@ void machine_initialise(void)
 
 void machine_finalise(void)
 {
-#ifdef DEBUG_GC
+#ifdef MACHINE_DEBUG_GC
     printf("machine_finalise\n");
 #endif
     machine_destroyState(&internalMM);
@@ -794,16 +790,16 @@ MachineState machine_initState(unsigned char *block)
     state.colour = VWhite;
 
     state.size = 0;
-    state.capacity = DEFAULT_HEAP_CAPACITY;
+    state.capacity = MACHINE_INITIAL_HEAP_SIZE;
 
     state.root = NULL;
     state.activation = NULL;
 
     state.sp = 0;
-    state.stackSize = DEFAULT_STACK_SIZE;
-    state.stack = ALLOCATE(Value *, DEFAULT_STACK_SIZE);
+    state.stackSize = MACHINE_INITIAL_STACK_SIZE;
+    state.stack = ALLOCATE(Value *, MACHINE_INITIAL_STACK_SIZE);
 
-    for (int i = 0; i < DEFAULT_STACK_SIZE; i++)
+    for (int i = 0; i < MACHINE_INITIAL_STACK_SIZE; i++)
         state.stack[i] = NULL;
 
     state.activation = machine_newActivation(NULL, NULL, -1, &state);

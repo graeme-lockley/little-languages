@@ -3,6 +3,8 @@
 
 #include "buffer.h"
 #include "memory.h"
+#include "settings.h"
+
 #include "stringbuilder.h"
 
 StringBuilder *stringbuilder_new(void)

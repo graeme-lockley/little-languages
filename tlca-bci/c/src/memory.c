@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "settings.h"
+
 #include "memory.h"
+
+#ifdef MEMORY_DEBUG
 
 static int32_t memory_allocated_count = 0;
 
@@ -45,9 +49,9 @@ void memory_free(void *ptr, char *file, int32_t line)
     (void)realloc(ptr, 0);
 }
 
-#ifdef DEBUG_MEMORY
 int32_t memory_allocated(void)
 {
     return memory_allocated_count;
 }
+
 #endif

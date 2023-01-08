@@ -1,11 +1,11 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-// #define DEBUG_MEMORY
-
 #include <stdlib.h>
 
-#ifdef DEBUG_MEMORY
+#include "settings.h"
+
+#ifdef MEMORY_DEBUG
 
 extern char *memory_alloc(int32_t size, char *file, int line);
 extern void *memory_realloc(void *ptr, int32_t size, char *file, int32_t line);

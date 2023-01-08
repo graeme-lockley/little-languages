@@ -3,9 +3,9 @@
 #include <string.h>
 
 #include "memory.h"
-#include "buffer.h"
+#include "settings.h"
 
-#define BUFFER_TRANCHE 2
+#include "buffer.h"
 
 Buffer *buffer_new(int item_size)
 {

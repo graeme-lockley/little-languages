@@ -4,6 +4,7 @@
 
 #include "machine.h"
 #include "memory.h"
+#include "settings.h"
 
 #include "op.h"
 
@@ -66,7 +67,10 @@ void execute(unsigned char *block, int debug)
 
     while (1)
     {
-        // forceGC(&state);
+#ifdef MACHINE_GC_FORCE
+        forceGC(&state);
+#endif
+
         if (debug)
         {
             logInstruction(&state);
@@ -392,7 +396,8 @@ void execute(unsigned char *block, int debug)
             {
                 Value *v = pop(&state);
 
-                if (state.sp != 1) {
+                if (state.sp != 1)
+                {
                     printf("run: RET: stack not empty: %d\n", state.sp);
                     exit(1);
                 }

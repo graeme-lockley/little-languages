@@ -8,6 +8,7 @@
 #include "machine.h"
 #include "memory.h"
 #include "run.h"
+#include "settings.h"
 
 void readBinaryFile(char *fileName, unsigned char **block, int32_t *size)
 {
@@ -53,7 +54,7 @@ int32_t main(int argc, char *argv[])
     unsigned char *block = NULL;
     int32_t size;
 
-#ifdef DEBUG_MEMORY
+#ifdef MEMORY_DEBUG
     int start_memory_allocated = memory_allocated();
 #endif
 
@@ -67,7 +68,7 @@ int32_t main(int argc, char *argv[])
     machine_finalise();
     op_finalise();
 
-#ifdef DEBUG_MEMORY
+#ifdef MEMORY_DEBUG
     int end_memory_allocated = memory_allocated();
     int memory_allocated_delta = end_memory_allocated - start_memory_allocated;
 
@@ -79,7 +80,6 @@ int32_t main(int argc, char *argv[])
     {
       printf(". Memory leak detected: %d allocations leaked\n", memory_allocated_delta);
     }
-    // memory_show_heap();
 #endif
 
     return 0;
