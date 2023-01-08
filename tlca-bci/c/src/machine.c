@@ -17,7 +17,7 @@ Value *machine_Unit;
 
 // #define TIME_GC
 // #define DEBUG_GC
-#define GC_FORCE
+// #define GC_FORCE
 
 static MachineState internalMM;
 
@@ -154,7 +154,6 @@ static void append_value(Value *v, enum ValueToStringStyle style, MachineState *
         }
         else
         {
-            // stringbuilder_append(sb, v->data.s);
             stringbuilder_append(sb, "\"");
             char *runner = v->data.s;
             while (*runner != '\0')
@@ -410,7 +409,7 @@ static void sweep(MachineState *mm)
         if (machine_getColour(v) != mm->colour)
         {
             char *s = machine_toString(v, VSS_Raw, mm);
-            printf("gc: releasing %s\n", s);
+            printf("gc: releasing %s (%p)\n", s, (void *) v);
             FREE(s);
         }
         v = nextV;
@@ -446,6 +445,9 @@ static void sweep(MachineState *mm)
 
             case VString:
                 FREE(v->data.s);
+#ifdef DEBUG_GC
+                v->data.s = NULL;
+#endif
                 break;
             case VTuple:
                 FREE(v->data.t.values);
@@ -714,16 +716,17 @@ Value *machine_newString_reference(char *s, MachineState *state)
     v->type = VString | state->colour;
     v->data.s = s;
 
-    push(v, state);
-
     attachValue(v, state);
+
+    push(v, state);
 
     return v;
 }
 
 Value *machine_newString(char *s, MachineState *state)
 {
-    return machine_newString_reference(STRDUP(s), state);
+    char *newS = STRDUP(s);
+    return machine_newString_reference(newS, state);
 }
 
 Value *machine_newTuple(int32_t size, Value **values, MachineState *state)
@@ -810,6 +813,9 @@ MachineState machine_initState(unsigned char *block)
 
 void machine_destroyState(MachineState *state)
 {
+    if (state->block != NULL)
+        FREE(state->block);
+    state->block = NULL;
     state->stackSize = 0;
     state->sp = 0;
     state->activation = NULL;

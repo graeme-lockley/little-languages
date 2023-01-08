@@ -41,31 +41,23 @@ int buffer_count(Buffer *sb)
     return sb->items_count;
 }
 
-int buffer_offset(Buffer *sb)
-{
-    return sb->items_count;
-}
-
 void buffer_append(Buffer *sb, void *v, int count)
 {
+    if (v == NULL) {
+        printf("Error: buffer_append called with NULL value\n");
+        exit(1);
+    }
+    if (count < 0) {
+        printf("Error: buffer_append called with negative count\n");
+        exit(1);
+    }
     if (sb->items_count + count >= sb->buffer_count)
     {
         int new_buffer_size = sb->items_count + count + BUFFER_TRANCHE;
-        sb->buffer = REALLOCATE(sb->buffer, char, new_buffer_size);
+        sb->buffer = REALLOCATE(sb->buffer, char, new_buffer_size * sb->item_size);
         sb->buffer_count = new_buffer_size;
     }
 
     memcpy(sb->buffer + sb->items_count * sb->item_size, v, count * sb->item_size);
     sb->items_count += count;
-}
-
-void buffer_write(Buffer *sb, int offset, void *v, int count)
-{
-    if (offset + count >= sb->items_count)
-    {
-        printf("Illegal: buffer_write: offset + count >= sb->items_count");
-        exit(1);
-    }
-
-    memcpy(sb->buffer + offset * sb->item_size, v, count * sb->item_size);
 }

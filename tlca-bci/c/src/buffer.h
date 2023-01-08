@@ -17,8 +17,6 @@ extern void buffer_free(Buffer *buffer);
 extern void *buffer_free_use(Buffer *buffer);
 extern void *buffer_content(Buffer *buffer);
 extern int32_t buffer_count(Buffer *buffer);
-extern int32_t buffer_offset(Buffer *buffer);
 extern void buffer_append(Buffer *b, void *v, int count);
-extern void buffer_write(Buffer *b, int32_t offset, void *v, int count);
 
 #endif

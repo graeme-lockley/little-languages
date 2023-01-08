@@ -5,6 +5,9 @@
 
 #include "op.h"
 
+#define INSTRUCTION_COUNT 29
+#define BUILTIN_COUNT 10
+
 Instruction **instructions;
 Builtin **builtins;
 
@@ -115,19 +118,12 @@ static void _stringLength(struct State *state)
 
 static void _stringSubstring2(struct State *state)
 {
-    // printf("> _stringSubstring2\n");
     Value *v1 = pop(state);
     Value *v2 = pop(state);
 
-    // printf("_stringSubstring2: %s, %s\n", machine_toString(v1, VSS_Raw, state), machine_toString(v2, VSS_Raw, state));
     int32_t arg3 = v1->data.i;
-    // printf("- arg3: %d\n", arg3);
     int32_t arg2 = v2->data.bc.argument->data.i;
-    // printf("- arg2: %d\n", arg2);
     char *arg1 = v2->data.bc.previous->data.bc.argument->data.s;
-    // printf("- arg1: %s\n", arg1);
-
-    // printf("_stringSubstring2: arg1: \"%s\", arg2: %d, arg3: %d\n", arg1, arg2, arg3);
 
     if (arg2 < 0)
         arg2 = 0;
@@ -152,47 +148,37 @@ static void _stringSubstring2(struct State *state)
         s[arg3 - arg2] = '\0';
         machine_newString_reference(s, state);
     }
-
-    // printf("result: \"%s\"\n", machine_toString(peek(0, state), VSS_Raw, state));
-    // printf("<\n");
 }
 
 static void _stringSubstring1(struct State *state)
 {
-    // printf("> _stringSubstring1\n");
-
     Value *v1 = peek(0, state);
     Value *v2 = peek(1, state);
-
-    // printf("v1: %s\n", machine_toString(v1, VSS_Typed, state));
-    // printf("v2: %s\n", machine_toString(v2, VSS_Typed, state));
 
     machine_newBuiltinClosure(v2, v1, _stringSubstring2, state);
 
     state->stack[state->sp - 3] = state->stack[state->sp - 1];
     popN(2, state);
-
-    // printf("result: %s\n", machine_toString(peek(0, state), VSS_Typed, state));
-    // printf("<\n");
 }
 
 static void _stringSubstring(struct State *state)
 {
-    // printf("> _stringSubstring\n");
     Value *v1 = peek(0, state);
-
-    // printf("v1: %s\n", machine_toString(v1, VSS_Typed, state));
 
     machine_newBuiltinClosure(peek(1, state), v1, _stringSubstring1, state);
 
     state->stack[state->sp - 3] = state->stack[state->sp - 1];
 
     popN(2, state);
-    // printf("<\n");
 }
 
 static void initInstruction(InstructionOpCode opcode, char *name, int arity, OpParameter *parameters)
 {
+    if (opcode >= INSTRUCTION_COUNT) {
+        printf("Opcode %d is out of range.\n", opcode);
+        exit(1);
+    }
+
     Instruction *i = ALLOCATE(Instruction, 1);
 
     i->opcode = opcode;
@@ -205,6 +191,11 @@ static void initInstruction(InstructionOpCode opcode, char *name, int arity, OpP
 
 static void initBuiltin(int id, char *name, void (*function)(struct State *state))
 {
+    if (id >= BUILTIN_COUNT) {
+        printf("Builtin ID %d is out of range.\n", id);
+        exit(1);
+    }
+
     Builtin *b = ALLOCATE(Builtin, 1);
 
     b->name = name;
@@ -215,7 +206,7 @@ static void initBuiltin(int id, char *name, void (*function)(struct State *state
 
 void op_initialise(void)
 {
-    instructions = ALLOCATE(Instruction *, 28);
+    instructions = ALLOCATE(Instruction *, INSTRUCTION_COUNT);
 
 #define init(name, arity, parameters) initInstruction(name, #name, arity, parameters)
     init(PUSH_BUILTIN, 1, (OpParameter[]){OPBuiltIn});
@@ -246,10 +237,10 @@ void op_initialise(void)
     init(ENTER, 1, (OpParameter[]){OPInt});
     init(RET, 0, NULL);
     init(STORE_VAR, 1, (OpParameter[]){OPInt});
-    instructions[28] = NULL;
+    instructions[INSTRUCTION_COUNT - 1] = NULL;
 #undef init
 
-    builtins = ALLOCATE(Builtin *, 10);
+    builtins = ALLOCATE(Builtin *, BUILTIN_COUNT);
     initBuiltin(0, "$$builtin-print", _print);
     initBuiltin(1, "$$builtin-println", _println);
     initBuiltin(2, "$$builtin-print-literal", _printLiteral);
@@ -259,7 +250,7 @@ void op_initialise(void)
     initBuiltin(6, "$$builtin-string-length", _stringLength);
     initBuiltin(7, "$$builtin-string-substring", _stringSubstring);
     initBuiltin(8, "$$builtin-fatal-error", _fatalError);
-    builtins[9] = NULL;
+    builtins[BUILTIN_COUNT - 1] = NULL;
 }
 
 void op_finalise(void)

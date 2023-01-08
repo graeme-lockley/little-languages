@@ -53,9 +53,11 @@ int32_t main(int argc, char *argv[])
     unsigned char *block = NULL;
     int32_t size;
 
-    readBinaryFile(argv[optind + 1], &block, &size);
-
+#ifdef DEBUG_MEMORY
     int start_memory_allocated = memory_allocated();
+#endif
+
+    readBinaryFile(argv[optind + 1], &block, &size);
 
     op_initialise();
     machine_initialise();
@@ -65,6 +67,7 @@ int32_t main(int argc, char *argv[])
     machine_finalise();
     op_finalise();
 
+#ifdef DEBUG_MEMORY
     int end_memory_allocated = memory_allocated();
     int memory_allocated_delta = end_memory_allocated - start_memory_allocated;
 
@@ -76,6 +79,8 @@ int32_t main(int argc, char *argv[])
     {
       printf(". Memory leak detected: %d allocations leaked\n", memory_allocated_delta);
     }
+    // memory_show_heap();
+#endif
 
     return 0;
   }
