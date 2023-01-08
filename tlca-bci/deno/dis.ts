@@ -24,7 +24,7 @@ export const dis = (data: Uint8Array) => {
 
   const readInt = (): number => {
     const v = (data[lp] | (data[lp + 1] << 8) | (data[lp + 2] << 16) |
-      (data[lp + 3] << 24)) >>> 0;
+      (data[lp + 3] << 24));
 
     lp += 4;
 
@@ -32,6 +32,8 @@ export const dis = (data: Uint8Array) => {
   };
 
   const ds = readInt();
+
+  console.log(`Data segment offset: ${ds} bytes`);
 
   while (lp < ds) {
     const op = data[lp++];
