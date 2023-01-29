@@ -67,7 +67,7 @@ void execute(unsigned char *block, int debug)
 
     while (1)
     {
-#ifdef MACHINE_GC_FORCE
+#ifdef MACHINE_FORCE_GC
         forceGC(&state);
 #endif
 
