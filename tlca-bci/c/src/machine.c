@@ -301,7 +301,7 @@ void popN(int n, MachineState *mm)
     }
 
     mm->sp -= n;
-    
+
     for (int i = mm->sp; i < mm->sp + n; i++)
         mm->stack[i] = NULL;
 }
@@ -482,10 +482,7 @@ static void sweep(MachineState *mm)
     }
 
 #ifdef MACHINE_TIME_GC
-    if (mm->size != newSize)
-    {
-        printf("gc: collected %d objects, %d remaining\n", mm->size - newSize, newSize);
-    }
+    printf("gc: collected %d objects, %d remaining\n", mm->size - newSize, newSize);
 #endif
 
     mm->root = newRoot;
@@ -542,22 +539,28 @@ void forceGC(MachineState *mm)
 #endif
 }
 
+static void expandHeap(MachineState *state)
+{
+    if (state->size >= ((int)(state->capacity * MACHINE_HEAP_GROWTH_THRESHOLD)))
+    {
+        state->capacity = (int)(state->capacity * MACHINE_HEAP_GROWTH_FACTOR);
+        
+#if defined(MACHINE_DEBUG_GC) || defined(MACHINE_TIME_GC)
+        printf("gc: memory still full after gc... increasing heap capacity to %d\n", state->capacity);
+#endif
+    }
+}
+
 static void gc(MachineState *state)
 {
 #ifdef MACHINE_FORCE_GC
     forceGC(state);
+    expandHeap(state);
 #else
     if (state->size >= state->capacity)
     {
         forceGC(state);
-
-        if (state->size >= state->capacity)
-        {
-#ifdef MACHINE_DEBUG_GC
-            printf("gc: memory still full after gc... increasing heap capacity to %d\n", state->capacity * 2);
-#endif
-            state->capacity *= 2;
-        }
+        expandHeap(state);
     }
 #endif
 }

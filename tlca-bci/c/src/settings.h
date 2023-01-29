@@ -14,6 +14,17 @@
  */
 #define MACHINE_INITIAL_HEAP_SIZE 2
 
+/* The factor by which the heap size is increased when a garbage collection
+ * fails to recover sufficient memory.
+ */
+#define MACHINE_HEAP_GROWTH_FACTOR 2
+
+/* The threshold at which a garbage collection is performed.  If the number of
+ * allocations is greater than the number of frees by this factor then the heap
+ * is increased by the growth factor.
+ */
+#define MACHINE_HEAP_GROWTH_THRESHOLD 0.75
+
 /* The size of the bytecode's stack in slots when the machine is initialised.
  * The stack will automatically expand based on use.  If the stack is full then
  * the stack size is doubled.
