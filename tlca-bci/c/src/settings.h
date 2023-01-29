@@ -2,15 +2,15 @@
 #define __SETTINGS_H
 
 /* The size that the buffers in buffer.h are initialised to.  These buffers will
- * automatically expand based on use.  A small size will ensure that minimum 
+ * automatically expand based on use.  A small size will ensure that minimum
  * memory is used however it will result in much copying of data to expand the
  * buffer.
  */
-#define BUFFER_TRANCHE 2
+#define BUFFER_TRANCHE 256
 
 /* The number of memory allocations before a garbage collection is performed.
  * If insufficient memory is recovered from a collection, then the heap size
- * is double.
+ * is doubled.
  */
 #define MACHINE_INITIAL_HEAP_SIZE 2
 
@@ -20,7 +20,7 @@
  */
 #define MACHINE_INITIAL_STACK_SIZE 2
 
-/* If defined the will cause the machine to display every GC, the duration of 
+/* If defined the will cause the machine to display every GC, the duration of
  * each of the two phases and the number of bytes recovered.
  */
 // #define MACHINE_TIME_GC
@@ -31,7 +31,7 @@
  */
 // #define MACHINE_DEBUG_GC
 
-/* If defined will cause the machine to continuously garbage collect. This 
+/* If defined will cause the machine to continuously garbage collect. This
  * setting is used when memory issues are encountered or when changes are made
  * to the GC.
  */
