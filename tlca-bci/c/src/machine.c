@@ -13,7 +13,7 @@ Value *machine_False;
 Value *machine_True;
 Value *machine_Unit;
 
-// #define MACHINE_GC_FORCE
+// #define MACHINE_FORCE_GC
 
 static MachineState internalMM;
 
@@ -287,7 +287,9 @@ Value *pop(MachineState *mm)
         exit(1);
     }
 
-    return mm->stack[--mm->sp];
+    Value *result = mm->stack[--mm->sp];
+    mm->stack[mm->sp] = NULL;
+    return result;
 }
 
 void popN(int n, MachineState *mm)
@@ -299,6 +301,9 @@ void popN(int n, MachineState *mm)
     }
 
     mm->sp -= n;
+    
+    for (int i = mm->sp; i < mm->sp + n; i++)
+        mm->stack[i] = NULL;
 }
 
 Value *peek(int offset, MachineState *mm)
@@ -354,8 +359,10 @@ static void mark(Value *v, Colour colour, MachineState *state)
     FREE(s);
 #endif
 
-    if (machine_getType(v) == VActivation)
+    int t = machine_getType(v);
+    switch (t)
     {
+    case VActivation:
         mark(v->data.a.parentActivation, colour, state);
         mark(v->data.a.closure, colour, state);
         if (v->data.a.state != NULL)
@@ -363,34 +370,30 @@ static void mark(Value *v, Colour colour, MachineState *state)
             for (int i = 0; i < v->data.a.stateSize; i++)
                 mark(v->data.a.state[i], colour, state);
         }
-    }
-    else if (machine_getType(v) == VData)
-    {
+        break;
+    case VData:
         for (int i = 0; i < v->data.d.size; i++)
             mark(v->data.d.values[i], colour, state);
-    }
-    else if (machine_getType(v) == VTuple)
-    {
+        break;
+    case VTuple:
         for (int i = 0; i < v->data.t.size; i++)
             mark(v->data.t.values[i], colour, state);
-    }
-    else if (machine_getType(v) == VClosure)
-    {
+        break;
+    case VClosure:
         mark(v->data.c.previousActivation, colour, state);
-    }
-    else if (machine_getType(v) == VBuiltinClosure)
-    {
+        break;
+    case VBuiltinClosure:
         mark(v->data.bc.previous, colour, state);
         mark(v->data.bc.argument, colour, state);
-    }
-    else
+        break;
+    default:
     {
-        int t = machine_getType(v);
         if (t != VInt && t != VBool && t != VString && t != VUnit && t != VBuiltin)
         {
             printf("gc: mark: unknown value type %d\n", t);
             exit(1);
         }
+    }
     }
 }
 
@@ -405,7 +408,7 @@ static void sweep(MachineState *mm)
         if (machine_getColour(v) != mm->colour)
         {
             char *s = machine_toString(v, VSS_Raw, mm);
-            printf("gc: releasing %s (%p)\n", s, (void *) v);
+            printf("gc: releasing %s (%p)\n", s, (void *)v);
             FREE(s);
         }
         v = nextV;
@@ -541,7 +544,7 @@ void forceGC(MachineState *mm)
 
 static void gc(MachineState *state)
 {
-#ifdef MACHINE_GC_FORCE
+#ifdef MACHINE_FORCE_GC
     forceGC(state);
 #else
     if (state->size >= state->capacity)
@@ -772,7 +775,7 @@ void machine_initialise(void)
 void machine_finalise(void)
 {
 #ifdef MACHINE_DEBUG_GC
-    printf("machine_finalise\n");
+    printf("gc: machine_finalise\n");
 #endif
     machine_destroyState(&internalMM);
 
@@ -809,9 +812,6 @@ MachineState machine_initState(unsigned char *block)
 
 void machine_destroyState(MachineState *state)
 {
-    if (state->block != NULL)
-        FREE(state->block);
-    state->block = NULL;
     state->stackSize = 0;
     state->sp = 0;
     state->activation = NULL;
@@ -820,6 +820,9 @@ void machine_destroyState(MachineState *state)
     forceGC(state);
 
     FREE(state->stack);
+    if (state->block != NULL)
+        FREE(state->block);
+    state->block = NULL;
 }
 
 int32_t machine_readIntFrom(MachineState *state, int offset)
