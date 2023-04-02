@@ -1,5 +1,0 @@
-PUSH_CLOSURE $$identity
-RET
-
-:$$identity
-RET
